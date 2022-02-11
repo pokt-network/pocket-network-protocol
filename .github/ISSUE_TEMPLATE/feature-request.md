@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Request a feature
+about: Request a feature to be added to the Pocket Network Protocol
 title: "[FEATURE REQUEST]"
 labels: enhancement
 assignees: ''
