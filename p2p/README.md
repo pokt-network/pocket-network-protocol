@@ -278,11 +278,11 @@ The connection uses a default timeout to ensure that if idle for x amount of tim
 3. Peers convert their ephemeral Ed25519 private keys into Curve25519 private keys,
 4. Peers establish a shared secret by performing ECDH with their private Curve25519 private key and their peers Curve25519 public key.
 5. Peers exchange the produced shared key as follows:
-    1. Peer A constructs a message of bytes as follows: `[peer.persistentPubkey..., sharedKey...]`
-    2. Peer A signs it with its persistent private key and sends it to be
-    3. Peer B decrypts and the messages and sends back the same format: `[peer.persistentPubkey..., sharedKey...]`
-    4. Peer A upon receiving the response reconstructs the message with peer BÕs publickey and the shared secret it produced earlier and verifies it using BÕs persistent Publickey
-6. Peers use the shared secret as a symmetric key and communicate from then on with messages encrypted/decrypted via. AES 256-bit GCM with a randomly generated 12-byte nonce.
+    1. Peer **A** constructs a message of bytes as follows: `[peer.persistentPubkey..., sharedKey...]`
+    2. Peer **A** signs it with its persistent private key and sends it to **B**
+    3. Peer **B** decrypts and the message and sends back its public key and shared key in the same format: `[peer.persistentPubkey..., sharedKey...]`
+    4. Peer **A** upon receiving the response reconstructs the message with peer **B**'s publickey and the shared secret it produced earlier and verifies it using **B**'s persistent Publickey.
+6. Peers use the shared secret as a symmetric key and communicate from then on with messages encrypted/decrypted via AES 256-bit GCM with a randomly generated 12-byte nonce.
 
 ##### 6.3 Connections Pooling
 
