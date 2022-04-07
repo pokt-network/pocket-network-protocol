@@ -50,18 +50,11 @@ In this section, we will explain the structure that will power Pocket Network V1
 
 ## Introduction 
 
-During our [research](#), we have been able to identify a few good candidate structures/algorithms for our overlay, out of which we thought Gemini (_previous version of spec is available in (add link))_ would be serve us best, however, having ran a few simulations and performed a few projections, we realized that as scalable as Gemini is, we could still face some challenges before we reach a relatively significant network size (_peer count > 10K_)
+During our [research](#), we have been able to identify a few good candidate structures/algorithms for our overlay, however unfortunately most of them were built to achieve different goals that those we want to achieve at Pocket Network, thus requiring some repurposing before use.  
 
+Pocket Network is primarily a V2N (_Validator To Node_) Network, which means that the P2P layer should primarily aid Consensus in the proposal of blocks and other nodes in the dissementation of transaction. In other words, what we really need is a strong broadcast algorithm, and less of object lookup, routing and the other functionalities that pre-existing solutions offer.
 
-All of a sudden, the challenge was not scaling to a billion nodes but rather accommodating for cases when the network is still at its infancy and growing, a 1000 and below.
-
-We first off tried to keep it as simple as possible and tried to go with an if else approach. If below a certain size, use a PRR algorithm, if beyond the threshold, fallback to Gemini.
-
-However we weren't particularly interested in giving ourselves further work to do, we wanted a structure that will serve us best as simply as possible.
-After some thought, and after revisiting other candidates we have covered in our research, we took a special appeal to OneHop or Cosntant Hops algorithms (such as Kelips O(1)), but we hoped to extract the good parts only, so that we don't have to deal with the file-lookup-specific gymnastics and what not.
-
-Out of that thought process, we ended up picking what was first an optimization to our gossip algorithm for block proposal rounds, but later turned out to give us all the right answers with very intresting simplicity! It's called: Rain Tree.
-
+That's when we decided to come up with our own solution. We called it: "RainTree: A structured tree-based broadcast algorithm with optional redudancy and reliability mechanisms."
 
 ## I. Requirements
 
