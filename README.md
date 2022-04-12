@@ -6,12 +6,16 @@
 
 # Pocket V1 Protocol Specifications
 
+This is the official resource for the v1 specification of [Pocket Network](https://pokt.network).
+
+The implementation of the protocol is accessible [here](https://github.com/pokt-network/pocket).
+
 ## Sections
 
-[Utility](utility)
-[P2P](p2p)
-[Consensus](consensus)
-[Persistence](persistence)
+- [Utility](utility/README.md)
+- [Consensus](consensus/README.md)
+- [P2P](p2p/README.md)
+- [Persistence](persistence/README.md)
 
 ## Support & Contact
 
