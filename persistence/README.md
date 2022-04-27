@@ -1,7 +1,7 @@
 # Pocket Network 1.0 Persistence Module Pre-Planning Specification: Tamper Proof Hybrid Mutable Database Persistence Model
 
 <p align="center">
-    Luis Correa de León<br> 
+    Luis Correa de León<br>
     @luyzdeleon<br>
     Version 1.0.1
 </p>
@@ -54,7 +54,7 @@ This document presents a specification for the Persistence Module of the Pocket 
    </td>
   </tr>
   <tr>
-   <td><strong>“Byte-perfect consistency” data encoding</strong>: The data has to be encoded in a format that allows for byte-perfect comparison of data. 
+   <td><strong>“Byte-perfect consistency” data encoding</strong>: The data has to be encoded in a format that allows for byte-perfect comparison of data.
    </td>
    <td>Persistence Client Middleware specification
    </td>
@@ -105,7 +105,7 @@ In the context of the Persistence Module, a client-server architecture indicates
 
 ![alt_text](figure1-4.jpg "Figures 1-4")
 
-### 1.2. Database Engine 
+### 1.2. Database Engine
 
 The selected **Database Engine** which will be referred to as “**the database engine**” will be [PostgreSQL](https://www.postgresql.org/). The accompanying research document to this Pre-Planning Specification contains the research by which this decision was made. Postgresql contains multiple desirable properties that satisfy requirements such as **Schema Definition Mechanism, Deterministic Write Mechanism **and** Idempotent Dataset Updates**.
 
@@ -158,7 +158,7 @@ A middleware, by definition is software that sits between the client and the dat
 In the case of the persistence client middleware for the Pocket Network, we need to define a set of expected behaviours and attributes this middleware needs to have in order to ensure all the requirements described in this document.
 
 
-### 2.2. Persistence Datasets 
+### 2.2. Persistence Datasets
 
 A **dataset** is a group of collections that is logically related. For Pocket Network 1.0, we are proposing the following datasets:
 
@@ -221,7 +221,7 @@ In order to implement idempotency to our persistence layer, we need to define th
 
 Most modern SQL DBMS (database management system) implementations utilize the **Transaction model** to indicate a transaction as a group of operations to be performed sequentially and logically grouped. This is called [ACID](https://en.wikipedia.org/wiki/ACID) (atomicity, consistency, isolation, durability), which are the properties that allow the dataset to stay consistent across operations, by allowing capabilities such as the rollbacks in case one of the operations in the transaction fails or yields an inconsistent dataset state.
 
-Our chosen database engine, Postgresql, defines a transaction model in their official documentation [here](https://www.postgresql.org/docs/current/tutorial-transactions.html). On top of that the capacity to rollback transactions is described [here](https://www.postgresql.org/docs/current/sql-rollback-prepared.html). In combination these 2 mechanisms allow us to establish deterministic writes, which will allow the handling of datasets such as **state** in a fail-safe manner avoiding issues like data corruption and race conditions. 
+Our chosen database engine, Postgresql, defines a transaction model in their official documentation [here](https://www.postgresql.org/docs/current/tutorial-transactions.html). On top of that the capacity to rollback transactions is described [here](https://www.postgresql.org/docs/current/sql-rollback-prepared.html). In combination these 2 mechanisms allow us to establish deterministic writes, which will allow the handling of datasets such as **state** in a fail-safe manner avoiding issues like data corruption and race conditions.
 
 
 ## 3. Blockchain State Validation Architecture
@@ -229,7 +229,7 @@ Our chosen database engine, Postgresql, defines a transaction model in their off
 
 ### 3.1. Overview
 
-The **state dataset** contains the result of each set of state transitions indicated by the transactions of any given height. This makes **immutability** of the **state dataset** a desired property, because the resulting state at any given height is one of the most important inputs of the consensus process of the Pocket Network. This specification contains a mechanism that leverages [Merkle Patricia Tries](https://eth.wiki/en/fundamentals/patricia-tree) as a data-structure that helps prove the integrity of the state dataset at any given height, sans 1 modification, the change of the RLP encoding scheme, for the [Protobuf](https://developers.google.com/protocol-buffers) encoding scheme. 
+The **state dataset** contains the result of each set of state transitions indicated by the transactions of any given height. This makes **immutability** of the **state dataset** a desired property, because the resulting state at any given height is one of the most important inputs of the consensus process of the Pocket Network. This specification contains a mechanism that leverages [Merkle Patricia Tries](https://eth.wiki/en/fundamentals/patricia-tree) as a data-structure that helps prove the integrity of the state dataset at any given height, sans 1 modification, the change of the RLP encoding scheme, for the [Protobuf](https://developers.google.com/protocol-buffers) encoding scheme.
 
 
 ### 3.2. Immutable State Schema
@@ -251,7 +251,7 @@ As specified in the Merkle Patricia Tries, every subsequent operation for a give
 
 ### 3.2.3. State Structure Verification
 
-To verify any given structure state in a Merkle Patricia Trie, we just need to provide a merkle proof and the computed **leaf node** we are trying to prove. No necessary changes to the specification are needed other than the already mentioned replacement of [RLP](https://eth.wiki/fundamentals/rlp) for Protobuf. 
+To verify any given structure state in a Merkle Patricia Trie, we just need to provide a merkle proof and the computed **leaf node** we are trying to prove. No necessary changes to the specification are needed other than the already mentioned replacement of [RLP](https://eth.wiki/fundamentals/rlp) for Protobuf.
 
 
 ### 3.2.4. Patricia Merkle Trie Persistence
@@ -278,20 +278,20 @@ Pocket Network has one main difference with most blockchains in the market right
 
 ### <span style="text-decoration:underline;">2. Can an attacker just modify the mutable database and make a node commit to an invalid state?</span>
 
-This attack vector can exist even if we were to persist all datasets using trees, however this would break functionality as at the moment of provisioning proof of computation, this data would vary yielding an invalid subsequent state version. 
+This attack vector can exist even if we were to persist all datasets using trees, however this would break functionality as at the moment of provisioning proof of computation, this data would vary yielding an invalid subsequent state version.
 
 
 ### <span style="text-decoration:underline;">3. Isn’t this approach more susceptible to errors as there are more moving parts?</span>
 
-The only additional step this architecture includes is computing the leaf nodes as a result of the operations that happen on the mutable database. We believe that this is a valid trade-off as it can be easily managed as a separate sub-module of the persistence layer. 
+The only additional step this architecture includes is computing the leaf nodes as a result of the operations that happen on the mutable database. We believe that this is a valid trade-off as it can be easily managed as a separate sub-module of the persistence layer.
 
 
 # Candidate Features / Would Like to Haves / Open Questions
 
 
-#### <span style="text-decoration:underline;">1. Have a key/value store for caching data that won’t make sense in a relational database due to performance or data replication.</span>
+#### <span style="text-decoration:underline;**">1. H**ave a key/value store for caching data that won’t make sense in a relational database due to performance or data replication.</span>
 
-An interface to implementations such as [Redis](https://redis.io/) and [ElasticSearch](https://www.elastic.co/) as a cache layer which can store specific, optimized schemas or views to the persistent mutable and immutable schemas of the persistence layer. This is an optimization that can be tackled in future versions of this specification. 
+An interface to implementations such as [Redis](https://redis.io/) and [ElasticSearch](https://www.elastic.co/) as a cache layer which can store specific, optimized schemas or views to the persistent mutable and immutable schemas of the persistence layer. This is an optimization that can be tackled in future versions of this specification.
 
 
 # References

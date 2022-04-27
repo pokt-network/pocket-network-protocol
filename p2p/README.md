@@ -1,4 +1,4 @@
-# Pocket Network 1.0 Peer-To-Peer Module Pre-Planning Specification: Fast, Scalable, Highly Reliable and Optionaly Redundant Binary Tree Gossip
+# RainTree: Pocket Network 1.0 Peer-To-Peer Specification - A Fast, Scalable, Reliable and Optionally Redundant Binary Tree Gossip Algorithm <!-- omit in toc -->
 
 <table style="text-align: center;">
 <tr style="text-align: center;">
@@ -11,11 +11,10 @@
 
   <td style="border-width: 0px;">
     <p align="center">
-        Andrew Nguyen 
+        Andrew Nguyen
         @andrewnguyen22 <br>
     </p>
   </td>
-
 
   <td style="border-width: 0px;">
     <p align="center">
@@ -36,86 +35,167 @@
 <tr>
 <td style="border-width: 0px;">
     <p align="center">
-        Version 1.0.1<br>
+        Version 1.0.2<br>
     </p>
 </td>
 </tr>
 
-## Overview
-Choosing the proper data structure to represent the structure of a network's overlay is the main and the crucial step to achieving a structured overlay, and a detrimental one for building an efficient and performant network.
+# Abstract <!-- omit in toc -->
 
-We chose to go with a structured overlay approach for our p2p network to be able to theorize about the network and manage churn among other things.
+<!-- Future edit notes:
+  * Need to rewrite this whole Abstract (previously overview) to make it clear - see https://arxiv.org/pdf/1803.05069.pdf as a reference.
+  * We use the word `structure` way too many times without explaining what that mans.
+  * No reference to RainTree - I still have no clue what this whole spec is about.
+-->
 
-In this section, we will explain the structure that will power Pocket Network V1's P2P layer.
+Choosing the proper data structure to represent the structure of a network's overlay is the main and crucial step to achieving a structured overlay, and a detrimental one for building an efficient and performant network.
 
-## Introduction 
+We chose to go with a structured overlay approach for our P2P network to be able to both theorize and evaluate the network's performance, while also managing churn and peer discovery
 
-During our [research](#), we have been able to identify a few good candidate structures/algorithms for our overlay, out of which we thought Gemini (_previous version of spec is available in (add link))_ would be serve us best, however, having ran a few simulations and performed a few projections, we realized that as scalable as Gemini is, we could still face some challenges before we reach a relatively significant network size (_peer count > 10K_)
+In this paper, we will explain the structure that will power Pocket Network V1's P2P networking layer.
 
+- [1. Introduction](#1-introduction)
+- [2. Requirements](#2-requirements)
+- [3. RainTree Specification](#3-raintree-specification)
+  - [3.1 Definitions](#31-definitions)
+  - [3.2 Network View](#32-network-view)
+    - [3.2.1 Global Address Book](#321-global-address-book)
+    - [3.2.2 Partial Address Book](#322-partial-address-book)
+  - [3.3 RainTree Network Structure](#33-raintree-network-structure)
+    - [3.3.1 Maximum Number of Layers](#331-maximum-number-of-layers)
+    - [3.3.2 Node Layer](#332-node-layer)
+  - [3.4 Message Propagation](#34-message-propagation)
+    - [3.4.1 RainTree Gossip Algorithm](#341-raintree-gossip-algorithm)
+    - [3.4.2 RainTree Redundancy Layer](#342-raintree-redundancy-layer)
+    - [3.4.3 Daisy-Chain Clean Up Layer: Failure Detection & Recovery Layer](#343-daisy-chain-clean-up-layer-failure-detection--recovery-layer)
+    - [3.5 Network Churn & Discovery](#35-network-churn--discovery)
+      - [3.5.1 Requirements](#351-requirements)
+      - [3.5.2 Peer Discovery - Joining a Network](#352-peer-discovery---joining-a-network)
+      - [3.5.3 Peer Heartbeat - Leaving a Network](#353-peer-heartbeat---leaving-a-network)
+      - [3.5.4 Membership Pings](#354-membership-pings)
+- [4. Evaluation & Results](#4-evaluation--results)
+  - [4.1 Parameters](#41-parameters)
+  - [4.2 Evaluation Results](#42-evaluation-results)
+- [5 Transport Layer Protocol And Security](#5-transport-layer-protocol-and-security)
+  - [5.1. Message Types](#51-message-types)
+  - [5.2 Connection Lifecycle](#52-connection-lifecycle)
+  - [5.3 Handshake protocol draft](#53-handshake-protocol-draft)
+  - [5.4 Connections Pooling](#54-connections-pooling)
+  - [5.5 Protocol](#55-protocol)
+  - [5.6 Security](#56-security)
+- [References](#references)
 
-All of a sudden, the challenge was not scaling to a billion nodes but rather accommodating for cases when the network is still at its infancy and growing, a 1000 and below.
+# 1. Introduction
 
-We first off tried to keep it as simple as possible and tried to go with an if else approach. If below a certain size, use a PRR algorithm, if beyond the threshold, fallback to Gemini.
+<!-- Future Edit Notes:
+* The introduction needs to be rewritten altogether.
+* Definitions:
+  * Need to define what an overlay is.
+  * Need to define what a structure is
+* Need to add a "Related Work" section including:
+  * Tendermint Gossip
+  * One-Hop Algorithms
+  * PRR
+  * Kelpis
+  * Gemini
+    * Need to provide a background section on Gemini
+    * Need to link to results of simulations on Gemini
+    * How does this work?
+    * Why is it not good enough
+    * What are the scalability issues?
+-->
 
-However we weren't particularly interested in giving ourselves further work to do, we wanted a structure that will serve us best as simply as possible.
-After some thought, and after revisiting other candidates we have covered in our research, we took a special appeal to OneHop or Cosntant Hops algorithms (such as Kelips O(1)), but we hoped to extract the good parts only, so that we don't have to deal with the file-lookup-specific gymnastics and what not.
+During the core Pocket team's research, several structures/algorithms were identified to serve as an overlay for Pocket's V1 P2P networking layer. One of these was [Gemini][1], which builds a network topology using robust estimations of future traffic. However, simulations and projections using Gemini showed that scalability challenges could still be present when the peer count beings to exceed 10,000. As of April 2022, Pocket Network size of more than 40,000 nodes already exceeds the theoretical limits of Gemini.
 
-Out of that thought process, we ended up picking what was first an optimization to our gossip algorithm for block proposal rounds, but later turned out to give us all the right answers with very intresting simplicity! It's called: Rain Tree.
+One of the approaches explored involved using a [Proportional Rate Reduction(PRR)][2] algorithm that fallbacks back to Gemini when a certain threshold is exceeded.
 
+Other approaches explored included One-Hop or Constant-Hops algorithms, such as [Kelips][3]. However, to avoid file-lookup-specific complexities, they would have been needed to be heavily modified.
 
-## I. Requirements
+This paper introduces **RainTree**, a structured tree-based gossip algorithm inspired by [Tendermint's P2P Gossip Algorithm][4].
 
-Quoting from our research document, this list represents the requirements that the peer-to-peer layer of Pocket 1.0 should satisfy:
+# 2. Requirements
 
-- The network has to be able to scale to 100K-1M nodes
-- The peers should be able to communicate with each other and find each other in a deterministic and low-latency way 
-- We should be able to reason about the network performance and capacity theoretically (_There is no way you are going to simulate a load of 1 billion peers_)
-- The network should perform flawlessly regardless of the amount of data or type of communication that is taking place. (_By this we specifically mean that the peer-to-peer should act as substrate and allow the application layer to do whatever it needs in order to guarantee that Pocket is not restricted by the p2p layer._)
+The following list documents the requirements that the Peer-to-Peer networking layer of Pocket 1.0 must adhere to:
 
-- The network should be fault tolerant and self-healing (Self-explanatory)
-- The network should be able to prioritize particular peers for some specific roles
-- The substrate should allow for higher-order structures to be established on top of it, such that a specific set of peers is organized by role or rank or priority.
-- The network should support segmented communication. (_This is an outcome of the previous requirement where a set of peers might be interested in communicating only among themselves._)
+- The network should scale to support at least 1M nodes.
+- Network peers must be able to communicate and discover one another deterministically and with low latency.
+- One must be able to reason about the network's performance and capacity both theoretically and empirically.
+- The network should remain partially asynchronous (i.e. an upper bound on message delays exist) regardless of the payload size.
+- The goal of this specification is to guarantee that P2P layer does not act as a limiting factor for Pocket's Consensus and Utility specifications.
+- The network should be fault tolerant and self-healing.
+- The network should be able to distinguish, organize and prioritize peers based on role or priority.
+- The network should be partition tolerant per the [CAP][5] theorem.
 
-## II. Specification
+# 3. RainTree Specification
 
-### 1. Structure
+<!-- Future Edit Notes:
+* Need to explain how IDs are assigned to nodes.
+* Things to add to the definition / types section:
+  * Numerical ID of a peer: what is it and how it's computed
+  * Originator node:
+-->
 
-The network structure in RainTree is a list of peers sorted by the numerical distance of their IDs. This list undergoes a set of operations/transformations which are primarily functions of the peers actual numerical position. For instance, when dealing with a message propagation, an originator node is designated as the root member of a binary tree whose right and left branches are the 33th% and the 66th% peers of that root's position in the list, and in and of themselves, these rights and lefts pick their own binary branches using the same logic. So in short, the sorted list has been transformed into a binary tree whose root is the originator's node and whose rights and lefts are always the 33th% and the 66th% of the immediate root and so on and so forth.
+## 3.1 Definitions
 
+- **Global Address Book**: The list of addresses of all participating network peers / actors in the network. See Pocket's [Utility Module][6] for a full list of types of actors.
+- **Partial Address Book**: The list of address that a network peer / actor is connected to and is always a strict subset of the Global Address Book.
+- **Dead Node**: A network peer / actor that is expected to be online
+- **Originator Node**: The first node to send a certain message. It is either the creator for the message or a proxy to an external source that created the message.
+- **Layer**: TODO
 
-In such a tree/list, we make use of the concept of right and left branch targets, tree layers and max possible tree layers. We codify these concepts as follows:
+## 3.2 Network View
+
+In most traditional networking schemes, each node has a partial view of the network (i.e. a fog-of-war like view) and is dependant on a mechanism similar to [Tendermint's Gossip][4] to disseminate a message throughout the network.
+
+Pocket Network is an application specific blockchain where all the actors (fisherman, validators, servicers) are staked and therefore part of the blockchain state. All of these actors are both readers & writers of the state. In turn, every peer participating in message propagation has a full view of the global address book - all the other actors participating in RainTree.
+
+Full nodes (i.e. readers only such as block explorers) can connect to these actors to sync a local state of the blockchain but do not participate in the process of message propagation.
+
+Clients (i.e. wallets) will need to send a message to an Originator Node in order for it to be propagated to the rest of the network.
+
+### 3.2.1 Global Address Book
+
+The global address book is a lexicographically ordered list of addresses of all the actors in the Pocket Network staked actors that participate in message propagation. Address are similar to UUIDs, but are are represented by 42 hex digits. See the [Utility Spec][6] for details on how it is computed.
+
+The ID associated with each node corresponds to its index in this list.
+
+### 3.2.2 Partial Address Book
+
+A partial address book is a strict subset of the global address book that a particular peers / node / actor is connected to at the network layer.
+
+## 3.3 RainTree Network Structure
+
+whose right and left subtrees are the 33rd and the 66th percentiles in the ordered list of peers relative to the root's position in the list, and in and of themselves, these rights and lefts pick their own binary branches using the same logic. So in short, the sorted list has been transformed into a binary tree whose root is the originator's node and whose rights and lefts are always the 33th% and the 66th% of the immediate root and so on and so forth.
+
+The maximum number of layers
 
 - Max possible Layers = log3 of List Size
 - Layer of a peer = Round up of the count of the exponents of 3 in the peers ID
 - Right branch target = Node position + targetListSize/3 (roll over if needed)
-- Left branch target = Node position + targetListSize/	1.5 (roll over if needed)
+- Left branch target = Node position + targetListSize/ 1.5 (roll over if needed)
 - targetListSize = (topLayer + currentLayer) x 0.666 x Size of full list
 
-This approach is a very simple one. No specifically complex classification or routing logic is required, RainTree relies on the fact that a binary tree lookup is in fact one of the most optimal methods as far as searching in a sorted list with random data goes, and it leverages so to achieve efficient communication in a p2p network.
+In such a tree/list, we make use of the concept of right and left branch targets, tree layers and max possible tree layers. We codify these concepts as follows:
 
 You can learn more about how we've come to these conclusions by reading the original presentation document.
-
-In summary, RainTree is a very fast, scalable and highly reliable optionaly redundant gossip algorithm that relies on the fact that a binary search is optimal for most randomly distributed datasets.
-
-To gossip a message M, RainTree uses a distance-based metric to build a binary tree view of the network and propagates information down the tree. This traversal algorithm follows a tree reconstruction algorithm such that the resulting tree is one of three branches and not two.
 
 ![](./raintreediagram.png)
 
 RainTree requires that the peer list / neighbors list be sorted based on the distance metric.
 
+### 3.3.1 Maximum Number of Layers
+
+### 3.3.2 Node Layer
+
+## 3.4 Message Propagation
+
+During message propagation, an originator node is designated as the root of a binary tree
+
+To gossip a message M, RainTree uses a distance-based metric to build a binary tree view of the network and propagates information down the tree. This traversal algorithm follows a tree reconstruction algorithm such that the resulting tree is one of three branches and not two.
+
 The root of the tree is message originator Node S, where the immediate left and right branches are the %33th and %66th positions in the peer list respectively. Node S is said to have `level`, which is the starting layer for the gossip, and it's referred to as the `top layer`.
 
-
 To determine Node S' layer, we use the following formula:
-
-```
- Count the exponents of 3 in the list and then round up:
-
-       Toplayer = Round(Log3(fullListSize))
-  
-* fullListSize: the size of the peer list of Node S
-```
 
 As mentioned before, `S` will follow a tree reconstruction algorithm to achieve full message propagation, such that when it has delivered message `M` to its left and right, `S` "demotes" itself one level down, and picks a new left and right using the same logic. This demotion goes on until the bottom-most layer (layer 0)
 
@@ -123,8 +203,7 @@ As mentioned before, `S` will follow a tree reconstruction algorithm to achieve 
 
 Each node receiving message `M` will follow the same logic..
 
-
-### 2. Algorithm (Gossip) 
+### 3.4.1 RainTree Gossip Algorithm
 
 The originator of the message propagates the message as follows:
 
@@ -151,9 +230,9 @@ The algorithm in pseudo-code:
 
 ![](raintreealgorithm.png)
 
-### 3. The Redundancy Layer
+### 3.4.2 RainTree Redundancy Layer
 
-An optional redudancy layer can be added to RainTree, such that the originator sends message M to the full list on level 0.
+An optional redundancy layer can be added to RainTree, such that the originator sends message M to the full list on level 0.
 
 ![](raintreeredundanctalgo.png)
 
@@ -163,7 +242,7 @@ So, the algorithm becomes:
 
 This redundancy layer insures against non-participation and incomplete lists without the ACK/RESEND overhead, whereas the reliability layer (Daisy Chain clean-up layer) ensures 100% message propagation in all cases. (See next segment)
 
-### 4. The Failure Detection and Recovery Layer (Daisy-Chain Clean Up Layer)
+### 3.4.3 Daisy-Chain Clean Up Layer: Failure Detection & Recovery Layer
 
 Networks are prone to failure and partitions, so RainTree offers a clean up layer (_a reliability layer_) that ensures that every node has successfully received the message M.
 
@@ -183,7 +262,7 @@ This is achieved by level 1 nodes, such that once they have received a message, 
   - If no answer, increment left counter and go to step 1
 - Send IGYW to immediate right neighbour:
   - If answer is Yes, send full message
-  - If answer is No, 
+  - If answer is No,
   - If no answer, increment right counter and go to step 2.
 
 In pseudo-code:
@@ -194,16 +273,15 @@ Thus, the full algorithm becomes as follows:
 
 ![](igywfullalgo.png)
 
-This process is an ACK/ADJUST/RESEND mechanism, for if no ACK was received, an ADJUST instruction takes place, which right after a RESEND instruction is initiated. 
+This process is an ACK/ADJUST/RESEND mechanism, for if no ACK was received, an ADJUST instruction takes place, which right after a RESEND instruction is initiated.
 
-### 5 Maintenance
+### 3.5 Network Churn & Discovery
 
 As with any DHT-like network, some level of network maintenance (also known as membership maintenance/protocol or churn management) is required to keep the network connected.
 
 RainTree is different in that it's similar to Constant Hop networks, in that its churn management process is minimal to non-existent. RainTree requires every member to have a close-to-full view of the network.
 
-
-##### 5.1 Join/Discovery
+#### 3.5.1 Requirements
 
 Any new peer should be able to join the network and participate in it seamlessly. To ensure that our Join/Discovery process achieves this, we would like to answer the following requirements:
 
@@ -212,8 +290,7 @@ Any given peer can perform basic discovery and can safely fallback to such a pro
 
 To answer these requirements efficiently, we baked the discovery process into the join process.
 
-
-##### 5.2 Join
+#### 3.5.2 Peer Discovery - Joining a Network
 
 When a new peer X joins the network:
 
@@ -224,18 +301,19 @@ ACKs can be enforced to keep peers from being filtered from peer XÕs peer list 
 
 This way, when a peer joins, it is immediately given at least one peer list it can start working with, and can by itself clean it up using ACKs and timeouts.
 
-##### 5.3 Leave
+#### 3.5.3 Peer Heartbeat - Leaving a Network
 
 A peer that wants to leave the network basically just disconnects and relies on the maintenance routine to "discover" and broadcast its unavailability.
 
-##### Membership Pings
+#### 3.5.4 Membership Pings
 
 RainTree per design can perform flawlessly without a periodic pings protocol, as the Gossip algorithm comes with enough to inform it about the recipients state, however we are interested in implementing a churn management protocol in separation of raintree that further enhances failure detection.
 
 For the time being, this is a work-in-progress.
 
-#### 3.5 Network Parameters and Scalability
+# 4. Evaluation & Results
 
+## 4.1 Parameters
 
 This will scale! If you tripple the node counts, the only increase is ticks=+2
 
@@ -251,85 +329,100 @@ This will scale! If you tripple the node counts, the only increase is ticks=+2
 | 59,049  | 236,195 | 118,100 | 25    |
 | 177,147 | 708,587 | 354,296 | 27    |
 
-
-##### Real life experimentation data
+## 4.2 Evaluation Results
 
 We will be looking to add some interesting results from a scientific simulation of rain tree available in [rain-tree-simulation](https://github.com/pokt-network/rain-tree-sim) repository.
 
-### 6 Transport Protocol And Security
+# 5 Transport Layer Protocol And Security
 
-Transport logic and security are key elements in the inner working of the p2p network. Here we try to outline the general properties and specifications that our network should have and comply with. We also detail some possible attacks that we may be susceptible to. 
+Transport logic and security are key elements in the inner working of the p2p network. Here we try to outline the general properties and specifications that our network should have and comply with. We also detail some possible attacks that we may be susceptible to.
 
-##### 6.1 Connection Lifecycle
+## 5.1. Message Types
+
+Each protocol will define its messages. Take the following starting index of messages per protocol:
+
+- Membership Protocol
+  - Ping
+  - Pong
+  - Join
+  - Leave
+- Gossip Protocol (_RainTree)_
+  - Gossip
+  - GossipACK
+  - GossipRESEND
+- Daisy-Chain Protocol (_Gossip Reliability Protocol_)
+  - IGYW
+  - IGYW_AFF
+  - IGYW_NEG
+
+## 5.2 Connection Lifecycle
 
 A connection is initiated by the peers
 Handshake protocol is initiated and peers exchange secrets to establish a secure encrypted channel.
 Messages are then sent on-demand while the connection is alive.
 The connection uses a default timeout to ensure that if idle for x amount of time resources are freed and no unnecessary allocations happen.
 
-##### 6.2 Handshake protocol draft
+## 5.3 Handshake protocol draft
 
 1. Perform Diffie-Hellman handshake:
-    1. Peers generate ephemeral Ed25519 public and private keys
-    2. Peers sign a nonce message and send it with their public key to the other party
-        1. Define nonce to be (*for instance*): `_p2p_pokt_network_handshake_`
-    3. The bytes order is important and can be as follows: `[pubkey... , 0, signature...]`
+   1. Peers generate ephemeral Ed25519 public and private keys
+   2. Peers sign a nonce message and send it with their public key to the other party
+      1. Define nonce to be (_for instance_): `_p2p_pokt_network_handshake_`
+   3. The bytes order is important and can be as follows: `[pubkey... , 0, signature...]`
 2. Peers convert the public keys they received into Curve25519 public keys,
 3. Peers convert their ephemeral Ed25519 private keys into Curve25519 private keys,
 4. Peers establish a shared secret by performing ECDH with their private Curve25519 private key and their peers Curve25519 public key.
 5. Peers exchange the produced shared key as follows:
-    1. Peer **A** constructs a message of bytes as follows: `[peer.persistentPubkey..., sharedKey...]`
-    2. Peer **A** signs it with its persistent private key and sends it to **B**
-    3. Peer **B** decrypts and the message and sends back its public key and shared key in the same format: `[peer.persistentPubkey..., sharedKey...]`
-    4. Peer **A** upon receiving the response reconstructs the message with peer **B**'s publickey and the shared secret it produced earlier and verifies it using **B**'s persistent Publickey.
+   1. Peer **A** constructs a message of bytes as follows: `[peer.persistentPubkey..., sharedKey...]`
+   2. Peer **A** signs it with its persistent private key and sends it to **B**
+   3. Peer **B** decrypts and the message and sends back its public key and shared key in the same format: `[peer.persistentPubkey..., sharedKey...]`
+   4. Peer **A** upon receiving the response reconstructs the message with peer **B**'s publickey and the shared secret it produced earlier and verifies it using **B**'s persistent Publickey.
 6. Peers use the shared secret as a symmetric key and communicate from then on with messages encrypted/decrypted via AES 256-bit GCM with a randomly generated 12-byte nonce.
 
-##### 6.3 Connections Pooling
+## 5.4 Connections Pooling
 
 Connection pooling is required to recycle existing connections and properly utilize the available bandwidth.
 
-The network parameters are theorized for a network bandwidth capacity minimum of 500Mbps (*for both upload and download*).
+The network parameters are theorized for a network bandwidth capacity minimum of 500Mbps (_for both upload and download_).
 
-- Max size of a message is 4MB+DataHeaderSize (*a completely full block*)
+- Max size of a message is 4MB+DataHeaderSize (_a completely full block_)
 - DataHeaderSize describes metadata about the data transmitted, primairly:
-    - Size: 4 bytes
-    - *insert others if needed*
-- Max number of inbound connections is 125 (*each connection consuming 4Mbs*)
-- Max number of outbound connections is 125 (*each connection consuming 4Mbs*)
+  - Size: 4 bytes
+  - _insert others if needed_
+- Max number of inbound connections is 125 (_each connection consuming 4Mbs_)
+- Max number of outbound connections is 125 (_each connection consuming 4Mbs_)
 
 We can possibility open these parameters for external configuration to allow for robust servers to utilize their maximum capacity, but stick to a minimum acceptable network capacity such as the one stated above.
 
 This is a basic bounded connection pool for regular operation with persistent peering options.
 
-We intedn to add a specialized bounded pools for application use cases:
+We intend to add a specialized bounded pools for application use cases:
 
 - Syncing allowance
 - Consensus tasks (validators)
 - Others.
 
-##### 6.4 Protocol
+## 5.5 Protocol
 
 We will rely on TCP/IP with a handshake for direct communications and Gossip where as we intend to use UDP for churn management communication.
 
-##### 6.6 Security
+## 5.6 Security
+
 Peer connections could be encrypted using AES 256-bit Galois Counter Mode (GCM) with a Curve25519 shared key established by an Elliptic-Curve Diffie-Hellman Handshake.
 
 Very similar to TLS handshakes.
 
-### Messages In the Overlay
+# References
 
-Each protocol will define its messages. Take the following starting index of messages per protocol:
+[1]: Gemini: Practical Reconfigurable Datacenter Networks with Topology and Traffic Engineering (https://arxiv.org/abs/2103.03391)
 
-- Membership Protocol
-    - Ping
-    - Pong
-    - Join
-    - Leave
-- Gossip Protocol (*RainTree)*
-    - Gossip
-    - GossipACK
-    - GossipRESEND
-- Daisy-Chain Protocol (*Gossip Reliability Protocol*)
-    - IGYW
-    - IGYW_AFF
-    - IGYW_NEG
+[2]: Proportional Rate Reduction for TCP (https://research.google/pubs/pub37486/)
+
+[3] Kelips : Building an Efficient and Stable P2P DHT
+Through Increased Memory and Background Overhead (https://www.cs.cornell.edu/home/rvr/papers/Kelips.pdf)
+
+[4] The latest gossip on BFT consensus (https://arxiv.org/abs/1807.04938)
+
+[5] CAP theorem (https://en.wikipedia.org/wiki/CAP_theorem)
+
+[6] Pocket 1.0 Utility Module (https://github.com/pokt-network/pocket-network-protocol/tree/main/utility)
