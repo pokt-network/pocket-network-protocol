@@ -52,7 +52,7 @@ In this section, we will explain the structure that will power Pocket Network V1
 
 During our [research](#), we have been able to identify a few good candidate structures/algorithms for our overlay, however unfortunately most of them were built to achieve different goals that those we want to achieve at Pocket Network, thus requiring some repurposing before use.  
 
-Pocket Network is primarily a V2N (_Validator To Node_) Network, which means that the P2P layer should primarily aid Consensus in the proposal of blocks and other nodes in the dissementation of transaction. In other words, what we really need is a strong broadcast algorithm, and less of object lookup, routing and the other functionalities that pre-existing solutions offer.
+Pocket Network is primarily a V2N (_Validator To Node_) Network, which means that the P2P layer should primarily aid Consensus in the proposal of blocks and other nodes in the dissemination of transaction. In other words, what we really need is a strong broadcast algorithm, and less of object lookup, routing and the other functionalities that pre-existing solutions offer.
 
 That's when we decided to come up with our own solution. We called it: "RainTree: A structured tree-based broadcast algorithm with optional redudancy and reliability mechanisms."
 
