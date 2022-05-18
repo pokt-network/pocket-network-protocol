@@ -135,8 +135,6 @@ This document presents a specification for the Persistence Module of Pocket Netw
 
 In the context of the Persistence Module, a **client-server architecture** indicates a separation between the **middleware** and the **database engine**. In practice, this allows for multiple types of system deployments illustrated in Figures 1-4.
 
-<!-- TODO(discuss in review): One downside of using mermaid is that it dynamically resizes the diagrams, but I believe it is a tradeoff worth having.-->
-
 ```mermaid
 stateDiagram-v2
     Fig1: 1 Machine - 1 Process - 1 Database Engine Process
@@ -214,8 +212,6 @@ On the database engine, the following configurations need to be specified:
 
 1. User role: 1 of **Servicer**, **Validator**, **Fisherman**, **Archival** or **Full Node**.
 2. Schemas: 1 or more of **Consensus**, **State**, **Mempool** and **Local**.
-
-<!-- TODO(discuss in review): Are the changes here accurate? Should we also add block store and other types of schemas?-->
 
 These configurations will be referenced throughout this specification to satisfy requirements and complement other mechanisms at different module layers.
 
@@ -342,7 +338,7 @@ Most modern SQL DBMS (database management system) implementations utilize the **
 
 Our chosen database engine, **Postgresql**, defines a transaction model in its official documentation [here](https://www.postgresql.org/docs/current/tutorial-transactions.html). It also defines the ability to rollback transactions [here](https://www.postgresql.org/docs/current/sql-rollback-prepared.html). These mechanisms establish the ability to achieve deterministic writes while avoiding issues such as data corruption and race conditions.
 
-<!-- TODO(discuss in review): 2.2.1.3 and 2.3 are very similar. Confirm that both are really needed and that the number is correct (because the prod version is a bit misconfigured).-->
+<!-- TODO(olshansky): Dive into a deeper discussion of how multiple each "utility level transaction" can be decomposed into multiple DB transactions, each of which is atomic in itself. The middleware layer can aggregate them a priori into one DB transaction, OR, the DB engine can be leveraged via conflicts & upserts to immitiate this behaviour for a simpler implementation. In summary, all the utility level transactions, which may or may not have a 1:1 mapping to DB transactions, are applied atomically in the context of a single height.-->
 
 ## 3. Blockchain State Validation Architecture
 
@@ -354,7 +350,7 @@ The **state dataset** contains the result of each set of state transitions indic
 
 We will refer to the **state dataset** as a group of collections that will conform to the immutable state schema. Every structure in the collection will become a leaf in a Merkle Patricia Trie, yielding a Merkle Root. Every Merkle root in the dataset will be concatenated in lexicographical order based on the collection identifier and hashed using **SHA256** function to produce what we will refer to as the **state hash**.
 
-<!-- TODO(discuss in review): Should we add a diagram for this now or later to make it easier to understand how the data is stored -->
+<!-- TODO(olshansky): Add a diagram for this now or later to make it easier to understand how the data is stored -->
 
 Each state hash will be persisted alongside a cryptographic digital signature computed via a designated private key, serving as proof for validation during local state computation. This proof will be utilized to avoid recalculating previous states and allow the system, provided the same private key, to have a high degree of confidence in its computed state. The state can be recalculated using the state hash algorithm if the proof has been tampered with. This proof will be referred to as the **state computation proof.**
 
