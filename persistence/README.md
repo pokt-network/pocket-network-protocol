@@ -39,6 +39,7 @@
 - [Candidate Features / Would Like to Haves / Open Questions](#candidate-features--would-like-to-haves--open-questions)
   - [<span style="text-decoration:underline;">1. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>](#1-add-a-keyvalue-store-for-caching-data-alongside-a-relational-database-that-does-not-hinder-performance-and-avoids-too-much-data-duplication)
 - [References](#references)
+- [WIP](#wip)
 
 # Overview
 
@@ -413,3 +414,42 @@ This optimization can be tackled in future versions of the specification. Specif
 [5] [https://developers.google.com/protocol-buffers](https://developers.google.com/protocol-buffers)
 
 [6] [https://eth.wiki/fundamentals/rlp](https://eth.wiki/fundamentals/rlp)
+
+# WIP
+
+```mermaid
+flowchart LR
+    subgraph Block Header
+        PrevHash
+        Transactions
+        QuorumCertificate
+        OBH[...]
+        subgraph State Trie Roots
+            VR[Validators Root]
+            AR[Applications Root]
+            OSTR[...]
+        end
+    end
+
+    %% Source of Truth
+    subgraph "Protobuf Schema"
+        VP([Validator])
+        AP([Application])
+        OPS([...])
+    end
+
+    %% Client Customizable
+    subgraph "SQL Schema"
+        VT[(Validators Table)]
+        AT[(Applications Table)]
+        OSS[(...)]
+    end
+
+    VP -- Serialization & \n Trie Insertion --> VR
+    AP -- Serialization & \n Trie Insertion --> AR
+    OPS -- Serialization & \n Trie Insertion --> OSTR
+
+    VP -- Schema Definition & \n DB Insertion --> VT
+    AP -- Schema Definition & \n DB Insertion --> AT
+    OPS -- Schema Definition & \n DB Insertion --> OSS
+```
