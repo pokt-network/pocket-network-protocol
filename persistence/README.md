@@ -43,13 +43,13 @@
 
 # Overview
 
-Historically, blockchain clients have been developed with two use cases in mind: **Validators** and **Full Nodes**. Validators are actors in the network who occasionally, given a particular condition indicated by the consensus protocol, get to propose and commit a block with transactions to the blockchain. Full nodes synchronize these blocks, validate them and maintain copies to be accessed by applications who want to query or send transactions to the blockchain system. However, even though **Full Nodes** are constructed after **Validators**, their use case of being mission-critical infrastructure for production applications is not realized. We can see this was the case when centralized blockchain infrastructure providers had to develop their production paradigms like [Alchemy's Supernode Architecture](https://www.alchemy.com/supernode) and [Infura's Cloud Architecture](https://blog.infura.io/building-better-ethereum-infrastructure-48e76c94724b/) highlighting the limitations of Blockchain Clients as production-grade infrastructure.
+Historically, blockchain clients have been developed with a focus on two use cases: **Validators** and **Full Nodes**. Validators are network actors who, given a particular condition indicated by the consensus protocol, get to propose and commit a block with transactions to the blockchain state. On the other hand, full nodes synchronize, validate and maintain copies of the state to be accessed by applications that want to query or transact with the blockchain. However, even though **Full Nodes** are mission-critical infrastructure components for application development, they are still seen as second-class citizens relative to **Validators** in terms of their importance. This is why various centralized blockchain infrastructure providers had to develop production paradigms such as [Alchemy's Supernode Architecture](https://www.alchemy.com/supernode) or [Infura's Cloud Architecture](https://blog.infura.io/building-better-ethereum-infrastructure-48e76c94724b/), highlighting the limitations of Blockchain Clients as production-grade infrastructure.
 
 This document presents a specification for the Persistence Module of Pocket Network 1.0, which aims to tackle the persistence needs of Pocket Network 1.0 nodes: scalability, robustness, data integrity and security. This specification is composed of 3 pillars:
 
-1. A **Client-Server Architecture** separating middleware processes from a generic database engine where the persistent data will live.
-2. A **Persistence Client Middleware Specification** that will dictate how clients of that generic database engine will behave to persist, update and query the datasets that are necessary for participating in the Pocket Network
-3. A **Blockchain State Validation Architecture** fulfills the tamper-proof requirements of blockchain databases and allows nodes to achieve consensus with the rest of the nodes after every migration of the persistence datasets.
+1. A **Client-Server Architecture** separating middleware processes from a generic database engine where the persistent data lives.
+2. A **Persistence Client Middleware Specification** dictating how clients of the generic database engine behave to persist, update and query the datasets necessary for participating as Pocket Network actors.
+3. A **Blockchain State Validation Architecture** fulfilling the tamper-proof requirements of blockchain databases allowing nodes to achieve consensus after every persistence dataset migration.
 
 # Requirements
 
