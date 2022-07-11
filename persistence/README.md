@@ -53,80 +53,20 @@ This document presents a specification for the Persistence Module of Pocket Netw
 
 # Requirements
 
-<table>
-  <tr>
-   <td>Requirement
-   </td>
-   <td>Pillar
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Portability</strong>: Persistent data is portable across different node operations, in a backup and restore fashion.
-   </td>
-   <td>Client-Server Architecture
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Individual Scalability</strong>: The middleware can be scaled independently from the database engine.
-   </td>
-   <td>Client-Server Architecture
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Fault Tolerance</strong>: Failures can be isolated between the middleware and database engine.
-   </td>
-   <td>Client-Server Architecture
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Multi-Process Concurrency</strong>: Multiple processes can access the database engine concurrently.
-   </td>
-   <td>Client-Server Architecture
-   </td>
-  </tr>
-  <tr>
-   <td><strong>State Dataset</strong> <strong>Versioning</strong>: Every version of the `Blockchain State` dataset must be versioned.
-   </td>
-   <td>Persistence Client Middleware specification
-   </td>
-  </tr>
-  <tr>
-   <td><strong>"Byte-perfect consistency" data encoding</strong>: Data is encoded in a format that allows for byte-perfect equality checks.
-   </td>
-   <td>Persistence Client Middleware specification
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Schema Definition Mechanism</strong>: Dataset structures must be schematized and schema changes are only allowed between different versions of the dataset.
-   </td>
-   <td>Persistence Client Middleware specification
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Deterministic Write Mechanism</strong>: A mechanism that allows to roll-back faulty writes that might compromise the data integrity of any dataset.
-   </td>
-   <td>Persistence Client Middleware specification
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Idempotent Dataset Updates</strong>: The same update operation to a dataset, applied multiple times, must yield the same dataset state.
-   </td>
-   <td>Persistence Client Middleware specification
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Cumulative State Versioning</strong>: Each new version of the state must be cumulative by only adding deltas of the state change withour recomputing the entire state.
-   </td>
-   <td>Blockchain State Validation architecture
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Dataset Integrity Verification</strong>: It is easy to verify if a particular element belongs to a particular version of a specific state dataset.
-   </td>
-   <td>Blockchain State Validation architecture
-   </td>
-  </tr>
-</table>
+| Requirement                                                                                                                                                       | Pillar                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **Transaction Isolation**: Persistent data can be backuped and restored across different node operations.                                                         | Client-Server Architecture                  |
+| **Portability**: It is possible to provide different implementations of the interface and database engine layers adhering to the same interface.                  | Client-Server Architecture                  |
+| **Individual Scalability**: The middleware can be scaled independently from the database engine.                                                                  | Client-Server Architecture                  |
+| **Fault Tolerance**: Failures can be isolated between the middleware and database engine.                                                                         | Client-Server Architecture                  |
+| **Multi-Process Concurrency**: Multiple processes can access the database engine concurrently.                                                                    | Client-Server Architecture                  |
+| **State Dataset Versioning**: Every version of the `Blockchain State` dataset must be versioned.                                                                  | Persistence Client Middleware specification |
+| **"Byte-perfect consistency" data encoding**: Data is encoded in a format that allows for byte-perfect equality checks.                                           | Persistence Client Middleware specification |
+| **Schema Definition Mechanism**: Dataset structures must be schematized and schema changes are only allowed between different versions of the dataset.            | Persistence Client Middleware specification |
+| **Deterministic Write Mechanism**: Faulty writes that compromise the integrity of the state can be rolled back.                                                   | Persistence Client Middleware specification |
+| **Idempotent Dataset Updates**: The same update operation to a dataset, applied multiple times, must yield the same dataset state.                                | Persistence Client Middleware specification |
+| **Cumulative State Versioning**: Each new version of the state must be cumulative by only adding deltas of the state change without recomputing the entire state. | Blockchain State Validation architecture    |
+| **Dataset Integrity Verification**: It is easy to verify if a particular element belongs to a particular version of a specific state dataset.                     | Blockchain State Validation architecture    |
 
 # Specification
 
