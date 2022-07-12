@@ -1,9 +1,9 @@
 # Pocket Network 1.0 Persistence Module Specification: Tamper Proof Hybrid Mutable Database Persistence Model <!-- omit in toc -->
 
 <p align="center">
-    Luis Correa de León<br>
-    @luyzdeleon<br>
-    Version 1.0.2
+    @luyzdeleon - Luis Correa de León<br>
+    @olshansky - Daniel Olshansky<br>
+    Version 1.0.3 - July 2022
 </p>
 
 - [Overview](#overview)
