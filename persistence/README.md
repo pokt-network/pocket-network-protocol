@@ -6,8 +6,9 @@
     Version 1.0.3 - July 2022
 </p>
 
-- [Overview](#overview)
-- [Requirements](#requirements)
+- [Abstract](#abstract)
+- [1. Introduction](#1-introduction)
+- [2. Requirements](#2-requirements)
 - [Specification](#specification)
   - [1. Client-Server Architecture](#1-client-server-architecture)
     - [1.1. Overview](#11-overview)
@@ -41,9 +42,7 @@
 - [References](#references)
 - [WIP](#wip)
 
-# Overview
-
-Historically, blockchain clients have been developed with a focus on two use cases: **Validators** and **Full Nodes**. Validators are network actors who, given a particular condition indicated by the consensus protocol, get to propose and commit a block with transactions to the blockchain state. On the other hand, full nodes synchronize, validate and maintain copies of the state to be accessed by applications that want to query or transact with the blockchain. However, even though **Full Nodes** are mission-critical infrastructure components for application development, they are still seen as second-class citizens relative to **Validators** in terms of their importance. This is why various centralized blockchain infrastructure providers had to develop production paradigms such as [Alchemy's Supernode Architecture](https://www.alchemy.com/supernode) or [Infura's Cloud Architecture](https://blog.infura.io/building-better-ethereum-infrastructure-48e76c94724b/), highlighting the limitations of Blockchain Clients as production-grade infrastructure.
+# Abstract
 
 This document presents a specification for the Persistence Module of Pocket Network 1.0, which aims to tackle the persistence needs of Pocket Network 1.0 nodes: scalability, robustness, data integrity and security. This specification is composed of 3 pillars:
 
@@ -51,7 +50,21 @@ This document presents a specification for the Persistence Module of Pocket Netw
 2. A **Persistence Client Middleware Specification** dictating how clients of the generic database engine behave to persist, update and query the datasets necessary for participating as Pocket Network actors.
 3. A **Blockchain State Validation Architecture** fulfilling the tamper-proof requirements of blockchain databases allowing nodes to achieve consensus after every persistence dataset migration.
 
-# Requirements
+# 1. Introduction
+
+Historically, blockchain clients have been developed with a focus on two use cases: **Validators** and **Full Nodes**. **Validators** are network actors who, given a particular condition indicated by the consensus protocol, get to propose and commit a block with transactions to the blockchain state. **Full Nodes**, on the other hand, validate and maintain copies of the state to be accessed by applications that want to query or transact with the blockchain.
+
+However, even though Full Nodes are mission-critical infrastructure components for application development, they are still seen as _second-class citizens_ relative to Validators in terms of their importance. For this reason, various centralized blockchain infrastructure providers had to develop production paradigms such as [Alchemy's Supernode Architecture](https://www.alchemy.com/supernode) or [Infura's Cloud Architecture](https://blog.infura.io/building-better-ethereum-infrastructure-48e76c94724b/), highlighting the limitations of Blockchain Clients as production-grade infrastructure.
+
+**TODO(olshansky): Formalize a statement about light clients:**
+
+- Light clients were traditionally meant to be on clients
+- Light clients are only used for interoperability
+- Bandwidth and server costs are too high
+- Most people who run nodes generally run full nodes
+- Need to optimize the persistence layer for both read and write amplification
+
+# 2. Requirements
 
 | Requirement                                                                                                                                                       | Pillar                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
