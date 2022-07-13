@@ -16,12 +16,12 @@
   - [3.3. Error Handling](#33-error-handling)
     - [3.3.1 Database Engine Error Handling](#331-database-engine-error-handling)
     - [3.3.2 Middleware Error Handling](#332-middleware-error-handling)
-  - [4. Persistence Client Middleware](#4-persistence-client-middleware)
-    - [4.1. Overview](#41-overview)
-    - [2.2. Persistence Datasets](#22-persistence-datasets)
-    - [2.2.1 Datasets Schema Definition Mechanism](#221-datasets-schema-definition-mechanism)
-      - [2.2.1.1. State Dataset - Schema definition](#2211-state-dataset---schema-definition)
-      - [2.2.1.2. State Versions De-duplication Strategy](#2212-state-versions-de-duplication-strategy)
+- [4. Persistence Client Middleware](#4-persistence-client-middleware)
+  - [4.1. Overview](#41-overview)
+  - [4.2. Persistence Datasets](#42-persistence-datasets)
+    - [4.2.1 Datasets Schema Definition](#421-datasets-schema-definition)
+    - [4.2.2 Datasets Schema Migration](#422-datasets-schema-migration)
+      - [4.2.3 State Versions De-duplication Strategy](#423-state-versions-de-duplication-strategy)
       - [2.2.1.3. Idempotent Writes and Updates](#2213-idempotent-writes-and-updates)
     - [2.3. Deterministic Write mechanism](#23-deterministic-write-mechanism)
   - [3. Blockchain State Validation Architecture](#3-blockchain-state-validation-architecture)
@@ -56,7 +56,12 @@ Historically, blockchain clients have been developed with a focus on two use cas
 
 However, even though Full Nodes are mission-critical infrastructure components for application development, they are still seen as _second-class citizens_ relative to Validators in terms of their importance. For this reason, various centralized blockchain infrastructure providers had to develop production paradigms such as [Alchemy's Supernode Architecture](https://www.alchemy.com/supernode) or [Infura's Cloud Architecture](https://blog.infura.io/building-better-ethereum-infrastructure-48e76c94724b/), highlighting the limitations of Blockchain Clients as production-grade infrastructure.
 
-<!-- TODO(olshansky) Add some background on trees, key-value stores and database engine along with a discussion on light clients and how that led to some of the decisions below -->
+<!-- NextVersion(olshansky):
+  1. Background
+  2.1 Light Clients
+  2.2 Merkle Trees
+  2.3 Key-Value Stores
+  2.4 Use of SQL in Blockchains-->
 
 # 2. Requirements
 
@@ -142,9 +147,7 @@ stateDiagram-v2
 
 ## 3.2. Database Engine
 
-The selected **Database Engine** for Pocket, which will often be referred to as “**the database engine**”, is [PostgreSQL](https://www.postgresql.org/). The accompanying research document to this Pre-Planning Specification contains the research through which this decision was made. In addition, PostgreSQL has multiple desirable properties that satisfy requirements such as **Schema Definition Mechanism**, **Deterministic Write Mechanism** and **Idempotent Dataset Updates**.
-
-<!-- TODO(olshansky): Need to add additional details as to why PostgresSQL was selected -->
+The selected **Database Engine** for Pocket, which will often be referred to as “**the database engine**”, is [PostgreSQL](https://www.postgresql.org/). The accompanying [research document](./RESEARCH.md) to this Pre-Planning Specification contains the research through which this decision was made. In addition, PostgreSQL has multiple desirable properties that satisfy requirements such as **Schema Definition Mechanism**, **Deterministic Write Mechanism** and **Idempotent Dataset Updates**.
 
 ### 3.2.1. Configuration
 
@@ -161,7 +164,7 @@ type DBConfiguration interface {
 On the database engine, the following configurations needs to be specified:
 
 1. **User role**: 1 of **Servicer**, **Validator**, **Fisherman**, **Archival** or **Full Node**.
-2. **Schemas**: 1 or more of **Consensus**, **State**, **Mempool** and **Local**.
+2. **Schemas**: 1 or more of **Consensus**, **State**, **Block** **Mempool** and **Local**.
 
 These configurations will be referenced throughout this specification to satisfy requirements and complement other mechanisms at different module layers.
 
@@ -187,9 +190,9 @@ The database engine should be configured to handle the following middleware erro
 1. **Invalid data format writes**: If the middleware is trying to write data using unsupported formats, the database engine must be equipped to reject these requests with a valid error message that are surfaced by the middleware client via logs or other system-wide notifications.
 2. **Long-running queries**: All queries to the database engine must be capped to a maximum query timeout and a maximum data output. These must be set at the database engine level configured in case the middleware is to request a query that goes out of bounds. In addition, the database engine must be equipped to reject these requests with a valid error message to be surfaced by the middleware client via logs or other system-wide notifications.
 
-## 4. Persistence Client Middleware
+# 4. Persistence Client Middleware
 
-### 4.1. Overview
+## 4.1. Overview
 
 In the context of the Persistence Module, the **middleware** is the software that sits between the **client** and the **database engine**, hence “in the middle” as shown the in the Figure 5.
 
@@ -211,54 +214,97 @@ stateDiagram-v2
       state IB {
           DB
       }
-      IA --> IB: TCP/IP, HTTP
+      IA --> IB: TCP/IP, HTTP / IPC
     }
 ```
 
 In order to ensure all the requirements described in this document are met, a set of expected behaviours and attributes the middleware is responsible for will need to be defined.
 
-### 2.2. Persistence Datasets
+## 4.2. Persistence Datasets
 
 A **dataset** is a group of collections that is logically related. For Pocket Network 1.0, we are proposing the following datasets:
 
-1. **Consensus dataset**: Contains all the blocks, transactions and quorum certificates of the Pocket Network blockchain. Validators need this data set to achieve Byzantine agreement and for other nodes to verify Byzantine Fault Taulrenace.
-2. **Mempool dataset**: Contains a list of all transactions submitted to the Pocket Network but not yet finalized on the blockchain. This dataset is populated through messages gossiped throughout the network and is transient in nature.
-3. **State dataset**: Contains the specific Pocket Network state (nodes, apps, params, accounts, etc.) for a particular height. A hashed version of the state dataset is called the **state hash**.
-4. **Block store dataset**: A collection of (state dataset, state hash) pairs for every block height stored on the node.
-5. **Local dataset**: Contains all the utility-specific data needed for the different actors of the network to achieve their functions. This dataset is local and only affects an individual node operation.
+1. **Consensus dataset**: Contains all the transactions, blocks and quorum certificates of the Pocket Network blockchain. Validators need this data set to achieve Byzantine agreement and for other nodes to verify Byzantine Fault Tolerance.
+2. **State dataset**: Contains the specific Pocket Network state (nodes, apps, params, accounts, etc) for a particular height. A hashed version of the state dataset is called the **state hash**.
+3. **Block store dataset**: A collection of (state dataset, state hash) pairs for every block height stored on the node.
+4. **Mempool dataset**: Contains a list of all transactions submitted to the Pocket Network but not yet finalized on the blockchain. This dataset is populated through messages gossiped throughout the network and is transient in nature.
+5. **Local dataset**: Contains all the utility-specific data needed for the different actors of the network to achieve their functions. This dataset is local and only affects an individual node's operation.
 
-Each dataset can be individually accessed by a particular middleware instance, which allows re-usability of the data in multi-node and multi-process operations.
+Each dataset can be individually accessed by a particular middleware instance, which allows reusability of the data via operations in a multi-node and multi-process environment.
 
-### 2.2.1 Datasets Schema Definition Mechanism
+### 4.2.1 Datasets Schema Definition
 
-Each dataset mentioned above contains one or more **collections**, with each collection defined via a **structured schema.** For Pocket Network 1.0, since we chose a SQL database engine, we can morph the schema using the **migrations paradigm**. Migrations are a series of phases in a structure schema lifecycle, explained in Figure 6.
+There is a one-to-many relationship between a dataset and a set of **collections**, with a one-to-one relationship between each collection and its **structured schema**.
+
+[Section 5](#5-blockchain-state-validation-architecture) defines details related to data encoding, but assume that [Protocol Buffers](https://developers.google.com/protocol-buffers) are used for the sake of the visualization in Figure 6.
 
 ```mermaid
 stateDiagram-v2
-  Fig6: Figure 6. Lifecycle of a Structured Schema
+    F6: Dataset Schema Definition (Figure 6)
+
+    state F6 {
+        CDS: Consensus Dataset
+        SDS: State Store Dataset
+        ODS: Other Datasets...
+
+        state CDS {
+            D1: Dataset
+            E1: Other
+            B: Block
+            T: Transaction
+            BP: Block Protobuf
+            TP: Transaction Protobuf
+
+            D1 --> B: collection 1
+            D1 --> T: collection 2
+            D1 --> E1: collection 3...N
+            B --> BP
+            T --> TP
+        }
+
+        state SDS {
+            SD: Dataset
+            E2: ...
+            V: Validator
+            VP: Validator Protobuf
+            SN: Service Node
+            SNP: Service Node Protobuf
+
+            SD --> V: collection 1
+            SD --> SN: collection 2
+            SD --> E2: collection 3...N
+            V --> VP
+            SN --> SNP
+        }
+    }
+```
+
+### 4.2.2 Datasets Schema Migration
+
+Since Pocket Network 1.0 is designed to be build atop a SQL database engine, the schema can be modified using a **migration paradigm**. Migrations are a series of phases in a structure schema lifecycle, as shown in Figure 6.
+
+```mermaid
+stateDiagram-v2
+  Fig6: Lifecycle of a Structured Schema (Figure 7)
   state Fig6 {
     CC: Create Collection
-    AC: Alter Collection (recursive)
+    AC: Alter Collection
     MD: Migrate Data
     DC: Drop Collection
 
     direction LR
     CC --> AC
     AC --> MD
-    AC --> AC
+    AC --> AC: repeat between versions
     MD --> DC
   }
 ```
 
-#### 2.2.1.1. State Dataset - Schema definition
+Migrations will be tied to specific heights, ensuring that nodes across different state heights (e.g. during state sync) can independently reproduce and verify a local **state schema** at a particular height. This enables each node to produce the immutability proofs included in the blocks, which will be checked against the block hashes during validation.
 
-The state dataset presents a unique challenge, given the fact that it requires appropriate manipulation and is a requirement for consensus (see more in [Section 3](#3-blockchain-state-validation-architecture) of this specification). For this reason, we are proposing a unique **migration structure**.
+#### 4.2.3 State Versions De-duplication Strategy
 
-Migrations will be tied to specific heights, ensuring that nodes across different state heights (e.g. during state sync) can independently reproduce and verify a local **state schema** at a particular height. This will enable each node to produce the immutability proofs included in the blocks, which will be checked against the block hashes during validation. Refer again to Figure 6 for a lifecycle of the state schema.
-
-#### 2.2.1.2. State Versions De-duplication Strategy
-
-Given the fact that the selected database engine describes collections in a **tabular schema**and that the **state dataset** has to be versioned on every change, a deduplication strategy is needed to avoid data redundancy and decrease lookup and scan overhead when operating against any given **state collection**. For this reason, we are proposing the following fields in every state collection:
+Given the fact that the selected database engine describes collections in a **tabular schema** and that the **state dataset** has to be versioned on every change, a de-duplication strategy is needed to avoid data redundancy and decrease lookup and scan overhead when operating against any given **state collection**. For this reason, we are proposing the following fields in every state collection:
 
 - **Created At (created_at):** Indicates the height at which the structure is **added to the dataset.**
 - **Deleted At (deleted_at):** Indicates the height at which the structure was **removed from the dataset.**
@@ -372,19 +418,19 @@ For those implementing the specification, below is a checklist that can be used 
 
 - 3.2.1 Configuration
 
-  - [ ] DB connection
-  - [ ] Configuration: User role
-  - [ ] Configuration: Schema definition
+  - [ ] DB connection: host, username, password, etc..
+  - [ ] User role: validator, servicer, fisherman, archival, full node
+  - [ ] Schema definition: consensus, state, mempool, local
 
 - 3.3.1 Database Engine Error Handling
 
-  - [ ] Configuration errors
-  - [ ] Read/Write/Unavailable errors
+  - [ ] Configuration errors: handle & propagate
+  - [ ] Read/Write/Unavailable errors: handle & propagate
 
 - 3.3.2 Middleware Error Handling
 
-  - [ ] Invalid data format writes
-  - [ ] Long-running queries
+  - [ ] Invalid data format writes: handle & propagate
+  - [ ] Long-running queries: handle & propagate
 
 # WIP
 
