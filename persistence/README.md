@@ -16,8 +16,8 @@
   - [3.3. Error Handling](#33-error-handling)
     - [3.3.1 Database Engine Error Handling](#331-database-engine-error-handling)
     - [3.3.2 Middleware Error Handling](#332-middleware-error-handling)
-  - [2. Persistence Client Middleware](#2-persistence-client-middleware)
-    - [2.1. Overview](#21-overview)
+  - [4. Persistence Client Middleware](#4-persistence-client-middleware)
+    - [4.1. Overview](#41-overview)
     - [2.2. Persistence Datasets](#22-persistence-datasets)
     - [2.2.1 Datasets Schema Definition Mechanism](#221-datasets-schema-definition-mechanism)
       - [2.2.1.1. State Dataset - Schema definition](#2211-state-dataset---schema-definition)
@@ -83,8 +83,8 @@ In the context of the Persistence Module, a **client-server architecture** indic
 
 ```mermaid
 stateDiagram-v2
-    Fig1: 1 Machine - 1 Process - 1 Database Engine Process
-    Fig2: 1 Machine - N Processes (Same Identity) - 1 Database Engine Process
+    Fig1: 1 Machine - 1 Process - 1 Database Engine Process (Figure 1)
+    Fig2: 1 Machine - N Processes (Same Identity) - 1 Database Engine Process (Figure 2)
 
     state Fig1 {
         P: Pocket Core Process
@@ -110,8 +110,8 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
-    Fig3: 1 Machines - N Processes (Multi-Identity) - 1 Database Engine Process
-    Fig4: N Machines - N Processes Per Machine (Multi-Identity) - Database Engine Cluster
+    Fig3: 1 Machines - N Processes (Multi-Identity) - 1 Database Engine Process (Figure 3)
+    Fig4: N Machines - N Processes Per Machine (Multi-Identity) - Database Engine Cluster (Figure 4)
 
     state Fig3 {
         PA: Pocket Core Process (ID A)
@@ -187,9 +187,9 @@ The database engine should be configured to handle the following middleware erro
 1. **Invalid data format writes**: If the middleware is trying to write data using unsupported formats, the database engine must be equipped to reject these requests with a valid error message that are surfaced by the middleware client via logs or other system-wide notifications.
 2. **Long-running queries**: All queries to the database engine must be capped to a maximum query timeout and a maximum data output. These must be set at the database engine level configured in case the middleware is to request a query that goes out of bounds. In addition, the database engine must be equipped to reject these requests with a valid error message to be surfaced by the middleware client via logs or other system-wide notifications.
 
-## 2. Persistence Client Middleware
+## 4. Persistence Client Middleware
 
-### 2.1. Overview
+### 4.1. Overview
 
 In the context of the Persistence Module, the **middleware** is the software that sits between the **client** and the **database engine**, hence “in the middle” as shown the in the Figure 5.
 
