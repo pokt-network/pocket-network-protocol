@@ -9,14 +9,13 @@
 - [Abstract](#abstract)
 - [1. Introduction](#1-introduction)
 - [2. Requirements](#2-requirements)
-- [Specification](#specification)
-  - [1. Client-Server Architecture](#1-client-server-architecture)
-    - [1.1. Overview](#11-overview)
-    - [1.2. Database Engine](#12-database-engine)
-      - [1.2.1. Configuration](#121-configuration)
-    - [1.3. Error Handling](#13-error-handling)
-      - [1.3.1 Database Engine Error Handling](#131-database-engine-error-handling)
-      - [1.3.2 Middleware Error Handling](#132-middleware-error-handling)
+- [3. Client-Server Architecture](#3-client-server-architecture)
+  - [3.1. Overview](#31-overview)
+  - [3.2. Database Engine](#32-database-engine)
+    - [3.2.1. Configuration](#321-configuration)
+  - [3.3. Error Handling](#33-error-handling)
+    - [3.3.1 Database Engine Error Handling](#331-database-engine-error-handling)
+    - [3.3.2 Middleware Error Handling](#332-middleware-error-handling)
   - [2. Persistence Client Middleware](#2-persistence-client-middleware)
     - [2.1. Overview](#21-overview)
     - [2.2. Persistence Datasets](#22-persistence-datasets)
@@ -26,7 +25,7 @@
       - [2.2.1.3. Idempotent Writes and Updates](#2213-idempotent-writes-and-updates)
     - [2.3. Deterministic Write mechanism](#23-deterministic-write-mechanism)
   - [3. Blockchain State Validation Architecture](#3-blockchain-state-validation-architecture)
-    - [3.1. Overview](#31-overview)
+    - [3.1. Overview](#31-overview-1)
     - [3.2. Immutable State Schema](#32-immutable-state-schema)
       - [3.2.1. Data Encoding](#321-data-encoding)
       - [3.2.2. Cumulative Versioning](#322-cumulative-versioning)
@@ -40,6 +39,7 @@
 - [Candidate Features / Would Like to Haves / Open Questions](#candidate-features--would-like-to-haves--open-questions)
   - [<span style="text-decoration:underline;">1. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>](#1-add-a-keyvalue-store-for-caching-data-alongside-a-relational-database-that-does-not-hinder-performance-and-avoids-too-much-data-duplication)
 - [References](#references)
+- [Spec Coverage Checklist](#spec-coverage-checklist)
 - [WIP](#wip)
 
 # Abstract
@@ -56,19 +56,13 @@ Historically, blockchain clients have been developed with a focus on two use cas
 
 However, even though Full Nodes are mission-critical infrastructure components for application development, they are still seen as _second-class citizens_ relative to Validators in terms of their importance. For this reason, various centralized blockchain infrastructure providers had to develop production paradigms such as [Alchemy's Supernode Architecture](https://www.alchemy.com/supernode) or [Infura's Cloud Architecture](https://blog.infura.io/building-better-ethereum-infrastructure-48e76c94724b/), highlighting the limitations of Blockchain Clients as production-grade infrastructure.
 
-**TODO(olshansky): Formalize a statement about light clients:**
-
-- Light clients were traditionally meant to be on clients
-- Light clients are only used for interoperability
-- Bandwidth and server costs are too high
-- Most people who run nodes generally run full nodes
-- Need to optimize the persistence layer for both read and write amplification
+<!-- TODO(olshansky) Add some background on trees, key-value stores and database engine along with a discussion on light clients and how that led to some of the decisions below -->
 
 # 2. Requirements
 
 | Requirement                                                                                                                                                       | Pillar                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **Transaction Isolation**: Persistent data can be backuped and restored across different node operations.                                                         | Client-Server Architecture                  |
+| **Transaction Isolation**: Persistent data can be backed up and restored across different node operations.                                                        | Client-Server Architecture                  |
 | **Portability**: It is possible to provide different implementations of the interface and database engine layers adhering to the same interface.                  | Client-Server Architecture                  |
 | **Individual Scalability**: The middleware can be scaled independently from the database engine.                                                                  | Client-Server Architecture                  |
 | **Fault Tolerance**: Failures can be isolated between the middleware and database engine.                                                                         | Client-Server Architecture                  |
@@ -81,13 +75,11 @@ However, even though Full Nodes are mission-critical infrastructure components f
 | **Cumulative State Versioning**: Each new version of the state must be cumulative by only adding deltas of the state change without recomputing the entire state. | Blockchain State Validation architecture    |
 | **Dataset Integrity Verification**: It is easy to verify if a particular element belongs to a particular version of a specific state dataset.                     | Blockchain State Validation architecture    |
 
-# Specification
+# 3. Client-Server Architecture
 
-## 1. Client-Server Architecture
+## 3.1. Overview
 
-### 1.1. Overview
-
-In the context of the Persistence Module, a **client-server architecture** indicates a separation between the **middleware** and the **database engine**. In practice, this allows for multiple types of system deployments illustrated in Figures 1-4.
+In the context of the Persistence Module, a **client-server architecture** indicates a separation of concerns between the **middleware** and the **database engine**. In practice, this allows for multiple types of system deployments illustrated in Figures 1-4.
 
 ```mermaid
 stateDiagram-v2
@@ -97,7 +89,8 @@ stateDiagram-v2
     state Fig1 {
         P: Pocket Core Process
         DB: Database Engine Process
-        P --> DB: IBC, TCP/IP, HTTP (local communications)
+        P --> DB: IPC, TCP/IP, HTTP (local communications)
+
     }
 
     state Fig2 {
@@ -110,8 +103,9 @@ stateDiagram-v2
         PA1 --> join_state2
         PA2 --> join_state2
         PA3 --> join_state2
-        join_state2 --> B: IBC, TCP/IP, HTTP (local communications)
+        join_state2 --> B: IPC, TCP/IP, HTTP (local communications)
     }
+
 ```
 
 ```mermaid
@@ -129,7 +123,7 @@ stateDiagram-v2
         PA --> join_state3
         PB --> join_state3
         PC --> join_state3
-        join_state3 --> DB3: IBC, TCP/IP, HTTP (local communications)
+        join_state3 --> DB3: IPC, TCP/IP, HTTP (local communications)
     }
 
     state Fig4 {
@@ -142,53 +136,55 @@ stateDiagram-v2
         P4A --> join_state4
         P4B --> join_state4
         P4C --> join_state4
-        join_state4 --> DB4: IBC, TCP/IP, HTTP (local communications)
+        join_state4 --> DB4: IPC, TCP/IP, HTTP (local communications)
     }
 ```
 
-### 1.2. Database Engine
+## 3.2. Database Engine
 
-The selected **Database Engine**, which will be referred to as “**the database engine**” will be [PostgreSQL](https://www.postgresql.org/). The accompanying research document to this Pre-Planning Specification contains the research through which this decision was made. In addition, PostgreSQL has multiple desirable properties that satisfy requirements such as **Schema Definition Mechanism**, **Deterministic Write Mechanism **and** Idempotent Dataset Updates**.
+The selected **Database Engine** for Pocket, which will often be referred to as “**the database engine**”, is [PostgreSQL](https://www.postgresql.org/). The accompanying research document to this Pre-Planning Specification contains the research through which this decision was made. In addition, PostgreSQL has multiple desirable properties that satisfy requirements such as **Schema Definition Mechanism**, **Deterministic Write Mechanism** and **Idempotent Dataset Updates**.
 
-#### 1.2.1. Configuration
+<!-- TODO(olshansky): Need to add additional details as to why PostgresSQL was selected -->
 
-When implementing a client-server architecture, several approaches can establish communication between the middleware and the database engine. Below we describe a data structure that contains the necessary attributes:
+### 3.2.1. Configuration
+
+Several approaches can be used to configure communication between the middleware and the database engine. The following is a data structure that contains the necessary attributes:
 
 ```
 type DBConfiguration interface {
-	Host() URL           # host url where to contact the database engine e.g. 1.2.3.4, localhost
+	Host() URL           # host url where to contact the database engine (e.g. 1.2.3.4, localhost)
 	Username() String    # the username used by the middleware to access the database engine
 	Password() String    # the password used by the middleware to access the database engine
 }
 ```
 
-On the database engine, the following configurations need to be specified:
+On the database engine, the following configurations needs to be specified:
 
-1. User role: 1 of **Servicer**, **Validator**, **Fisherman**, **Archival** or **Full Node**.
-2. Schemas: 1 or more of **Consensus**, **State**, **Mempool** and **Local**.
+1. **User role**: 1 of **Servicer**, **Validator**, **Fisherman**, **Archival** or **Full Node**.
+2. **Schemas**: 1 or more of **Consensus**, **State**, **Mempool** and **Local**.
 
 These configurations will be referenced throughout this specification to satisfy requirements and complement other mechanisms at different module layers.
 
-### 1.3. Error Handling
+## 3.3. Error Handling
 
-Because of the separation of concerns between middleware and the database engine, an error handling architecture at the system deployment level must be established to allow fault tolerance strategies in the execution of the system.
+Due to the separation of concerns between the middleware and the database engine, an error handling architecture at the system deployment level must be established to allow fault tolerance strategies in the execution of the system.
 
-#### 1.3.1 Database Engine Error Handling
+### 3.3.1 Database Engine Error Handling
 
-There are three main use cases of error handling when the database engine is the one at fault:
+There are 3 main use cases of error handling when the database engine is the source of the error:
 
-1. **Configuration Errors**: In the case of configuration errors, the middleware must return the user any given errors by the database engine and surface them via logs or other system-wide notifications. This is a **critical** error and must stop the execution of the system until resolved.
+1. **Configuration Errors**: In the case of configuration errors, the middleware must propagate errors from database engine and surface them via logs or other system-wide notifications. This is a **critical** error and must stop the execution of the system until resolved.
 2. **Read/Write Errors** or **Database Engine Unavailable**: If any of these errors are returned by the database engine, the middleware can opt into one of the following fallback mechanisms:
-   - Provision an in-memory database.
-   - A secondary replica to point to.
-   - A queue of operations to be applied on top of the database once normal operations are restored.
-   - In addition to these fallback mechanisms, the middleware must surface the issue via logs or other system-wide notifications. Again, this is a **critical** error and must stop the execution of the system until resolved unless a fallback mechanism is configured.
+   - Provision a temporary in-memory database
+   - Retry the operation on another replica
+   - Queue the operation and retry once the database engine is restored
+   - In addition to these fallback mechanisms, the middleware must surface the issue via logs or other system-wide notifications. This is a **critical** error and must stop the execution of the system until resolved unless a fallback mechanism is configured.
 
-#### 1.3.2 Middleware Error Handling
+### 3.3.2 Middleware Error Handling
 
-The database engine will be configured to handle the following middleware error scenarios:
+The database engine should be configured to handle the following middleware error scenarios:
 
-1. **Invalid data format writes**: In the case of the middleware trying to write data in unsupported formats, the database engine must be equipped to reject these requests with a valid error message to be surfaced by the middleware client via logs or other system-wide notifications.
+1. **Invalid data format writes**: If the middleware is trying to write data using unsupported formats, the database engine must be equipped to reject these requests with a valid error message that are surfaced by the middleware client via logs or other system-wide notifications.
 2. **Long-running queries**: All queries to the database engine must be capped to a maximum query timeout and a maximum data output. These must be set at the database engine level configured in case the middleware is to request a query that goes out of bounds. In addition, the database engine must be equipped to reject these requests with a valid error message to be surfaced by the middleware client via logs or other system-wide notifications.
 
 ## 2. Persistence Client Middleware
@@ -367,6 +363,28 @@ This optimization can be tackled in future versions of the specification. Specif
 [5] [https://developers.google.com/protocol-buffers](https://developers.google.com/protocol-buffers)
 
 [6] [https://eth.wiki/fundamentals/rlp](https://eth.wiki/fundamentals/rlp)
+
+# Spec Coverage Checklist
+
+_NOTE: This is still a WIP and a non-exhaustive_
+
+For those implementing the specification, below is a checklist that can be used as a reference to determine the spec coverage implementation.
+
+- 3.2.1 Configuration
+
+  - [ ] DB connection
+  - [ ] Configuration: User role
+  - [ ] Configuration: Schema definition
+
+- 3.3.1 Database Engine Error Handling
+
+  - [ ] Configuration errors
+  - [ ] Read/Write/Unavailable errors
+
+- 3.3.2 Middleware Error Handling
+
+  - [ ] Invalid data format writes
+  - [ ] Long-running queries
 
 # WIP
 
