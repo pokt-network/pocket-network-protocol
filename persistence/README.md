@@ -22,8 +22,8 @@
     - [4.2.1 Datasets Schema Definition](#421-datasets-schema-definition)
     - [4.2.2 Datasets Schema Migration](#422-datasets-schema-migration)
     - [4.2.3 State Versions De-duplication Strategy](#423-state-versions-de-duplication-strategy)
-      - [4.2.3 Idempotent Writes and Updates](#423-idempotent-writes-and-updates)
-  - [4.2.4 Deterministic Write mechanism](#424-deterministic-write-mechanism)
+      - [4.2.4 Idempotent Writes and Updates](#424-idempotent-writes-and-updates)
+  - [4.2.5 Deterministic Write mechanism](#425-deterministic-write-mechanism)
 - [5. Blockchain State Validation Architecture](#5-blockchain-state-validation-architecture)
   - [5.1. Overview](#51-overview)
   - [5.2 State Hash](#52-state-hash)
@@ -309,31 +309,28 @@ Migrations will be tied to specific heights, ensuring that nodes across differen
 
 ### 4.2.3 State Versions De-duplication Strategy
 
-Given the fact that the selected database engine describes collections in a **tabular schema** and that the **state dataset** has to be versioned on every change, a de-duplication strategy is needed to avoid data redundancy and decrease lookup and scan overhead when operating against any given **state collection**. For this reason, we are proposing the following fields in every state collection:
+Given the fact that the selected database engine describes collections in a **tabular schema** and that the **state dataset** has to be versioned on every change, a de-duplication strategy is needed to avoid data redundancy and decrease lookup and scan overhead when operating against any given **state collection**. For this reason, we are proposing the following field in every state collection:
 
-- **Created At (created_at):** Indicates the height at which the structure is **added to the dataset.**
-- **Deleted At (deleted_at):** Indicates the height at which the structure was **removed from the dataset.**
+- **Height (height):** Indicates the height at which the structure is **added to the dataset.**
 
-By leveraging these properties, we can define the **Create**, **Update** and **Delete** operations of the [CRUD](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) set:
+By leveraging this single property, we can define the **Create**, **Update** and **Delete** operations of the [CRUD](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) set:
 
-- **Create**: Insert a new structure into the collection with the given **Created At (created_at)** value indicating at which height the structure is inserted.
-- **Update**: Update the **Deleted At (deleted_at)** field of the structure to the height where a change/update occurs. Subsequently, insert a new record of the updated structure with the given **Created At (created_at)** value indicating at which height the structure is being updated (i.e. created).
-- **Delete**: Update the **Deleted At (deleted_at)** field of the structure to the height at which the deletion is happening.
+- **Create**: Insert a new structure into the collection with the given **height** value indicating at which height the structure is inserted.
+- **Update**: Insert a new record of the updated structure with the given **height** value indicating at which height the structure is being updated (i.e. created).
+- **Delete**: Though there is an opportunity to prune the data set for efficiency, once a structure (with an address) has been created, it can transition from one state to another but otherwise exists in perpetuity.
 
 CRUD's **Read** operation naturally follows from the ability to query a SQL database. These attributes and processes allow us to fulfill the different requirements of a state dataset:
 
-- **Historical querying**: Query the same structure throughout any given height by filtering by the **Created At (created_at) **and** Deleted At (deleted_at).**
-- **Atomic state transitions**: Every state transition is logged atomically without impacting previous state versions.
+- **Historical querying**: Query the same structure throughout any given height by filtering by a specific **height** as a maximum.
 
-#### 4.2.3 Idempotent Writes and Updates
+#### 4.2.4 Idempotent Writes and Updates
 
-To implement idempotency to our persistence layer, we need to define the following set of rules when doing **Create**, **Update** or **Delete** operations over collections and structures:
+To implement idempotency to our persistence layer, we need to define the following set of rules when doing **Create** or **Update** operations over collections and structures:
 
 - When creating a brand new structure, the operation must include all of its uniquely-identified fields. This will help avoid collisions between existing and new structures.
-- When updating an existing structure, all uniquely-identified fields must be indicated explicitly in the operation. Specifically, timestamp fields such as **Created At (created_at)** and **Deleted At (deleted_at)** must also be specified explicitly to avoid collisions and discrepancies between the structure's data and metadata.
-- When deleting a structure, all uniquely-identified fields must be indicated in the operation. In addition, deletion through filters or via **"all"** will not be permitted by the system.
+- When updating an existing structure, all uniquely-identified fields must be indicated explicitly in the operation. Specifically, timestamp fields such as **height** must also be specified explicitly to avoid collisions and indecies at the SQL layer must created to avoid collision errors.
 
-## 4.2.4 Deterministic Write mechanism
+## 4.2.5 Deterministic Write mechanism
 
 Most modern SQL DBMS (database management system) implementations utilize the **Transaction model** to indicate a transaction as a group of operations to be performed sequentially and logically grouped. This is called **[ACID]**(https://en.wikipedia.org/wiki/ACID) (atomicity, consistency, isolation, durability), which are the properties that allow the dataset to stay consistent across operations by enabling capabilities such as rollbacks in case one of the operations comprising an ACID transaction fails or yields an inconsistent dataset state.
 
