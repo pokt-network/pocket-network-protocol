@@ -26,9 +26,9 @@
   - [4.2.4 Deterministic Write mechanism](#424-deterministic-write-mechanism)
 - [5. Blockchain State Validation Architecture](#5-blockchain-state-validation-architecture)
   - [5.1. Overview](#51-overview)
-  - [5.2 State Transition](#52-state-transition)
-    - [5.2.1 State Hash](#521-state-hash)
-  - [5.2.2 Immutable State Hash](#522-immutable-state-hash)
+  - [5.2 State Hash](#52-state-hash)
+    - [5.2.1 State Hash Computation](#521-state-hash-computation)
+    - [5.2.2 Immutable State Hash](#522-immutable-state-hash)
   - [5.3 Key-Value Store](#53-key-value-store)
     - [5.3.1 Data Encoding](#531-data-encoding)
   - [5.4 Cumulative Versioning](#54-cumulative-versioning)
@@ -349,9 +349,9 @@ The sections above describe the architecture and use of a SQL database engine to
 
 Alongside the SQL engine operations described above for efficient data access during node operations, [Sprase Merkle Trees](https://ethresear.ch/t/optimizing-sparse-merkle-trees/3751) backed by key-value store data engines will be used to store a serialized version of the dataset in order to do so and achieve tamper-proof **immutability**.
 
-## 5.2 State Transition
+## 5.2 State Hash
 
-### 5.2.1 State Hash
+### 5.2.1 State Hash Computation
 
 Recall that the **state dataset** contains the Pocket Network state (i.e. node, apps, params, accounts, etc) after each set of state transitions indicated by the transactions executed at a specific height. Each **collection** in the state dataset (e.g. Application) will have a corresponding **state schema** (e.g. Application protobuf definition) containing an **address**. Each of these collections will have it's own **Merkle Tree**, yielding a **Merkle Root**. In the tree, leaf nodes will be represent instances of objects in the collection, whereas inner nodesn act as prefix paths to the leaf based on the object's address. This is often known as an **Addressable Merkle Tree** in some blockchain projects.
 
@@ -399,7 +399,7 @@ flowchart TD
     OPS -- Schema Definition & \n DB Insertion --> OSS
 ```
 
-## 5.2.2 Immutable State Hash
+### 5.2.2 Immutable State Hash
 
 Each state hash will be persisted alongside a cryptographic digital signature computed via a designated private key (i.e. the block proposer during consensus), serving as proof for validation during local state computation. This proof will be utilized to avoid recalculating previous states and allow the system, provided trusted access to the public key, to have a high degree of confidence in its computed state. The state can be re-calculated using the state hash algorithm if the proof has been tampered with. This proof will be referred to as the **state computation proof.**
 
@@ -424,6 +424,8 @@ To verify any given structure in one of the collections in the state dataset in 
 To compute transitions of the **state dataset** to the **immutable schema**, we present an algorithm that, given a series of **state transitions**, the **current immutable schema** and a **private key** can compute the new **state hash** and the **state computation proof**. See Algorithm 1 as a reference.
 
 ![alt_text](figure7.jpg "Figure 7")
+
+<!-- NextIteration(olshansky): Update the diagram and add the latex source code-->
 
 # Dissenting Opinions / Attack Vectors / FAQ
 
@@ -499,18 +501,13 @@ For those implementing the specification, below is a checklist that can be used 
 3. Client-Server Architecture
 
 - 3.2.1 Configuration
-
   - [ ] DB connection: host, username, password, etc..
   - [ ] User role: validator, servicer, fisherman, archival, full node
   - [ ] Schema definition: consensus, state, mempool, local
-
 - 3.3.1 Database Engine Error Handling
-
   - [ ] Configuration errors: handle & propagate
   - [ ] Read/Write/Unavailable errors: handle & propagate
-
 - 3.3.2 Middleware Error Handling
-
   - [ ] Invalid data format writes: handle & propagate
   - [ ] Long-running queries: handle & propagate
 
@@ -532,5 +529,18 @@ For those implementing the specification, below is a checklist that can be used 
     - [ ] Apps
     - [ ] Params
     - [ ] Accounts
-  - [ ] Block
-    - (State dataset, state hash) pairs
+  - [ ] Block; (State dataset, state hash) pairs
+
+5. Blockchain State Validation Architecture
+
+- 5.2.1
+  - [ ] State Hash computation
+  - [ ] Immutable State Hash computation (i.e. signing)
+  - [ ] Merkle Tree selection & implementation
+- 5.3.1
+  - [ ] Key-Value store selection & implementation
+  - [ ] Deterministic Data Encoding
+- 5.5
+  - [ ] State verification via Merkle Roots & Proofs
+- 5.6
+  - [ ] State Transition via trees updates after transaction application
