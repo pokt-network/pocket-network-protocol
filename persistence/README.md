@@ -2,7 +2,7 @@
 
 <p align="center">
     @luyzdeleon - Luis Correa de León<br>
-    @olshansky - Daniel Olshansky<br>
+    @olshansk - Daniel Olshansky<br>
     Version 1.0.3 - July 2022
 </p>
 
@@ -290,8 +290,8 @@ Since Pocket Network 1.0 is designed to be build atop a SQL database engine, the
 
 ```mermaid
 stateDiagram-v2
-  Fig6: Lifecycle of a Structured Schema (Figure 7)
-  state Fig6 {
+  Fig7: Lifecycle of a Structured Schema (Figure 7)
+  state Fig7 {
     CC: Create Collection
     AC: Alter Collection
     MD: Migrate Data
@@ -423,9 +423,72 @@ To verify any given structure in one of the collections in the state dataset in 
 
 To compute transitions of the **state dataset** to the **immutable schema**, we present an algorithm that, given a series of **state transitions**, the **current immutable schema** and a **private key** can compute the new **state hash** and the **state computation proof**. See Algorithm 1 as a reference.
 
-![alt_text](figure7.jpg "Figure 7")
+![alt_text](algo1.jpg "Algorithm 1")
 
 <!-- NextIteration(olshansky): Update the diagram and add the latex source code-->
+
+Below is a sequence diagram showing the end-to-end data flow between the different components during a state transition.
+
+```mermaid
+sequenceDiagram
+    participant App as Application(s)
+    participant PV as Pocket Validator(s)
+    participant MP as Tx MemPool
+    participant SQLDB as SQL Database
+    participant LM as Local Memory
+    participant MT as Merkle Tree
+    participant KV as Key-Value Store
+    participant PN as Pocket Network
+
+    %% Fill Mempool
+    loop Propogate Txs through the P2P Network
+        App-->>PV: Tx
+        PV->>MP: Tx
+    end
+
+    %% Leader election
+    Note over PV: Selected as round leader
+
+    activate PV
+
+    %% Reap Mempool
+    PV->>+MP: Reap Mempool
+    MP->>-PV: List of Txs
+
+    loop Validate Each Transaction
+        PV->>+SQLDB: <br>
+        SQLDB->>-PV: Read necessary data for tx
+        PV->>PV: Validate transaction
+        PV->>PV: Include Tx in block proposal
+        PV->>SQLDB: Write database if valid
+    end
+    Note over PV: failed transactions are rolled back
+
+    %% Serialize
+    PV ->>+LM: <br>
+    LM ->>-PV: Retrieve collection schemas
+    PV ->>PV: Serialize updated/added structures
+
+    loop Update/Inesrt each structure
+        PV ->>+MT: Insert or update leaf
+        MT ->>+KV: <br>
+        KV ->>-MT: Store (addr, serialized proto)
+        MT ->>-PV: <br>
+    end
+
+    loop for each collection in each dataset
+        PV ->>+MT: <br>
+        MT ->>-PV: Retrieve merkle root(s)
+    end
+
+    PV ->>PV: Compute state hash<br>and prepare block
+
+    PV-->>PN: Propose block to network
+    note over PN: Commit the new block
+
+    deactivate PV
+
+```
 
 # Dissenting Opinions / Attack Vectors / FAQ
 
