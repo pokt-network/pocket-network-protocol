@@ -10,37 +10,41 @@
 - [1. Introduction](#1-introduction)
 - [2. Requirements](#2-requirements)
 - [3. Client-Server Architecture](#3-client-server-architecture)
-  - [3.1. Overview](#31-overview)
-  - [3.2. Database Engine](#32-database-engine)
-    - [3.2.1. Configuration](#321-configuration)
-  - [3.3. Error Handling](#33-error-handling)
+  - [3.1 Overview](#31-overview)
+  - [3.2 Database Engine](#32-database-engine)
+    - [3.2.1 Configuration](#321-configuration)
+  - [3.3 Error Handling](#33-error-handling)
     - [3.3.1 Database Engine Error Handling](#331-database-engine-error-handling)
     - [3.3.2 Middleware Error Handling](#332-middleware-error-handling)
 - [4. Persistence Client Middleware](#4-persistence-client-middleware)
-  - [4.1. Overview](#41-overview)
-  - [4.2. Persistence Datasets](#42-persistence-datasets)
+  - [4.1 Overview](#41-overview)
+  - [4.2 Persistence Datasets](#42-persistence-datasets)
     - [4.2.1 Datasets Schema Definition](#421-datasets-schema-definition)
     - [4.2.2 Datasets Schema Migration](#422-datasets-schema-migration)
-      - [4.2.3 State Versions De-duplication Strategy](#423-state-versions-de-duplication-strategy)
-      - [2.2.1.3. Idempotent Writes and Updates](#2213-idempotent-writes-and-updates)
-    - [2.3. Deterministic Write mechanism](#23-deterministic-write-mechanism)
-  - [3. Blockchain State Validation Architecture](#3-blockchain-state-validation-architecture)
-    - [3.1. Overview](#31-overview-1)
-    - [3.2. Immutable State Schema](#32-immutable-state-schema)
-      - [3.2.1. Data Encoding](#321-data-encoding)
-      - [3.2.2. Cumulative Versioning](#322-cumulative-versioning)
-      - [3.2.3. State Structure Verification](#323-state-structure-verification)
-      - [3.2.4. Patricia Merkle Trie Persistence](#324-patricia-merkle-trie-persistence)
-      - [3.2.5. Immutable State Transition Algorithm](#325-immutable-state-transition-algorithm)
+    - [4.2.3 State Versions De-duplication Strategy](#423-state-versions-de-duplication-strategy)
+      - [4.2.3 Idempotent Writes and Updates](#423-idempotent-writes-and-updates)
+  - [4.2.4 Deterministic Write mechanism](#424-deterministic-write-mechanism)
+- [5. Blockchain State Validation Architecture](#5-blockchain-state-validation-architecture)
+  - [5.1. Overview](#51-overview)
+  - [5.2 State Transition](#52-state-transition)
+    - [5.2.1 State Hash](#521-state-hash)
+  - [5.2.2 Immutable State Hash](#522-immutable-state-hash)
+  - [5.3 Key-Value Store](#53-key-value-store)
+    - [5.3.1 Data Encoding](#531-data-encoding)
+  - [5.4 Cumulative Versioning](#54-cumulative-versioning)
+  - [5.5 State Verification](#55-state-verification)
+  - [5.6 State Transition](#56-state-transition)
 - [Dissenting Opinions / Attack Vectors / FAQ](#dissenting-opinions--attack-vectors--faq)
   - [<span style="text-decoration:underline;">1. Why not just store the state in a tree like every other blockchain?</span>](#1-why-not-just-store-the-state-in-a-tree-like-every-other-blockchain)
   - [<span style="text-decoration:underline;">2. Can an attacker just modify the mutable database and make a node commit to an invalid state?</span>](#2-can-an-attacker-just-modify-the-mutable-database-and-make-a-node-commit-to-an-invalid-state)
   - [<span style="text-decoration:underline;">3. Isn’t this approach more susceptible to errors as there are more moving parts?</span>](#3-isnt-this-approach-more-susceptible-to-errors-as-there-are-more-moving-parts)
 - [Candidate Features / Would Like to Haves / Open Questions](#candidate-features--would-like-to-haves--open-questions)
-  - [<span style="text-decoration:underline;">1. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>](#1-add-a-keyvalue-store-for-caching-data-alongside-a-relational-database-that-does-not-hinder-performance-and-avoids-too-much-data-duplication)
+  - [<span style="text-decoration:underline;">1. What Kind of Merkle Tree is going to be used?</span>](#1-what-kind-of-merkle-tree-is-going-to-be-used)
+  - [<span style="text-decoration:underline;">2. What Kind of Key-Value database engine is going to back the Merkle Tree?</span>](#2-what-kind-of-key-value-database-engine-is-going-to-back-the-merkle-tree)
+  - [<span style="text-decoration:underline;">3. How will light clients store data?</span>](#3-how-will-light-clients-store-data)
+  - [<span style="text-decoration:underline;">3. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>](#3-add-a-keyvalue-store-for-caching-data-alongside-a-relational-database-that-does-not-hinder-performance-and-avoids-too-much-data-duplication)
 - [References](#references)
 - [Spec Coverage Checklist](#spec-coverage-checklist)
-- [WIP](#wip)
 
 # Abstract
 
@@ -56,7 +60,7 @@ Historically, blockchain clients have been developed with a focus on two use cas
 
 However, even though Full Nodes are mission-critical infrastructure components for application development, they are still seen as _second-class citizens_ relative to Validators in terms of their importance. For this reason, various centralized blockchain infrastructure providers had to develop production paradigms such as [Alchemy's Supernode Architecture](https://www.alchemy.com/supernode) or [Infura's Cloud Architecture](https://blog.infura.io/building-better-ethereum-infrastructure-48e76c94724b/), highlighting the limitations of Blockchain Clients as production-grade infrastructure.
 
-<!-- NextVersion(olshansky):
+<!-- FutureIteration(olshansky):
   1. Background
   2.1 Light Clients
   2.2 Merkle Trees
@@ -77,12 +81,13 @@ However, even though Full Nodes are mission-critical infrastructure components f
 | **Schema Definition Mechanism**: Dataset structures must be schematized and schema changes are only allowed between different versions of the dataset.            | Persistence Client Middleware specification |
 | **Deterministic Write Mechanism**: Faulty writes that compromise the integrity of the state can be rolled back.                                                   | Persistence Client Middleware specification |
 | **Idempotent Dataset Updates**: The same update operation to a dataset, applied multiple times, must yield the same dataset state.                                | Persistence Client Middleware specification |
+| **Verifiable State Hash**: It is possible to compute a single authenticator that validates the integrity of the entire state.                                     | Blockchain State Validation architecture    |
 | **Cumulative State Versioning**: Each new version of the state must be cumulative by only adding deltas of the state change without recomputing the entire state. | Blockchain State Validation architecture    |
 | **Dataset Integrity Verification**: It is easy to verify if a particular element belongs to a particular version of a specific state dataset.                     | Blockchain State Validation architecture    |
 
 # 3. Client-Server Architecture
 
-## 3.1. Overview
+## 3.1 Overview
 
 In the context of the Persistence Module, a **client-server architecture** indicates a separation of concerns between the **middleware** and the **database engine**. In practice, this allows for multiple types of system deployments illustrated in Figures 1-4.
 
@@ -145,11 +150,11 @@ stateDiagram-v2
     }
 ```
 
-## 3.2. Database Engine
+## 3.2 Database Engine
 
 The selected **Database Engine** for Pocket, which will often be referred to as “**the database engine**”, is [PostgreSQL](https://www.postgresql.org/). The accompanying [research document](./RESEARCH.md) to this Pre-Planning Specification contains the research through which this decision was made. In addition, PostgreSQL has multiple desirable properties that satisfy requirements such as **Schema Definition Mechanism**, **Deterministic Write Mechanism** and **Idempotent Dataset Updates**.
 
-### 3.2.1. Configuration
+### 3.2.1 Configuration
 
 Several approaches can be used to configure communication between the middleware and the database engine. The following is a data structure that contains the necessary attributes:
 
@@ -168,7 +173,7 @@ On the database engine, the following configurations needs to be specified:
 
 These configurations will be referenced throughout this specification to satisfy requirements and complement other mechanisms at different module layers.
 
-## 3.3. Error Handling
+## 3.3 Error Handling
 
 Due to the separation of concerns between the middleware and the database engine, an error handling architecture at the system deployment level must be established to allow fault tolerance strategies in the execution of the system.
 
@@ -192,7 +197,7 @@ The database engine should be configured to handle the following middleware erro
 
 # 4. Persistence Client Middleware
 
-## 4.1. Overview
+## 4.1 Overview
 
 In the context of the Persistence Module, the **middleware** is the software that sits between the **client** and the **database engine**, hence “in the middle” as shown the in the Figure 5.
 
@@ -220,7 +225,7 @@ stateDiagram-v2
 
 In order to ensure all the requirements described in this document are met, a set of expected behaviours and attributes the middleware is responsible for will need to be defined.
 
-## 4.2. Persistence Datasets
+## 4.2 Persistence Datasets
 
 A **dataset** is a group of collections that is logically related. For Pocket Network 1.0, we are proposing the following datasets:
 
@@ -302,7 +307,7 @@ stateDiagram-v2
 
 Migrations will be tied to specific heights, ensuring that nodes across different state heights (e.g. during state sync) can independently reproduce and verify a local **state schema** at a particular height. This enables each node to produce the immutability proofs included in the blocks, which will be checked against the block hashes during validation.
 
-#### 4.2.3 State Versions De-duplication Strategy
+### 4.2.3 State Versions De-duplication Strategy
 
 Given the fact that the selected database engine describes collections in a **tabular schema** and that the **state dataset** has to be versioned on every change, a de-duplication strategy is needed to avoid data redundancy and decrease lookup and scan overhead when operating against any given **state collection**. For this reason, we are proposing the following fields in every state collection:
 
@@ -320,7 +325,7 @@ CRUD's **Read** operation naturally follows from the ability to query a SQL data
 - **Historical querying**: Query the same structure throughout any given height by filtering by the **Created At (created_at) **and** Deleted At (deleted_at).**
 - **Atomic state transitions**: Every state transition is logged atomically without impacting previous state versions.
 
-#### 2.2.1.3. Idempotent Writes and Updates
+#### 4.2.3 Idempotent Writes and Updates
 
 To implement idempotency to our persistence layer, we need to define the following set of rules when doing **Create**, **Update** or **Delete** operations over collections and structures:
 
@@ -328,45 +333,93 @@ To implement idempotency to our persistence layer, we need to define the followi
 - When updating an existing structure, all uniquely-identified fields must be indicated explicitly in the operation. Specifically, timestamp fields such as **Created At (created_at)** and **Deleted At (deleted_at)** must also be specified explicitly to avoid collisions and discrepancies between the structure's data and metadata.
 - When deleting a structure, all uniquely-identified fields must be indicated in the operation. In addition, deletion through filters or via **"all"** will not be permitted by the system.
 
-### 2.3. Deterministic Write mechanism
+## 4.2.4 Deterministic Write mechanism
 
 Most modern SQL DBMS (database management system) implementations utilize the **Transaction model** to indicate a transaction as a group of operations to be performed sequentially and logically grouped. This is called **[ACID]**(https://en.wikipedia.org/wiki/ACID) (atomicity, consistency, isolation, durability), which are the properties that allow the dataset to stay consistent across operations by enabling capabilities such as rollbacks in case one of the operations comprising an ACID transaction fails or yields an inconsistent dataset state.
 
 Our chosen database engine, **Postgresql**, defines a transaction model in its official documentation [here](https://www.postgresql.org/docs/current/tutorial-transactions.html). It also defines the ability to rollback transactions [here](https://www.postgresql.org/docs/current/sql-rollback-prepared.html). These mechanisms establish the ability to achieve deterministic writes while avoiding issues such as data corruption and race conditions.
 
-<!-- TODO(olshansky): Dive into a deeper discussion of how multiple each "utility level transaction" can be decomposed into multiple DB transactions, each of which is atomic in itself. The middleware layer can aggregate them a priori into one DB transaction, OR, the DB engine can be leveraged via conflicts & upserts to immitiate this behaviour for a simpler implementation. In summary, all the utility level transactions, which may or may not have a 1:1 mapping to DB transactions, are applied atomically in the context of a single height.-->
+<!-- FutureIteration(olshansky): Dive into a deeper discussion of how multiple each "utility level transaction" can be decomposed into multiple DB transactions, each of which is atomic in itself. The middleware layer can aggregate them a priori into one DB transaction, OR, the DB engine can be leveraged via conflicts & upserts to immitiate this behaviour for a simpler implementation. In summary, all the utility level transactions, which may or may not have a 1:1 mapping to DB transactions, are applied atomically in the context of a single height.-->
 
-## 3. Blockchain State Validation Architecture
+# 5. Blockchain State Validation Architecture
 
-### 3.1. Overview
+## 5.1. Overview
 
-The **state dataset** contains the result of each set of state transitions indicated by the transactions for a given height. This provides the **state dataset** the desired property of **immutability** because the resulting state at any given height is one of the most critical inputs of the consensus process of the Pocket Network. Furthermore, this specification contains a mechanism that leverages [Merkle Patricia Tries](https://eth.wiki/en/fundamentals/patricia-tree) as a data structure that helps prove the integrity of the state dataset at any given height, free of any modifications, including the selected encoding scheme (e.g. Protobuf](https://developers.google.com/protocol-buffers)).
+The sections above describe the architecture and use of a SQL database engine to enable efficient and fault tolerant data access during various node operations. However, as in most other blockchains, we also need to efficiently compute and prove the integrity of the data.
 
-### 3.2. Immutable State Schema
+Alongside the SQL engine operations described above for efficient data access during node operations, [Sprase Merkle Trees](https://ethresear.ch/t/optimizing-sparse-merkle-trees/3751) backed by key-value store data engines will be used to store a serialized version of the dataset in order to do so and achieve tamper-proof **immutability**.
 
-We will refer to the **state dataset** as a group of collections that will conform to the immutable state schema. Every structure in the collection will become a leaf in a Merkle Patricia Trie, yielding a Merkle Root. Every Merkle root in the dataset will be concatenated in lexicographical order based on the collection identifier and hashed using **SHA256** function to produce what we will refer to as the **state hash**.
+## 5.2 State Transition
 
-<!-- TODO(olshansky): Add a diagram for this now or later to make it easier to understand how the data is stored -->
+### 5.2.1 State Hash
 
-Each state hash will be persisted alongside a cryptographic digital signature computed via a designated private key, serving as proof for validation during local state computation. This proof will be utilized to avoid recalculating previous states and allow the system, provided the same private key, to have a high degree of confidence in its computed state. The state can be recalculated using the state hash algorithm if the proof has been tampered with. This proof will be referred to as the **state computation proof.**
+Recall that the **state dataset** contains the Pocket Network state (i.e. node, apps, params, accounts, etc) after each set of state transitions indicated by the transactions executed at a specific height. Each **collection** in the state dataset (e.g. Application) will have a corresponding **state schema** (e.g. Application protobuf definition) containing an **address**. Each of these collections will have it's own **Merkle Tree**, yielding a **Merkle Root**. In the tree, leaf nodes will be represent instances of objects in the collection, whereas inner nodesn act as prefix paths to the leaf based on the object's address. This is often known as an **Addressable Merkle Tree** in some blockchain projects.
 
-#### 3.2.1. Data Encoding
+The **state hash** is computed by concatenating, in lexicographical order, the Merkle Root of each collection and hashing the result.
 
-We need to use a generic data encoding format to provide a uniform dataset for each leaf in every tree of the immutable state schema, which will be deterministic in its computation. We have chosen the [Protobuf](https://developers.google.com/protocol-buffers) implementation for this task. As outlined in the accompanying research document, Protobuf fulfills all the requirements and performance benchmarks for this implementation. Note that while Pocket Network V1.0 will use a standardized data encoding protocol, likely to be Protobuf, it does not exclude other protocols (e.g. [FlatBuffers](https://google.github.io/flatbuffers)) from being used in future major releases.
+```mermaid
+flowchart TD
+    subgraph Block Header
+        PrevHash
+        Transactions
+        QuorumCertificate
+        OBH[...]
+        subgraph Merkle Tree Roots
+            VR[Validators Root]
+            AR[Applications Root]
+            OSTR[...]
+            ROOT[State Hash]
+        end
+    end
 
-#### 3.2.2. Cumulative Versioning
+    %% Source of Truth
+    subgraph "Protobuf Schema"
+        VP([Validator])
+        AP([Application])
+        OPS([...])
+    end
 
-An attribute of Merkle Patricia Tries is that every new operation for a given trie doesn’t require the recomputation of the entire trie, rather only the **branch elements** that are being updated, satisfying our requirement of **Cumulative State Versioning**. This enables persisting deltas across versions of the immutable state schema rather than copies of the entire trie structure.
+    %% Client Customizable
+    subgraph "SQL Schema"
+        VT[(Validators Table)]
+        AT[(Applications Table)]
+        OSS[(...)]
+    end
 
-#### 3.2.3. State Structure Verification
+    VP -- Serialization & \n Merkle Tree Insertion --> VR
+    AP -- Serialization & \n Merkle Tree Insertion --> AR
+    OPS -- Serialization & \n Merkle Tree Insertion --> OSTR
 
-To verify any given structure state in a Merkle Patricia Trie, we need to provide a Merkle proof and the computed **leaf node** we are trying to prove. The use of Protobuf as our chosen data encoding protocol enables operation.
+    VR --> ROOT
+    AR --> ROOT
+    OSTR --> ROOT
 
-#### 3.2.4. Patricia Merkle Trie Persistence
+    VP -- Schema Definition & \n DB Insertion --> VT
+    AP -- Schema Definition & \n DB Insertion --> AT
+    OPS -- Schema Definition & \n DB Insertion --> OSS
+```
 
-A key-value store schema will be required to persist the immutable state schema. We can persist this as part of the **state dataset.**
+## 5.2.2 Immutable State Hash
 
-#### 3.2.5. Immutable State Transition Algorithm
+Each state hash will be persisted alongside a cryptographic digital signature computed via a designated private key (i.e. the block proposer during consensus), serving as proof for validation during local state computation. This proof will be utilized to avoid recalculating previous states and allow the system, provided trusted access to the public key, to have a high degree of confidence in its computed state. The state can be re-calculated using the state hash algorithm if the proof has been tampered with. This proof will be referred to as the **state computation proof.**
+
+## 5.3 Key-Value Store
+
+The Merkle Tree mentioned above will be backed by a key-value store database engine to persist the state dataset. In this tree, the key will the address, a mandatory field of each collection, and the value is a serialized version of that instance of the structure using the schema defined at that height.
+
+### 5.3.1 Data Encoding
+
+A generic and deterministic data encoding format is needed to encode each structure of each collection (i.e. each leaf of each tree) to compute the immutable state hash. Pocket Network v1 has selected [Protocol Buffers](https://developers.google.com/protocol-buffers), also known as **Protobufs**, for this task. As outlined in the accompanying [research document](./RESEARCH.md), Protobuf fulfills all the requirements and performance benchmarks for this implementation. Note that while Pocket Network V1.0 will use a standardized data encoding protocol, likely to be Protobuf, it does not exclude other protocols (e.g. [FlatBuffers](https://google.github.io/flatbuffers)) from being used in future major releases.
+
+## 5.4 Cumulative Versioning
+
+An attribute of most Addressable Sparse Merkle Trees is that every new operation for a given does not require the recomputation of the entire trie, rather only the **branch elements** that are being updated, satisfying our requirement of **Cumulative State Versioning**. This enables persisting deltas across versions of the immutable state schema rather than copies of the entire trie structure.
+
+## 5.5 State Verification
+
+To verify any given structure in one of the collections in the state dataset in a Merkle Patricia Trie, the prover (i.e. a full node) needs to only provide the Merkle proof to the verified (e.g. a client or synching node). The Merkle Proof will be composed of a list of (address, serialized protobuf structures), and it is assumed that the client has access to the corresponding merkle root and leaf being verified.
+
+## 5.6 State Transition
 
 To compute transitions of the **state dataset** to the **immutable schema**, we present an algorithm that, given a series of **state transitions**, the **current immutable schema** and a **private key** can compute the new **state hash** and the **state computation proof**. See Algorithm 1 as a reference.
 
@@ -378,21 +431,40 @@ To compute transitions of the **state dataset** to the **immutable schema**, we 
 
 Pocket Network's primary difference from most other blockchains is that it is an **application-specific blockchain** optimized to be a decentralized Web3 RPC middleware layer. Unlike smart contract blockchains, arbitrary data cannot be uploaded by the users, as that would break the immutable state schema based on predefined collections of structures.
 
-However, this specification still provides a Blockchain State Validation architecture, which leverages Patricia Merkle Tries to create a tamper-proof representation of the blockchain state at any given height. This achieves the property of having immutable yet still upgradable schemas.
+However, this specification still provides a Blockchain State Validation architecture, which leverages Sparse Merkle Trees to create a tamper-proof representation of the blockchain state at any given height. This achieves the property of having immutable yet still upgradable schemas.
 
-The only tradeoff concerns data replication of the immutable database schema, which can be solved via pruning and hashing.
+The only tradeoff concerns data replication of the immutable database schema, which can be solved via pruning and hashing of the tree.
 
 ## <span style="text-decoration:underline;">2. Can an attacker just modify the mutable database and make a node commit to an invalid state?</span>
 
 This attack vector can still exist in persistence architectures built only on top of trees. However, this would break functionality when proof for the local state is computed by yielding an invalid state hash.
 
+This would cause the node with an invalid state to fall out of state sync or consensus, and inherently start an unsupported fork.
+
 ## <span style="text-decoration:underline;">3. Isn’t this approach more susceptible to errors as there are more moving parts?</span>
 
-The only additional step this architecture includes is computing the leaf nodes due to the operations on the mutable database. However, we believe that this is a valid tradeoff as it can be easily managed as a separate sub-module of the persistence layer.
+The only additional step this architecture includes, relative to most blockchains, is computing the leaf nodes via operations on the mutable database. However, we believe that this is a valid tradeoff as it can be easily managed as a separate submodule of the persistence layer.
 
 # Candidate Features / Would Like to Haves / Open Questions
 
-## <span style="text-decoration:underline;">1. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>
+## <span style="text-decoration:underline;">1. What Kind of Merkle Tree is going to be used?</span>
+
+This is still an active area of research, and the specification will be updated once it is complete.
+
+The use of [IAVL](https://github.com/cosmos/iavl)
+http://diyhpl.us/wiki/transcripts/stanford-blockchain-conference/2019/urkel-trees/
+
+This optimization can be tackled in future versions of the specification. Specifically, building interfaces between the persistence module and other caching technologies such as [Redis](https://redis.io/) or [ElasticSearch](https://www.elastic.co/) are available.
+
+## <span style="text-decoration:underline;">2. What Kind of Key-Value database engine is going to back the Merkle Tree?</span>
+
+This optimization can be tackled in future versions of the specification. Specifically, building interfaces between the persistence module and other caching technologies such as [Redis](https://redis.io/) or [ElasticSearch](https://www.elastic.co/) are available.
+
+## <span style="text-decoration:underline;">3. How will light clients store data?</span>
+
+This optimization can be tackled in future versions of the specification. Specifically, building interfaces between the persistence module and other caching technologies such as [Redis](https://redis.io/) or [ElasticSearch](https://www.elastic.co/) are available.
+
+## <span style="text-decoration:underline;">3. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>
 
 This optimization can be tackled in future versions of the specification. Specifically, building interfaces between the persistence module and other caching technologies such as [Redis](https://redis.io/) or [ElasticSearch](https://www.elastic.co/) are available.
 
@@ -416,6 +488,8 @@ _NOTE: This is still a WIP and a non-exhaustive_
 
 For those implementing the specification, below is a checklist that can be used as a reference to determine the spec coverage implementation.
 
+3. Client-Server Architecture
+
 - 3.2.1 Configuration
 
   - [ ] DB connection: host, username, password, etc..
@@ -432,41 +506,23 @@ For those implementing the specification, below is a checklist that can be used 
   - [ ] Invalid data format writes: handle & propagate
   - [ ] Long-running queries: handle & propagate
 
-# WIP
+4. Persistence Client Middleware
 
-```mermaid
-flowchart LR
-    subgraph Block Header
-        PrevHash
-        Transactions
-        QuorumCertificate
-        OBH[...]
-        subgraph State Trie Roots
-            VR[Validators Root]
-            AR[Applications Root]
-            OSTR[...]
-        end
-    end
-
-    %% Source of Truth
-    subgraph "Protobuf Schema"
-        VP([Validator])
-        AP([Application])
-        OPS([...])
-    end
-
-    %% Client Customizable
-    subgraph "SQL Schema"
-        VT[(Validators Table)]
-        AT[(Applications Table)]
-        OSS[(...)]
-    end
-
-    VP -- Serialization & \n Trie Insertion --> VR
-    AP -- Serialization & \n Trie Insertion --> AR
-    OPS -- Serialization & \n Trie Insertion --> OSTR
-
-    VP -- Schema Definition & \n DB Insertion --> VT
-    AP -- Schema Definition & \n DB Insertion --> AT
-    OPS -- Schema Definition & \n DB Insertion --> OSS
-```
+- 4.2. Persistence datasets implemented
+  - [ ] Consensus: blocks, transactions, quorum certifications, etc…
+  - [ ] State: nodes, apps, params, accounts, etc…
+  - [ ] Block: (state dataset, state hash) pairs
+  - [ ] Mempool: transient until a block is finalized
+  - [ ] Local: temporary local node data needed for operation
+- 4.2.1 Persistence schema defined (Protobuf & SQL)
+  - [ ] Consensus
+    - [ ] Blocks
+    - [ ] Transaction
+    - [ ] Quorum Certificates
+  - [ ] State
+    - [ ] Nodes
+    - [ ] Apps
+    - [ ] Params
+    - [ ] Accounts
+  - [ ] Block
+    - (State dataset, state hash) pairs
