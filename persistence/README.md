@@ -34,6 +34,8 @@
   - [5.4 Cumulative Versioning](#54-cumulative-versioning)
   - [5.5 State Verification](#55-state-verification)
   - [5.6 State Transition](#56-state-transition)
+    - [5.6.1 State Transition Algorithm](#561-state-transition-algorithm)
+    - [5.6.2 State Transition Sequence Diagram](#562-state-transition-sequence-diagram)
 - [Dissenting Opinions / Attack Vectors / FAQ](#dissenting-opinions--attack-vectors--faq)
   - [<span style="text-decoration:underline;">1. Why not just store the state in a tree like every other blockchain?</span>](#1-why-not-just-store-the-state-in-a-tree-like-every-other-blockchain)
   - [<span style="text-decoration:underline;">2. Can an attacker just modify the mutable database and make a node commit to an invalid state?</span>](#2-can-an-attacker-just-modify-the-mutable-database-and-make-a-node-commit-to-an-invalid-state)
@@ -420,9 +422,13 @@ To verify any given structure in one of the collections in the state dataset in 
 
 To compute transitions of the **state dataset** to the **immutable schema**, we present an algorithm that, given a series of **state transitions**, the **current immutable schema** and a **private key** can compute the new **state hash** and the **state computation proof**. See Algorithm 1 as a reference.
 
+### 5.6.1 State Transition Algorithm
+
 ![alt_text](algo1.jpg "Algorithm 1")
 
 <!-- NextIteration(olshansky): Update the diagram and add the latex source code-->
+
+### 5.6.2 State Transition Sequence Diagram
 
 Below is a sequence diagram showing the end-to-end data flow between the different components during a state transition.
 
