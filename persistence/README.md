@@ -40,9 +40,9 @@
   - [<span style="text-decoration:underline;">3. Isn’t this approach more susceptible to errors as there are more moving parts?</span>](#3-isnt-this-approach-more-susceptible-to-errors-as-there-are-more-moving-parts)
 - [Candidate Features / Would Like to Haves / Open Questions](#candidate-features--would-like-to-haves--open-questions)
   - [<span style="text-decoration:underline;">1. What Kind of Merkle Tree is going to be used?</span>](#1-what-kind-of-merkle-tree-is-going-to-be-used)
-  - [<span style="text-decoration:underline;">2. What Kind of Key-Value database engine is going to back the Merkle Tree?</span>](#2-what-kind-of-key-value-database-engine-is-going-to-back-the-merkle-tree)
+  - [<span style="text-decoration:underline;">2. What Kind of Key-Value store database engine is going to back the Merkle Tree?</span>](#2-what-kind-of-key-value-store-database-engine-is-going-to-back-the-merkle-tree)
   - [<span style="text-decoration:underline;">3. How will light clients store data?</span>](#3-how-will-light-clients-store-data)
-  - [<span style="text-decoration:underline;">3. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>](#3-add-a-keyvalue-store-for-caching-data-alongside-a-relational-database-that-does-not-hinder-performance-and-avoids-too-much-data-duplication)
+  - [<span style="text-decoration:underline;">4. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>](#4-add-a-keyvalue-store-for-caching-data-alongside-a-relational-database-that-does-not-hinder-performance-and-avoids-too-much-data-duplication)
 - [References](#references)
 - [Spec Coverage Checklist](#spec-coverage-checklist)
 
@@ -451,20 +451,28 @@ The only additional step this architecture includes, relative to most blockchain
 
 This is still an active area of research, and the specification will be updated once it is complete.
 
-The use of [IAVL](https://github.com/cosmos/iavl)
-http://diyhpl.us/wiki/transcripts/stanford-blockchain-conference/2019/urkel-trees/
+The use of [IAVL](https://github.com/cosmos/iavl) has been ruled out due to the inefficiencies learn from Pocket Network v0 after its adoption from Tendermint. Some potential alternatives include
 
-This optimization can be tackled in future versions of the specification. Specifically, building interfaces between the persistence module and other caching technologies such as [Redis](https://redis.io/) or [ElasticSearch](https://www.elastic.co/) are available.
+- [Merkle Patricia Tries](https://ethereum.org/en/developers/docs/data-structures-and-encoding/patricia-merkle-trie/)
+- [Urkle Trees](http://diyhpl.us/wiki/transcripts/stanford-blockchain-conference/2019/urkel-trees/)
+- [Jellyfish Merkle Trees](https://developers.diem.com/papers/jellyfish-merkle-tree/2021-01-14.pdf)
+- [Verkle Trees](https://math.mit.edu/research/highschool/primes/materials/2018/Kuszmaul.pdf)
 
-## <span style="text-decoration:underline;">2. What Kind of Key-Value database engine is going to back the Merkle Tree?</span>
+## <span style="text-decoration:underline;">2. What Kind of Key-Value store database engine is going to back the Merkle Tree?</span>
 
-This optimization can be tackled in future versions of the specification. Specifically, building interfaces between the persistence module and other caching technologies such as [Redis](https://redis.io/) or [ElasticSearch](https://www.elastic.co/) are available.
+This is still an active area of research, and the specification will be updated once it is complete. Some potential solutions include:
+
+- [LevelDB](https://github.com/google/leveldb)
+- [RocksDB](https://github.com/facebook/rocksdb)
+- [BadgerDB](https://github.com/dgraph-io/badger)
+- [BoltDB](https://github.com/boltdb/bolt)
+- [hstore](https://www.postgresql.org/docs/current/hstore.html)
 
 ## <span style="text-decoration:underline;">3. How will light clients store data?</span>
 
-This optimization can be tackled in future versions of the specification. Specifically, building interfaces between the persistence module and other caching technologies such as [Redis](https://redis.io/) or [ElasticSearch](https://www.elastic.co/) are available.
+As a decentralized RPC provider, light clients are a lower priority in the context of the Pocket Network. Optimizing the persistence layer of most protocol level actors today, which require a full but efficient datastore, is the goal of this specification until further revisions.
 
-## <span style="text-decoration:underline;">3. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>
+## <span style="text-decoration:underline;">4. Add a key/value store for caching data alongside a relational database that does not hinder performance and avoids too much data duplication.</span>
 
 This optimization can be tackled in future versions of the specification. Specifically, building interfaces between the persistence module and other caching technologies such as [Redis](https://redis.io/) or [ElasticSearch](https://www.elastic.co/) are available.
 
