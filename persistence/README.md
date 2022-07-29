@@ -346,7 +346,7 @@ Our chosen database engine, **Postgresql**, defines a transaction model in its o
 
 The sections above describe the architecture and use of a SQL database engine to enable efficient and fault tolerant data access during various node operations. However, as in most other blockchains, we also need to efficiently compute and prove the integrity of the data.
 
-Alongside the SQL engine operations described above for efficient data access during node operations, [Sprase Merkle Trees](https://ethresear.ch/t/optimizing-sparse-merkle-trees/3751) backed by key-value store data engines will be used to store a serialized version of the dataset in order to do so and achieve tamper-proof **immutability**.
+Alongside the SQL engine operations described above for efficient data access during node operations, [Sparse Merkle Trees](https://ethresear.ch/t/optimizing-sparse-merkle-trees/3751) backed by key-value store data engines will be used to store a serialized version of the dataset in order to do so and achieve tamper-proof **immutability**.
 
 ## 5.2 State Hash
 
