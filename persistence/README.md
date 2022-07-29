@@ -404,7 +404,7 @@ Each state hash will be persisted alongside a cryptographic digital signature co
 
 ## 5.3 Key-Value Store
 
-The Merkle Tree mentioned above will be backed by a key-value store database engine to persist the state dataset. In this tree, the key will the address, a mandatory field of each collection, and the value is a serialized version of that instance of the structure using the schema defined at that height.
+The Merkle Tree mentioned above will be backed by a key-value store database engine to persist the state dataset. In this tree, the key will be the address, a mandatory field of each collection, and the value is a serialized version of that instance of the structure using the schema defined at that height.
 
 ### 5.3.1 Data Encoding
 
