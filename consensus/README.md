@@ -237,7 +237,7 @@ Pocket Network 1.0 Utility Module requires all Validators to be bonded during ac
 
 ### 4.2 Forking-Attack: Long-Range
 
-In Pocket Network 1.0's Consensus Protocol, Long-Range attacks are limited to nodes who have not joined the network for the duration of ValidatorUnstakingPeriod. In this case, the attack is mitigated through Weak Subjectivity and social Consensus. See [Ethereum's reasoning](https://eth.wiki/en/concepts/proof-of-stake-faqs#what-is-weak-subjectivity).
+In Pocket Network 1.0's Consensus Protocol, Long-Range attacks are limited to nodes who have not joined the network for the duration of ValidatorUnstakingPeriod. In this case, the attack is mitigated through Weak Subjectivity and social Consensus. See [Ethereum's reasoning](https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/weak-subjectivity/).
 
 ### 4.3 Sybil-Attack
 
