@@ -1,6 +1,6 @@
 # Pocket 1.0 Utility Module Pre-Planning Specification
 
-Andrew Nguyen and Shawn Regan
+Andrew Nguyen, Shawn Regan, and Pierre Spiegel
 
 
 # 1 Overview
@@ -143,10 +143,17 @@ A ServiceNode stake is only able to be burned in two situations: A TestScore bel
 
 ## 3.3 Fisherman Protocol
 
-Fishermen are a category of actor whose responsibility is to monitor and report the behavior of ServiceNodes. The fundamental unit of Fishermen work is to periodically sample the ServiceNode’s Web3 service, record the quality of the service in a TestScore, and succinctly report the TestScore to the network. In Pocket Network 1.0, Fishermen are not permissionless actors, rather there is a strict eligibility requirement for the DAO to vote in each participant. Furthermore, one explicit requirement of Fishermen is to advertise their identity, using their reputation as collateral against faulty and malicious behavior. In addition to the Proof of Authority process, Fishermen are required to bond a certain amount of tokens in escrow while they are providing the Fishermen services. The requirement of POA/POS Fishermen is to filter madmen adversaries who defy economic incentives in order to attack the network. Upon registration, a Fishermen must provide the network necessary information to interact with the protocol including StakeAmount, GeoZone, optional OperatorPubKey, and the Pocket API endpoint where the Fishermen conduct public services. In addition to the public ServiceURL, the Fishermen are bound by SLA to have a dedicated server to conduct incognito sampling services of the ServiceNodes. Detailed requirements and conditions must be defined in the Fisherman SLA document to create an acceptable level of secrecy from the sampling server to ensure accuracy of sample collection. It is important to note that the Fisherman StakeMsg message differs from other permissionless actors in Pocket Network because it is only valid if permissioned through the DAO Access Control List.
+**Staking Process**
 
+Fishermen are a category of actor whose responsibility is to monitor and report the behavior of ServiceNodes. The fundamental unit of Fishermen work is to periodically sample the ServiceNode’s Web3 service, record the quality of the service in a TestScore, and succinctly report the TestScore to the network. In Pocket Network 1.0, Fisherman may be permissionless or permissioned by the DAO, depending on the state of the network. 
 
-```
+Fishermen are required to bond a certain number of tokens in escrow while they are providing services and earning rewards. The requirement of POA/POS Fishermen is to filter madmen adversaries who defy economic incentives in order to attack the network. Upon registration, a Fisherman must provide the network necessary information to interact with the protocol, including StakeAmount, GeoZone, optional OperatorPubKey, and the Pocket API endpoint where the Fishermen conduct public services. 
+
+Note: If the DAO decides that Fisherman should be permissioned, than the Fisherman StakeMsg is only valid if permissioned through the DAO Access Control List.
+
+A Fisherman is able to modify their initial staking values, including GeoZone, ServiceURL, and StakeAmount, by submitting a StakeMsg while already staked. In addition to that restriction, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol not to have to track pieces of stake from any Fisherman and enables an overall simpler implementation.
+
+```go
 # FishermanStakeMsg Interface
 type FishermanStakeMsg interface {
   GetPublicKey()  PublicKey       # The public cryptographic id of the Fisherman
@@ -157,57 +164,9 @@ type FishermanStakeMsg interface {
 }
 ```
 
+In addition, Fishermen are able to use a PauseMsg to gracefully remove themselves from service. This feature allows for greater UX for Fishermen, enabling scheduled periods of maintenance or damage control in faulty situations. In addition to an Operator-initiated PauseMsg, the DAO is able to pause a Fisherman if a faulty or malicious process is detected during testing. The details, limitations, and incentives of which are described in the Pocket 1.0 Constitution. If a Fisherman is ‘paused,’ they are able to reverse the paused state by submitting an UnpauseMsg after the MinPauseTime has elapsed. After a successful UnpauseMsg, the Fisherman is once again able to be included in Sessions.
 
-Once successfully staked in the network, Fishermen are eligible to receive monitoring requests from Applications. Within a monitoring request, a limited ApplicationAuthenticationToken and Ephemeral Private key is provided to Fishermen which enables them to make sampling requests to all of the ServiceNodes in the Session on the Application’s behalf. In addition to the AAT, the Application may optionally provide the Fishermen a list of acceptable monitoring requests to test the ServiceNodes with during the sampling. Once the Application handshake is complete, the Fisherman is effectively a monitoring client of the Application and will execute periodic sampling inline with the Sampling Protocol. 
-
-The purpose of the Sampling Protocol is to define a method of testing such that the network can accurately monitor ServiceNodes’ availability, data accuracy, and latency through the Fishermen actors. The first requirement of the Sampling Protocol is for Fishermen to adhere to strict time based sampling events to make their requests. For example, a mock sampling strategy would be for the Fisherman to execute a sampling request every minute until the Session elapses. As described in the Session Protocol, all actors participating in Sessions must be time synced using the NTP protocol, enabling safety and security between ServiceNodes and Fishermen during the time based sampling events. 
-
-
-![alt_text](image4.png "")
-
-In addition to the time based requirement, it is mandatory for the Fisherman to make any sampling request to all of the ServiceNodes in the Session at once. This strategy enables the Fishermen to make data accuracy assessments by directly comparing responses of each ServiceNode without actually hosting any Web3 service. If no signed response is able to be collected from any given ServiceNode, a null sample is recorded for the sample time slot. It is important to understand the number of Null Samples is inversely proportional to a ServiceNode’s availability metric for that TestScore. Lastly, relative RTT latency metrics are collected by the Fishermen for each request made. Due to wide variances of latency metrics, these statistics inform the network of general latency expectations in any GeoZone and are primarily used to disincentivize high average latency ServiceNodes rather than rewarding any high performing nodes. 
-
-
-![alt_text](image3.png "")
-
-Fishermen incentive design is an important factor in Pocket 1.0’s security model, as wrongly aligned incentives can lead to systemic breakdowns of actor roles. Contrary to ServiceNodes, Fishermen rewards are not affected by the content of the samples and TestScoreMsgs as long as they are not null. However, similar to ServiceNodes, Fishermen salaries are generated from Application usage data. Exactly like the ServiceNodeSalaryPool, the FishermenSalaryPool inflation is based on the Volume metrics reported by the ServiceNodes. However, Fishermen salary distribution is only based on the quantity and completeness of TestScoreMsgs and are designed to be agnostic to latency, data consistency, and volume metrics. The completeness of any report is based on the number of non-null samples limited up to the MaxSamplesPerSession upper bound. A non-null sample is abstracted as a signed Web3 response from the assigned ServiceNode in the Session. Given sampling is a time based strategy, the number of samples possible in any given session is upper bounded by the duration of the Session and the timing of the Application handshake. Fishermen incentives are oriented such that they will exhaust attempts to retrieve a non null sample before the sampling time slot expires, meaning an offline sample penalizes both the Fisherman and the ServiceNode. If a threshold of null samples are collected, Fishermen will opt to submit a PauseMsg for the non-responsive ServiceNode, replacing them with a new ServiceNode, in order to salvage any potential reward out of a Session. The PauseMsg action is limited up to MaxFishermenPauses per Session to prevent faulty Fishermen behavior. Individual Fishermen salaries are then calculated by taking the quantity of samples reported in a certain pay period compared to the total number of samples reported during that time. 
-
-
-```
-# FishermanTestScoreMsg Interface
-type FishermanTestScoreMsg interface {
-  GetSessionHeader() SessionHeader # The AppPubKey, the SessionHeight, geozone, and relaychain
-  GetFirstSampleTime() Timestamp   # The timestamp of the first sample
-  GetNumberOfSamples() int8        # The number of total samples completed, limited to Max
-  GetNullIndicies() [] int8        # Indices of null samples
-}
-```
-
-
-Fishermen TestScoreMsgs operate under a probabilistic submission and proof model. In order to reduce blockchain bloat but maintain sampling security, Fishermen TestScoreMsgs are only able to be submitted every ProbablisticTestScoreSubmissionFrequency and are required to be proven every ProbablisticTestScoreProofFrequency times. In practice and depending on the param values, this means that though all Sessions are monitored, only some make it on chain and even fewer are proven. 
-
-
-![alt_text](image1.png)
-
-Furthermore, due to alignment of Fisherman incentives and desired brevity of on-chain Proof data, ProofTxs only require the Fisherman to prove they executed the sampling by verifying a single non-null sample. The specific sample required to prove the TestScore is determined by the ‘claimed’ TestScoreMsg and the BlockHash after ProofTestScoreDelay blocks elapse and is required to be submitted before MaxProofMsgDelay. This reveal mechanism allows for an unpredictable assignment of the required sample but is deterministic once the BlockHash is finalized. Using the timing requirement of the sampling strategy, the protocol can easily verify the sample index when submitted in the ProofMsg. It is important to note, that all Web3 requests and responses are signed by the requester (Fisherman or Application) and the responder (ServiceNode). This cryptographic mechanism ensures the integrity of a timestamp, as without the signature from the particular ServiceNode PrivateKey, a Fisherman would be able to falsify the timestamp. Though a successful ProofMsg has no effect on the reward of any Fishermen, an unsuccessful ProofMsg burn is severe to make up for the probabilistic nature of the proof requirement.
-
-
-![alt_text](image2.png)
-
-
-```
-# FishermanProofMsg Interface
-type FishermanProofMsg interface {
-  GetSessionHeader() SessionHeader # The AppPubKey, the SessionHeight, geozone, and relaychain
-  GetProofLeaf() Timestamp         # Actual sample containing the proper timestamp
-}
-```
-
-
-In Pocket 1.0 Fishermen are able to use a PauseMsg to gracefully remove themselves from service. This feature allows for greater UX for Fishermen, enabling scheduled periods of maintenance or damage control in faulty situations. In addition to an Operator initiated PauseMsg, the DAO is able to pause a Fishermen if a faulty or malicious process is detected during testing, the details, limitations, and incentives of which are described in the Pocket 1.0 Constitution. If a Fishermen is ‘paused’, they are able to reverse the paused state by submitting an UnpauseMsg after the MinPauseTime has elapsed. After a successful UnpauseMsg, the Fisherman is once again able to perform testing and receive payment for work.. 
-
-
-```
+```go
 # Fishermen Interface
 type FishermenPauseMsg interface {
   GetAddress()  Address       # The address of the Fishermen being paused
@@ -218,35 +177,98 @@ type FishermenUnpauseMsg interface {
 }
 ```
 
+Once successfully staked in the network, Fishermen will be included in the Session Protocol. 
 
-A Fisherman is able to modify their initial staking values including GeoZone, ServiceURL, and StakeAmount by submitting a StakeMsg while already staked. It is important to note that contrary to ServiceNodes, Fishermen GeoZone changes must be permissioned through the DAO ACL. In addition to that restriction, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Fisherman and enables an overall simpler implementation. 
+**Session Sampling**
 
+Once a Fisherman has been included in a Session, it is eligible to receive monitoring requests from Applications to monitor ServiceNodes in that session. Within a monitoring request, a limited ApplicationAuthenticationToken and Ephemeral Private key is provided to Fishermen, which enables them to make sampling requests to all of the ServiceNodes in the Session on the Application’s behalf. In addition to the AAT, the Application may optionally provide the Fishermen a list of acceptable monitoring requests to test the ServiceNodes with during the sampling. Once the Application handshake is complete, the Fisherman is effectively a monitoring client of the Application and will begin sampling. In addition to receiving monitoring requests from applications, Fishermen are economically incentivized to stake Applications and send themselves monitoring requests in case other Applications do not send any requests. 
 
-```
-# FishermenNode(Edit)StakeMsg Interface
-type FishermenStakeMsg interface {
-  GetPublicKey()  PublicKey       # identity of edited Fishermen
-  GetStakeAmount() BigInt         # must be greater than or equal to the current value
-  GetServiceURL() ServiceURL      # may be modified
-  GetGeoZone() LocationIdentifier # may be modified
-  GetOperatorPubKey() PublicKey   # may be modified
+Once the Session has been created, the Fishermen will begin sampling. They will send each monitoring request to all the ServiceNodes at the same time (to determine accuracy) and gather relative RTT latency metrics for these requests. There is no way to ensure that all the Fishermen will use the exact same sampling methods, but considering the rewards of a Fisherman depend on the results the other Fishermen submit, a social consensus clarifying sampling methods will surely arise.
+
+<p align="center">
+<img src="./image1.svg">
+</p>
+
+**TestScore Submission**
+
+Once the session has finished, Fishermen must submit their results to the chain. The TestScores will be submitted in a "hide and reveal" scheme to prevent other Fishermen from monitoring the unconfirmed transactions and copying the results from other Fishermen. In order to reduce blockchain bloat, all of the information about the performance of the ServiceNodes will be included in the SessionResultMsg, which is submitted after SessionResultMsgDelay blocks have passed since the Session was completed. 
+
+If the ServiceNode was unresponsive and the Fishermen were unable to gather any results, it will submit a TestScore declaring the ServiceNode was inactive. 
+
+```go
+type SessionResultMsg interface {
+	GetSessionHeader() SessionHeader # The AppPubKey, the SessionHeight, geozone, and relaychain
+	GetTestScores() []TestScore # A list of all the TestScores for each ServiceNode in that session
+	IsParticipating() bool # If the Fisherman received no monitoring requests, then it may choose to opt out of any rewards/reputation changes for that Session
 }
 ```
 
-
-A Fishermen is able to submit an UnstakeMsg to exit the network and remove themself from service. After a successful UnstakeMsg, the Fishermen is no longer eligible to receive monitoring requests. It is important to note, a Fisherman is permissioned to unstake if removed from the DAO ACL parameter. After FishermenUnstakingTime elapses, any Stake amount left is returned to the custodial account.
-
-
-```
-# FishermenUnstakeMsg Interface
-type FishermenUnstake interface {
-  GetAddress()  Address       # The address of the Fishermen unstaking
+```go
+type TestScore interface {
+    GetSessionHeader() SessionHeader
+    GetResult() Result
+    GetActivity() bool # if the ServiceNode was not active during the Session, this value will be false.
 }
 ```
 
+The TestScores of the SessionResultMsg will be encoded by a key which will be revealed in the SessionRevealMsg.
 
-In Pocket 1.0, Fishermen monitoring is an off-chain endeavor undertaken by the DAO and crowdsourced through the Good Citizens protocol of each ServiceNode and Application. DAO monitoring consists of Fishermen audits, statistical analysis of Fishermen behaviors, and incognito network actors that police interactions of Fishermen. The details, conditions, and limitations of DAO monitoring are defined further in the 1.0 Constitution. In practice, the Good Citizens Protocol is sanity checks for the network actors, the community, and the software developers, but it ultimately is the crowd sourced monitoring solution for the Fishermen. Specifically, the Good Citizens Protocol is an opt-in, configurable module that checks individual interactions against resulting finality data and automatically reports suspicious, faulty, or malicious behavior of the Fishermen to offchain data sites which are analyzed and filtered up to the DAO and to the public. Individual Fishermen burns and Good Citizen bounties are determined by the DAO and defined in the 1.0 Constitution. 
+```go
+type SessionRevealMsg interface {
+	GetSessionHeader() SessionHeader # The AppPubKey, the SessionHeight, geozone, and relaychain
+	GetKey() []byte # the key used to encode the TestScores of the SessionResultMsg
+}
+```
 
+No ProofTxs or cryptography is needed to prove that Fishermen were sending requests, as the TestScores themselves and their accuracy economically force the Fishermen to submit real scores based on real data.
+
+<p align="center">
+<img src="./image2.svg">
+</p>
+
+**TestScore Aggregation**
+
+Once the Fishermen have posted their results, the network needs to aggregate all the TestScores from all the Fishermen in a Session, weight each score by the Reputation of the Fishermen, and find the most accurate score to put on the ServiceNode's report card. This aggregated value is called the ServiceNodeScore. The algorithm for calculating this has not been decided yet, however some promising options include Biweight Midvariance, Median Absolute Deviation, and Natural Logarithm. 
+
+The Fishermen also need a scoring mechanism (Reputation) that prevents previous mistakes from dragging down the Reputation of a Fisherman forever and making sure the Reputation isn't very volatile. Fishermen have a FishermenReportCard which is a list of FishermanSessionScores of FishermanReportCardMemory length long. The Reputation is the average of these values. A FishermanSessionScore is the output of a function representing how accurate the Fisherman was compared to the other Fisherman. It is not completely finalized, but a promising candidate for this function is the Z-Score weighted by the Reputations of other Fishermen.
+
+Additionally, if a majority of Fishermen (2/3) declare that a ServiceNode was inactive during their session, the network will pause that ServiceNode. For a Fisherman who correctly declared the ServiceNode was inactive or not, they will receive a score on their FishermenReportCard of the product of ValidFishermenPauseImpact, and its current Reputation. If a Fisherman is incorrect about their declaration, they will receive a score on its FishermenReportCard of the product of the percentage of Fishermen who agreed with their declaration and their current Reputation.
+
+For example, if 8/10 Fishermen declare the ServiceNode was inactive, then those 8 Fishermen would receive scores of their Reputation multiplied by ValidFishermenPauseImpact, and the two other invalid Fishermen would receive scores of 0.2 multiplied by their current Reputation.
+
+Case 1: How a ServiceNode is graded.
+
+<p align="center">
+<img src="./image3.svg">
+</p>
+
+Case 2: How Fishermen are graded.
+
+<p align="center">
+<img src="./image4.svg">
+</p>
+
+Case 3: ServiceNode was inactive during a session.
+
+<p align="center">
+<img src="./image5.svg">
+</p>
+
+**Fisherman Rewarding**
+
+Due to the interesting relationship between Fishermen and ServiceNodes, where Fishermen are responsible for grading the ServiceNodes, and by relation responsible for the rewards of the ServiceNodes. This means that the negative consequence of falsifying reward data must be greater than the reward of doing so. Whether this is possible isn't easy to say at the current time, and if the network parameters are not suitable, then there will be a permissioned stake by the DAO, as discussed above. One way to make this more difficult is to have a non-linear relationship between the Reputation of a Fisherman and its rewards. This non-linear function is known as the ReputationToSalary. 
+
+Fishermen are rewarded in a very similar manner to ServiceNodes. There are only two small changes. First, the TotalAvailableReward is multiplied by the TotalRewardToFishermenReward, which gives the DAO greater control over how ServiceNodes and Fishermen are rewarded. Secondly, the Salary of Fishermen is not linear compared to it's Reputation, and goes through a non-linear function called ReputationToSalary, which is controlled by the DAO.
+
+Here is an example of what the ReputationToSalary might look like:
+
+<p align="center">
+<img src="./image6.png">
+</p>
+
+<p align="center">
+<img src="./image7.svg">
+</p>
 
 ## 3.4 Application Protocol
 
