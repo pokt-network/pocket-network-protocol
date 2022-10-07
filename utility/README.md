@@ -165,8 +165,14 @@ Fishermen are a category of actor whose responsibility is to monitor and report 
 
 ```mermaid
 graph LR
-    A[Propose New Fishermen] -->|Majority Vote| B(Pass DAO Acceptance)
-    B --> C[Submit StakeTx] -->|Amount, Geo, OutputAddr, URL| D(Active Fisherman)
+    A[Propose New Fishermen]
+    B(Pass DAO Acceptance)
+    C[Submit StakeTx]
+    D(Active Fisherman)
+
+    A -- Majority Vote --> B
+    B --> C
+    C -- Amount, Geo, OutputAddr, URL --> D
 ```
 
 
