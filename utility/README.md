@@ -210,10 +210,14 @@ Fishermen incentive design is an important factor in Pocket 1.0’s security mod
 
 ```mermaid
 graph LR
-    B(Fisherman Selected By Session Protocol)
-    B -->|TestScore Txn From Sampling|D[Blockchain]
-    D -->|Computation On Testscore Aggregation| E(Report Card)
-    E -->|Reward Amount For Service|C[Service Nodes]
+    Fish(Fisherman Selected By Session Protocol)
+    B[Blockchain]
+    RC(Report Card)
+    SN[Service Nodes]
+
+    Fish -- TestScore Txn From Sampling --> B
+    B -- Computation On Testscore Aggregation --> RC
+    RC -- Reward Amount For Service --> SN
 ```
 
 ```mermaid
