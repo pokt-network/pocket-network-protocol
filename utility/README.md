@@ -222,9 +222,13 @@ graph LR
 
 ```mermaid
 graph LR
-    E--> B(Testscore)
-    B -->|Num Non-Null Samples *Service Node Signature Required*|D[Blockchain]
-    D -->|Reward| E(Fisherman)
+    Fish(Fisherman)
+    TS([Test Score])
+    B[Blockchain]
+
+    Fish --> TS
+    TS -- Num Non Null Samples<br>*Requiring Service Node Signature* -->B
+    B -- Reward --> Fish
 ```
 
 
