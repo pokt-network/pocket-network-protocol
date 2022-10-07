@@ -186,8 +186,14 @@ Once successfully staked in the network, Fishermen are eligible to receive monit
 ```mermaid
 
 graph LR
-    A[App] -->|AAT| B(Fisherman Selected By Session Protocol)
-    B --> |Sampling Requests|C[Service Nodes] -->|Latency, Data Consistency, Availability Data|B
+graph LR
+    App[App]
+    Fish(Fisherman Selected By Session Protocol)
+    SN[Service Nodes]
+
+    App -- AAT --> Fish
+    Fish -- Sampling Requests --> SN
+    SN -- Latency, Data Consistency, Availability Data --> Fish
 ```
 
 The purpose of the Sampling Protocol is to define a method of testing such that the network can accurately monitor ServiceNodes’ availability, data accuracy, and latency through the Fishermen actors. The first requirement of the Sampling Protocol is for Fishermen to adhere to strict time based sampling events to make their requests. For example, a mock sampling strategy would be for the Fisherman to execute a sampling request every minute until the Session elapses. As described in the Session Protocol, all actors participating in Sessions must be time synced using the NTP protocol, enabling safety and security between ServiceNodes and Fishermen during the time based sampling events. 
