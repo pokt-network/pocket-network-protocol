@@ -150,11 +150,13 @@ sequenceDiagram
     actor Fisherman
     actor Service Nodes
     App->>Fisherman: App Auth Token
-    App->>Service Nodes: RPC Requests
-    Service Nodes->>App: RPC Response
-    Fisherman->>Service Nodes: Incognito Sampling (RPC) Requests
-    Service Nodes->>Fisherman: RPC Response
-    Fisherman->>Blockchain State: TestScore (Aggregate of samples) Txn
+    loop Repeats Throughout Session Duration 
+        App->>Service Nodes: RPC Request
+        Service Nodes->>App: RPC Response
+        Fisherman->>Service Nodes: Incognito Sampling (RPC) Request
+        Service Nodes->>Fisherman: RPC Response
+    end
+    Fisherman->>Blockchain State: TestScore (Aggregate of Samples) Txn
     Blockchain State ->>Service Nodes: Reward For Service (Based on Report Card)
     Blockchain State ->> Fisherman: Reward For Sampling  (Based on Non-Null Samples)
 ```
