@@ -184,6 +184,7 @@ type FishermanStakeMsg interface {
 
 Once successfully staked in the network, Fishermen are eligible to receive monitoring requests from Applications. Within a monitoring request, a limited ApplicationAuthenticationToken and Ephemeral Private key is provided to Fishermen which enables them to make sampling requests to all of the ServiceNodes in the Session on the Application’s behalf. In addition to the AAT, the Application may optionally provide the Fishermen a list of acceptable monitoring requests to test the ServiceNodes with during the sampling. Once the Application handshake is complete, the Fisherman is effectively a monitoring client of the Application and will execute periodic sampling inline with the Sampling Protocol. 
 ```mermaid
+
 graph LR
     A[App] -->|AAT| B(Fisherman Selected By Session Protocol)
     B --> |Sampling Requests|C[Service Nodes] -->|Latency, Data Consistency, Availability Data|B
