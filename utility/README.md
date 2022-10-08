@@ -143,7 +143,37 @@ A ServiceNode stake is only able to be burned in two situations: A TestScore bel
 
 ## 3.3 Fisherman Protocol
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor App
+    actor Fisherman
+    actor Service Nodes
+    App->>Fisherman: App Auth Token
+    loop Repeats Throughout Session Duration 
+        App->>Service Nodes: RPC Request
+        Service Nodes->>App: RPC Response
+        Fisherman->>Service Nodes: Incognito Sampling (RPC) Request
+        Service Nodes->>Fisherman: RPC Response
+    end
+    Fisherman->>Blockchain State: TestScore (Aggregate of Samples) Txn
+    Blockchain State ->>Service Nodes: Reward For Service (Based on Report Card)
+    Blockchain State ->> Fisherman: Reward For Sampling  (Based on Non-Null Samples)
+```
+
 Fishermen are a category of actor whose responsibility is to monitor and report the behavior of ServiceNodes. The fundamental unit of Fishermen work is to periodically sample the ServiceNode’s Web3 service, record the quality of the service in a TestScore, and succinctly report the TestScore to the network. In Pocket Network 1.0, Fishermen are not permissionless actors, rather there is a strict eligibility requirement for the DAO to vote in each participant. Furthermore, one explicit requirement of Fishermen is to advertise their identity, using their reputation as collateral against faulty and malicious behavior. In addition to the Proof of Authority process, Fishermen are required to bond a certain amount of tokens in escrow while they are providing the Fishermen services. The requirement of POA/POS Fishermen is to filter madmen adversaries who defy economic incentives in order to attack the network. Upon registration, a Fishermen must provide the network necessary information to interact with the protocol including StakeAmount, GeoZone, optional OperatorPubKey, and the Pocket API endpoint where the Fishermen conduct public services. In addition to the public ServiceURL, the Fishermen are bound by SLA to have a dedicated server to conduct incognito sampling services of the ServiceNodes. Detailed requirements and conditions must be defined in the Fisherman SLA document to create an acceptable level of secrecy from the sampling server to ensure accuracy of sample collection. It is important to note that the Fisherman StakeMsg message differs from other permissionless actors in Pocket Network because it is only valid if permissioned through the DAO Access Control List.
+
+```mermaid
+graph LR
+    A[Propose New Fishermen]
+    B(Pass DAO Acceptance)
+    C[Submit StakeTx]
+    D(Active Fisherman)
+
+    A -- Majority Vote --> B
+    B --> C
+    C -- Amount, Geo, OutputAddr, URL --> D
+```
 
 
 ```
@@ -159,6 +189,17 @@ type FishermanStakeMsg interface {
 
 
 Once successfully staked in the network, Fishermen are eligible to receive monitoring requests from Applications. Within a monitoring request, a limited ApplicationAuthenticationToken and Ephemeral Private key is provided to Fishermen which enables them to make sampling requests to all of the ServiceNodes in the Session on the Application’s behalf. In addition to the AAT, the Application may optionally provide the Fishermen a list of acceptable monitoring requests to test the ServiceNodes with during the sampling. Once the Application handshake is complete, the Fisherman is effectively a monitoring client of the Application and will execute periodic sampling inline with the Sampling Protocol. 
+```mermaid
+
+graph LR
+    App[App]
+    Fish(Fisherman Selected By Session Protocol)
+    SN[Service Nodes]
+
+    App -- AAT --> Fish
+    Fish -- Sampling Requests --> SN
+    SN -- Latency, Data Consistency, Availability Data --> Fish
+```
 
 The purpose of the Sampling Protocol is to define a method of testing such that the network can accurately monitor ServiceNodes’ availability, data accuracy, and latency through the Fishermen actors. The first requirement of the Sampling Protocol is for Fishermen to adhere to strict time based sampling events to make their requests. For example, a mock sampling strategy would be for the Fisherman to execute a sampling request every minute until the Session elapses. As described in the Session Protocol, all actors participating in Sessions must be time synced using the NTP protocol, enabling safety and security between ServiceNodes and Fishermen during the time based sampling events. 
 
@@ -171,6 +212,29 @@ In addition to the time based requirement, it is mandatory for the Fisherman to 
 ![alt_text](image3.png "")
 
 Fishermen incentive design is an important factor in Pocket 1.0’s security model, as wrongly aligned incentives can lead to systemic breakdowns of actor roles. Contrary to ServiceNodes, Fishermen rewards are not affected by the content of the samples and TestScoreMsgs as long as they are not null. However, similar to ServiceNodes, Fishermen salaries are generated from Application usage data. Exactly like the ServiceNodeSalaryPool, the FishermenSalaryPool inflation is based on the Volume metrics reported by the ServiceNodes. However, Fishermen salary distribution is only based on the quantity and completeness of TestScoreMsgs and are designed to be agnostic to latency, data consistency, and volume metrics. The completeness of any report is based on the number of non-null samples limited up to the MaxSamplesPerSession upper bound. A non-null sample is abstracted as a signed Web3 response from the assigned ServiceNode in the Session. Given sampling is a time based strategy, the number of samples possible in any given session is upper bounded by the duration of the Session and the timing of the Application handshake. Fishermen incentives are oriented such that they will exhaust attempts to retrieve a non null sample before the sampling time slot expires, meaning an offline sample penalizes both the Fisherman and the ServiceNode. If a threshold of null samples are collected, Fishermen will opt to submit a PauseMsg for the non-responsive ServiceNode, replacing them with a new ServiceNode, in order to salvage any potential reward out of a Session. The PauseMsg action is limited up to MaxFishermenPauses per Session to prevent faulty Fishermen behavior. Individual Fishermen salaries are then calculated by taking the quantity of samples reported in a certain pay period compared to the total number of samples reported during that time. 
+
+```mermaid
+graph LR
+    Fish(Fisherman Selected By Session Protocol)
+    B[Blockchain]
+    RC(Report Card)
+    SN[Service Nodes]
+
+    Fish -- TestScore Txn From Sampling --> B
+    B -- Computation On Testscore Aggregation --> RC
+    RC -- Reward Amount For Service --> SN
+```
+
+```mermaid
+graph LR
+    Fish(Fisherman)
+    TS([Test Score])
+    B[Blockchain]
+
+    Fish --> TS
+    TS -- Num Non Null Samples<br>*Requiring Service Node Signature* -->B
+    B -- Reward --> Fish
+```
 
 
 ```
