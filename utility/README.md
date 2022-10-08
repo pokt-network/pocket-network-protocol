@@ -192,7 +192,6 @@ Once successfully staked in the network, Fishermen are eligible to receive monit
 ```mermaid
 
 graph LR
-graph LR
     App[App]
     Fish(Fisherman Selected By Session Protocol)
     SN[Service Nodes]
