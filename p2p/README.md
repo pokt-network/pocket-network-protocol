@@ -90,7 +90,7 @@ In such a tree/list, we make use of the concept of right and left branch targets
 - Layer of a peer = Round up of the count of the exponents of 3 in the peers ID
 - Right branch target = Node position + targetListSize/3 (roll over if needed)
 - Left branch target = Node position + targetListSize/	1.5 (roll over if needed)
-- targetListSize = (topLayer + currentLayer) x 0.666 x Size of full list
+- targetListSize = (topLayer - currentLayer) x 0.666 x Size of full list
 
 This approach is a very simple one. No specifically complex classification or routing logic is required, RainTree relies on the fact that a binary tree lookup is in fact one of the most optimal methods as far as searching in a sorted list with random data goes, and it leverages so to achieve efficient communication in a p2p network.
 
