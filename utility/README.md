@@ -15,10 +15,9 @@
     - [3.1.1 Dispatch / Actor Selection](#311-dispatch--actor-selection)
     - [3.1.2 Relay Chain](#312-relay-chain)
     - [3.1.3 GeoZone](#313-geozone)
-    - [3.1.4 Actor Exists \& Replacements](#314-actor-exists--replacements)
-    - [3.1.5 Dispatching](#315-dispatching)
-    - [3.1.6 Rate Limits](#316-rate-limits)
-    - [3.1.7 Interface](#317-interface)
+    - [3.1.4 Actor Replacements](#314-actor-replacements)
+    - [3.1.5 Rate Limits](#315-rate-limits)
+    - [3.1.6 Interface](#316-interface)
   - [3.2 Servicer Protocol](#32-servicer-protocol)
     - [3.2.1 Staking \& Burning](#321-staking--burning)
     - [3.2.2 Network SLA (Service Level Agreement)](#322-network-sla-service-level-agreement)
@@ -39,7 +38,7 @@
   - [3.5 Gateway Protocol](#35-gateway-protocol)
     - [3.5.1. OAuth Parallels](#351-oauth-parallels)
     - [3.5.2 Trustless - Just In Time](#352-trustless---just-in-time)
-    - [3.5.3 Trustless - Eventual Penalty](#353-trustless---eventual-penalty)
+    - [3.5.3 Trustless - Eventual Penalties](#353-trustless---eventual-penalties)
     - [3.5.4 Delegated Trust](#354-delegated-trust)
     - [3.5.5 Multiple Clients](#355-multiple-clients)
   - [3.6 Validator Protocol](#36-validator-protocol)
@@ -60,7 +59,7 @@
 
 ## 1. Overview
 
-This document describes Pocket Network’s Utility Module: an account based, state machine protocol that enables applications to permissionlessly leverage decentralized Web3 access without the need of maintaining clients themselves. This is achieved by defining a Utilitarian economy that proportionally incentivizes the corresponding infrastructure providers based on their quality of the service composed of the following actors:
+This document describes Pocket Network’s Utility Module: an account based, state machine protocol that enables applications to permissionlessly leverage decentralized Web3 access without the need of maintaining clients themselves. This is achieved by defining a Utilitarian economy that proportionally incentivizes the corresponding infrastructure providers based on their quality of the service. It is composed of the following actors:
 
 - Registered **Applications** that purchase Web3 access over a function of volume and time
 - Registered **Servicers** that provide Web3 access
@@ -69,59 +68,99 @@ This document describes Pocket Network’s Utility Module: an account based, sta
 - Registered **Validators** responsible for maintaining safety & liveness of the replicated state machine
 
 ```mermaid
-graph LR
+flowchart TD
     subgraph Validators
+        direction LR
         V1[Validator1]
-        V2[Validator2]
-        V3[Validator3]
+        V[Validator ...]
+        VN[Validator N]
     end
+    V1 <--Propose/Vote--> V
+    V1 <--Propose/Vote--> VN
+    V <--Propose/Vote--> VN
 
     subgraph Blockchain
+        direction LR
         B1[Block 1]
-        B2[Block 2]
-        B3[Block 3]
+        B[Block ...]
+        BN[Block N]
+    end
+    B1 --Transition--> B
+    B --Transition--> BN
+
+    subgraph Servicers
+        direction TB
+        S1[Servicer 1]
+        SN[Servicer N]
     end
 
-    V1 --Propagate--> V2
-    V2 --Propagate--> V3
-    V3 --Propagate--> V4
-    V4 --Propagate--> V5
-    V5 --Propagate--> V1
+    subgraph Applications
+        direction TB
+        A1[Application 1]
+        AN[Application N]
+    end
 
-    V1 --Validate--> B1
-    V2 --Validate--> B1
-    V3 --Validate--> B1
-    V4 --Validate--> B1
-    V5 --Validate--> B1
+    subgraph Gateways
+        direction TB
+        G1[Gateway 1]
+        GN[Gateway N]
+    end
 
-    B1 --Validate--> B2
-    B2 --Validate--> B3
+    subgraph Fishermen
+        direction TB
+        F1[Fisherman 1]
+        FN[Fisherman N]
+    end
 
-    style V1 fill:#FF0000
-    style V2 fill:#FF0000
-    style V3 fill:#FF0000
-    style V4 fill:#FF0000
-    style V5 fill:#FF0000
+    Transactions --> Validators
+
+    Validators --Validate State<br>Transition--> Blockchain
+
+    Applications <--Delegated RPC--> Gateways
+    Gateways <--App RPC--> Servicers
+    Applications <--Trustless RPC--> Servicers
+
+    Blockchain --Sync--> Gateways
+    Blockchain --Sync--> Applications
+    Blockchain --Sync--> Servicers
+    Blockchain --Sync--> Fishermen
+
+    Fishermen --Monitor--> Servicers
+
+    classDef blue fill:#0000FF
+    classDef brown fill:#A52A2A
+    classDef red fill:#FF0000
+    classDef yellow fill:#DC783D
+    classDef acqua fill:#00A3A3
+    classDef purple fill:#FF36FF
+
+    class V1,V,VN blue
+    class B1,B,BN brown
+    class S1,SN yellow
+    class G1,GN red
+    class F1,FN acqua
+    class A1,AN purple
 ```
 
 ### 1.1 Important Context
 
 Readers of this document must keep in mind the following:
 
-1. This is a living document and is subject to change. Continued research and development will shape the specification until it can be deemed formalized and finished.
-2. This document represents one stage of the decentralization of Fisherman. Future iterations will make elected Fisherman permissionless and decentralized.
-3. This document is not intended to be a Pocket Network whitepaper. It is a specification of the utility module and background knowledge of the protocol is required.
-4. This document is not an academic paper that provides sufficient background knowledge or literature review of related concepts
+1. This living document is subject to change. Ongoing R&D will shape the specification until it is formalized and finished.
+2. This document represents one stage of Fisherman decentralization. Future iterations will aim to make Fisherman fully permissionless.
+3. This document is not a complete Pocket Network whitepaper. It is a specification of the utility module components and background knowledge of the protocol internals is required.
+4. This document is not an academic paper paper. The reader's knowledge of background concepts is implicitly assumed.
+5. This document does not outline implementation specific interfaces or details.
 
 ## 2. Requirements
 
 The specification must:
 
-1. Enable Web3 access through a utilitarian economy leveraging native cryptocurrency capabilities
+1. Enable Web3 access through a Utilitarian Economy leveraging native cryptocurrency capabilities
 2. Account for both inflationary and deflationary economic scenarios
 3. Incentivize actors within the protocol through competing offerings and economic penalties
 4. Reward Servicers through a combination of quality of service, application demand volume, and services offered
-5. Constraint service capacity through a combination of time, volume and payment
+5. Constraint service capacity through a combination of time, volume and cost
 6. Account for gamification, collusion, and other attack vectors
 7. Enable Applications to gain permissionless Web3 access without maintaining their own infrastructure
 8. Enable Applications to optionally delegate trust to Gateways that ease the use of Web3 access
@@ -133,19 +172,19 @@ The current iteration of the specification must not necessarily:
 
 ## 3 Specification
 
-The logical abstraction of the specification system is comprised of multiple sub-protocols listed below. Interfaces are meant to be presented as aiding guidelines rather than definitive implementation details.
+The logical abstraction of the specification system is comprised of multiple sub-protocols listed below. Interfaces and diagrams presented are intended as aiding guidelines rather than definitive implementation details.
 
 ### 3.1 Session Protocol
 
-A `Session` is a time-based mechanism the Utility Module uses to regulate the Web3 access between Applications, Servicers, and Fisherman to enable the Utilitarian economy in a fair and secure manner. A single session may extend multiple Blocks as determined by `SessionBlockFrequency`.
+A `Session` is a time-based mechanism the used to regulate Web3 access between protocol actors to enable the Utilitarian economy in a fair and secure manner. A single session may extend multiple Blocks as determined by `SessionBlockFrequency`.
 
 #### 3.1.1 Dispatch / Actor Selection
 
-Under the Random Oracle Model, a Session can be seeded to deterministically select which group of actors will interact for some duration of time. This enables a random, deterministic and uniform distribution of Web3 access, provisioning and monitoring. This limits what work, and by whom, can be rewarded or penalized at the protocol layer.
+Under the Random Oracle Model, a Session can be seeded to deterministically select which group of actors will interact for some duration of time. This enables a random, deterministic and uniform distribution of Web3 access, provisioning and monitoring. It limits what work, and by whom, can be rewarded or penalized at the protocol layer.
 
-The seed data for a session is an implementation detail that could be composed of multiple variables. It could include, but is not limited to, attributes such as `LatestBlockHash`.
+The seed data for a session is an implementation detail that could be composed of multiple variables. It could include, but not limited to, attributes such as `LatestBlockHash`, timestamp, etc...
 
-To start a new session, or retrieve the metadata for an existing / prior session, the Querier (e.g. Application, Client) can execute a request to any Full Node (protocol actor or not).
+To start a new session, or retrieve the metadata for an existing / prior session, the Querier (e.g. Application, Client) can execute a request to any synched Full Node (protocol actor or not).
 
 ```mermaid
 sequenceDiagram
@@ -156,23 +195,23 @@ sequenceDiagram
     participant N as Full Node
     participant S as Session Interface
 
-    Q->>N: Who are the Servicers and Fisherman for this (new) Session?
+    Q->>N: Who are the Servicers &<br>Fisherman for this (new) Session?
     N->>S: seedData = (height, blockHash, geoZone, relayChain, app)
     S->>S: sessionKey = hash(transform(seedData))
     N->>S: servicerList = Ordered [publicKeys]
     S->>S: sessionServicers = pseudoRandomSelect(sessionKey, servicerList, maxSessionServicers)
     N->>S: fishermenList = Ordered [publicKeys]
     S->>S: sessionFishermen = pseudoRandomSelect(sessionKey, fishermenList, maxSessionFisherman)
-    S->>Q: (sessionServicers, sessionFishermen)
+    S->>Q: ([sessionServicers], [sessionFishermen])
 ```
 
-For illustrative purposes, an example implementation of `NewSession` can be:
+For illustrative purposes, an example implementation of `NewSession` could be:
 
 ```go
 func NewSession(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey) Session {
   key = hash(concat(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey))
-  servicers = getClosestServicers(key, geoZone, X)
-  fishermen = getClosesFishermen(key, geoZone, Y)
+  servicers = getClosestServicers(key, geoZone, numServicers)
+  fishermen = getClosesFishermen(key, geoZone, numFishermen)
   return Session{sessionHeight, geoZone, relayChain, appPubKey, servicers, fishermen}
 }
 ```
@@ -181,37 +220,43 @@ func NewSession(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey) Se
 
 A `RelayChain` is an identifier of the specified Web3 data source (i.e. a blockchain) being interacted with for that session.
 
-For example, `0021 = Ethereum Mainnet` in the first version of the protocol.
+For example, `0021` represents `Ethereum Mainnet` in Pocket Network V0.
 
 #### 3.1.3 GeoZone
 
-A `GeoZone` is a representation of the physical geo-location of the actors participating in the session.
+A `GeoZone` is a representation of a physical geo-location the actors advertise that they are in.
 
 For example, `GeoZone 0001` could represent `US East` or a certain quadrant using an alternative mapping mechanism.
 
-#### 3.1.4 Actor Exists & Replacements
+TODO: Geozone details
 
-Since a single Session may extend multiple blocks, an actor could potentially send an on-chain transaction to exit (e.g. unstake) prematurely. Any rewards for that Session for that actor are invalidated, and penalties may be applied in the future as well. A replacement actor (e.g. a Servicer) will be found and dynamically add to the session in the closest following block.
+- Provide examples such as PostGIS or uber's system
+- Explain the economic upside/downside here
+- Explain that it's not an IP address
 
-#### 3.1.5 Dispatching
+#### 3.1.4 Actor Replacements
 
-`Dispatch` is the action of starting a new session.
+Since a single Session extends multiple blocks, an actor could potentially send an on-chain transaction to exit (e.g. unstake) prematurely. Any rewards for that Session for that actor are invalidated, and penalties may be applied. A replacement actor (e.g. a Servicer) will be found and dynamically added to the session in the closest following block.
 
-#### 3.1.6 Rate Limits
+#### 3.1.5 Rate Limits
 
-**TODO**: MaxRelays / NumServers for that session.
+TODO: Rate Limits
 
-#### 3.1.7 Interface
+- MaxRelays / NumServers for that session.
+- Application Burn
+- Best Effort
+
+#### 3.1.6 Interface
 
 An illustrative example of the Session interface can be summarized like so:
 
 ```go
 type Session interface {
-  NewSession(seeds ...interface{}) Session # The
+  NewSession(seeds ...interface{}) Session
 
   GetApplication() Application # The Application consuming Web3 access
-  GetRelayChain() RelayChain   # The Web3 chain identifier being accessing this session
-  GetGeoZone() GeoZone         # The geo-location where all are actors registered
+  GetRelayChain() RelayChain   # The Web3 chain identifier being accessed this session
+  GetGeoZone() GeoZone         # The physical geo-location where all are actors registered
   GetSessionHeight() uint64    # The block height when the session started
   GetServicers() []Servicer    # The Servicers providing Web3 access
   GetFishermen() []Fisherman   # The Fisherman monitoring Web3 service
@@ -551,40 +596,67 @@ Application Stake burn is a necessary mechanism to ensure an equilibratory econo
 
 ### 3.5 Gateway Protocol
 
-The Gateway actor is an on-chain protocol actor to whom the Application can optionally delegate trust depending on its requirements.
+A `Gateway` is a protocol actor to whom the Application can **optionally** delegate trust.
 
-An application that aims to be fully trustless and permissionless with full data integrity guarantees moves the onus onto the Application to maintain infrastructure and/or do state validation. This could be in the form of node operation, light client synching, state validation and ETL pipelines such as data indexing.
+A decentralized application that aims to be fully trustless, permissionless with full data integrity guarantees moves the onus onto the Application for state validation and infrastructure maintenance. This could be in the form of node operation, light client synching, proof validation and ETL pipelines maintenance such as data indexing.
 
 Pocket Network's Utilitarian Economy incentivizes data redundancy in a multi-chain ecosystem, with cheap, accessible and highly available multi-chain access. Depending on the level of trust, or lack thereof, an Application can optionally delegate trust to a Gateway to simplify its Web3 access.
 
 #### 3.5.1. OAuth Parallels
 
-User -> Application
-Username/Password -> PrivateKey
+[OAuth](https://oauth.net) is an open protocol that authorizes clients or 3rd parties to gain access to restricted resources. It can be summarized via the flow below:
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant Client
-    participant Authorization Server
-    participant Resource Server
+    actor U as User
+    participant C as Client<br>(e.g. Smartphone App)
+    participant S as Authorization Server<br>(e.g. Google)
+    participant R as Resource Server<br>(e.g. Email)
 
-    User->>Client: Request access to protected resource
-    Client->>Authorization Server: Request authorization
-    Authorization Server-->>User: Prompt for authorization
-    User-->>Authorization Server: Grant authorization
-    Authorization Server->>Client: Return authorization code
-    Client->>Authorization Server: Exchange authorization code for access token
-    Authorization Server-->>Client: Return access token
-    Client->>Resource Server: Request protected resource
-    Resource Server-->>Client: Return protected resource
+    U->>C: Request access<br>to protected resource
+    C->>S: Request authorization
+    S-->>U: Prompt for authorization
+    U-->>S: Grant authorization<br>(Username & Password)
+    S->>C: Return authorization_code
+    C->>S: Exchange authorization_code for access_token
+    S-->>C: Return access_token
+    C->>R: Request protected resource
+    R-->>C: Return protected resource
 ```
 
 #### 3.5.2 Trustless - Just In Time
 
-#### 3.5.3 Trustless - Eventual Penalty
+An Application that requires just-in-time guarantees of the data it is processing
+
+#### 3.5.3 Trustless - Eventual Penalties
 
 #### 3.5.4 Delegated Trust
+
+sequenceDiagram
+title Without Gateway
+actor AC as Application / Client
+actor LN as Local Node
+actor SN as Service Node
+actor F as Fisherman
+
+    AC->>+LN: StartSession()
+    LN->>-AC: (AccessToken, [ServiceNodeId])
+
+    loop Session Duration
+        %% AC->>+SN: Request
+        %% SN->>-AC: Response
+
+        %% AC->>AC: Proof? Challange?
+        AC->>+SN: Request w/ Proof
+        SN->>-AC: (Response, Proof)
+
+        AC->>AC: Validate(Root, Proof)
+
+        F->>+SN: Grade
+        SN->>-F: Score
+    end
+
+    note over AC, F: Post Session Stuff
 
 #### 3.5.5 Multiple Clients
 
@@ -622,12 +694,9 @@ func CalculateBlockReward(TotalTxFees, DAOCutPercent) (blockProducerReward, daoB
 In Pocket 1.0 Validators are able to use a PauseMsg to gracefully remove them from Validator operations. This feature allows for greater UX for Operators, enabling scheduled periods of maintenance or damage control in faulty situations. In addition to an Operator initiated PauseMsg, Validators are removed from service automatically by the network if byzantine behaviors are detected. Not signing blocks, signing against the majority, not producing blocks, and double signing blocks are byzantine behaviors reported to the Utility Module by the Consensus Module through the Evidence Mechanism. Anytime an automatic removal of service occurs for Validators, a burn proportional to the violation is applied against the Validator stake. The conditions, limitations, and severity of the Byzantine Valdiator burns are proposed and voted on by the DAO. If a Validator is ‘paused’, they are able to reverse the paused state by submitting an UnpauseMsg after the MinPauseTime has elapsed. After a successful UnpauseMsg, the Validator is once again eligible to execute Validator operations.
 
 ```go
-# ValidatorPause Interface
 type ValidatorPauseMsg interface {
   GetAddress()  Address       # The address of the Validator being paused
 }
-
-# ValidatorUnpause Interface
 type ValidatorUnpauseMsg interface {
   GetAddress()  Address       # The address of the Validator being unpaused
 }
@@ -636,7 +705,6 @@ type ValidatorUnpauseMsg interface {
 A Validator is able to modify their initial staking values including the ServiceURL, OperatorPubKey, and StakeAmount by submitting a StakeMsg while already staked. It is important to note, that a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Validator and enables an overall simpler implementation.
 
 ```go
-# Validator(Edit)StakeMsg Interface
 type ValidatorStakeMsg interface {
   GetPublicKey()  PublicKey       # which Validator stake data is being edited?
   GetStakeAmount() BigInt         # must be greater than or equal to the current value
@@ -648,7 +716,6 @@ type ValidatorStakeMsg interface {
 A Validator is able to submit an UnstakeMsg to exit the network and remove itself from Validator Operations. After a successful UnstakeMsg, the Validator is no longer eligible to participate in the Consensus protocol. After ValidatorUnstakingTime elapses, any Stake amount left is returned to the custodial account. If a Validator stake amount ever falls below the MinimumValidator stake, the protocol automatically executes an UnstakeMsg for that node, subjecting the Validator to the unstaking process.
 
 ```go
-# ValidatorUnstake Interface
 type ValidatorUnstake interface {
   GetAddress()  Address       # The address of the Validator unstaking
 }
@@ -676,7 +743,6 @@ type SendMsg interface {
 A ModulePool is a particular type that though similar in structure to an Account, the functionality of each is quite specialized to its use case. These pools are maintained by the protocol and are completely autonomous, owned by no actor on the network. Unlike Accounts, tokens are able to be directly minted to and burned from ModulePools. Examples of ModuleAccounts include StakingPools and the FeeCollector.
 
 ```go
-# ModulePool Interface
 type ModulePool interface {
   GetAddress()  Address       # The cryptographic identifier of the account
   GetValue() Big.Int          # The number of Tokens (uPOKT)
