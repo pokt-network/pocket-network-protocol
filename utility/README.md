@@ -19,12 +19,15 @@
     - [3.1.5 Rate Limits](#315-rate-limits)
     - [3.1.6 Interface](#316-interface)
   - [3.2 Servicer Protocol](#32-servicer-protocol)
-    - [3.2.1 Staking \& Burning](#321-staking--burning)
+    - [3.2.1 Registration / Staking](#321-registration--staking)
     - [3.2.2 Network SLA (Service Level Agreement)](#322-network-sla-service-level-agreement)
     - [3.2.3 Report Cards \& Test Scores](#323-report-cards--test-scores)
     - [3.2.4 Salary Eligibility \& Distribution](#324-salary-eligibility--distribution)
+    - [3.2.5 Volume Estimation](#325-volume-estimation)
     - [3.2.5 Servicer Pausing](#325-servicer-pausing)
-    - [3.2.5 Servicer Updates](#325-servicer-updates)
+    - [3.2.5 Parameter Updates](#325-parameter-updates)
+    - [3.2.6 Unstaking](#326-unstaking)
+    - [3.2.6 Stake Burning](#326-stake-burning)
   - [3.3 Fisherman Protocol](#33-fisherman-protocol)
     - [3.3.1 Fisherman Election](#331-fisherman-election)
     - [3.3.2 Fisherman Registration](#332-fisherman-registration)
@@ -226,17 +229,13 @@ For example, `0021` represents `Ethereum Mainnet` in Pocket Network V0.
 
 A `GeoZone` is a representation of a physical geo-location the actors advertise that they are in.
 
-For example, `GeoZone 0001` could represent `US East` or a certain quadrant using an alternative mapping mechanism.
+For example, `GeoZone 0001` could represent `US East`, but alternative coordinate systems such as [Uber's H3](https://h3geo.org) or [PostGIS](https://postgis.net/) could be used as well.
 
-TODO: Geozone details
-
-- Provide examples such as PostGIS or uber's system
-- Explain the economic upside/downside here
-- Explain that it's not an IP address
+There is no formal requirement or validation (e.g. IP verification) for an actor to be physically located in the GeoZone it registers in. However, crypto-economic incentives promote actors to be close to where they are physically located to receive and provide the best service possible.
 
 #### 3.1.4 Actor Replacements
 
-Since a single Session extends multiple blocks, an actor could potentially send an on-chain transaction to exit (e.g. unstake) prematurely. Any rewards for that Session for that actor are invalidated, and penalties may be applied. A replacement actor (e.g. a Servicer) will be found and dynamically added to the session in the closest following block.
+Since a single Session extends multiple blocks, an actor could potentially send an on-chain transaction to exit (e.g. Unstake) prematurely. Any rewards for that Session for that actor are invalidated, and penalties may be applied. A replacement actor (e.g. a Servicer) will be found and dynamically added to the session in the closest following block.
 
 #### 3.1.5 Rate Limits
 
@@ -245,6 +244,7 @@ TODO: Rate Limits
 - MaxRelays / NumServers for that session.
 - Application Burn
 - Best Effort
+- Show validation of relays
 
 #### 3.1.6 Interface
 
@@ -267,13 +267,13 @@ type Session interface {
 
 A `Servicer` is a protocol actor that provisions Web3 access for Pocket Network Applications to consume. Servicers are the **supply** side of the Utilitarian Economy, who are compensated in the native cryptographic token, POKT, for their work.
 
-#### 3.2.1 Staking & Burning
+#### 3.2.1 Registration / Staking
 
-In order to participate as a Servicer in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are providing the Web3 access. These tokens may be burned or removed from the actor as a result of breaking the **Protocol’s Service Level Agreement**, a DAO defined contract that defines the minimum quality of service requirements.
+In order to participate as a Servicer in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are providing Web3 access. These tokens may be burned or removed from the actor as a result of breaking the **Protocol’s Service Level Agreement**, a DAO defined set of requirements for the minimum quality of service.
 
-Upon registration, the Servicer is required to provide the network information necessary to create applicable Sessions including the GeoZone it is in, RelayChain(s) it supports, and the Pocket API endpoint known as the `ServiceURL`, where its service is exposed. An optional `OperatorPublicKey` may be provided for non-custodial operation of the Servicer.
+Upon registration, the Servicer is required to provide the network with sufficient information to pair it with Applications. This includes the GeoZone it is in, RelayChain(s) it supports, and the Pocket API endpoint known as the `ServiceURL` where its service is exposed. An optional `OperatorPublicKey` may be provided for non-custodial operation of the Servicer.
 
-This registration message is formally known as the `StakeMsg`, and an illustrative example can be summarized like so:
+This registration message is formally known as the `StakeMsg`, and a Servicer can only start providing service once it is registered: the StakeMsg has been validated, included in the subsequent block, and the World State has been updated. An illustrative example can be summarized like so:
 
 ```go
 type ServicerStakeMsg interface {
@@ -286,15 +286,13 @@ type ServicerStakeMsg interface {
 }
 ```
 
-A Servicer can only start providing service once it is registered: the StakeMsg has been validated, included in the subsequent block, and the World State has been updated.
-
 #### 3.2.2 Network SLA (Service Level Agreement)
 
-Servicers are paid proportionally to how well their Relay responses meet the standards of the Network SLA. A `Relay` is an abstraction of a request/response cycle with additional security guarantees further discssed in section TODO. The quality of a service is measured by:
+Servicers are paid proportionally to how well their Relay responses meet the standards of the Network SLA. A `Relay` is an abstraction of a request/response cycle with additional security guarantees when interacting with Web3 resources. The quality of a service is measured by:
 
 1. **Availability**: The Servicer's uptime
-2. **Data Accuracy**: The integrity of the Servicer's response
-3. **Latency**: The Round-Trip-Time (RTT) of the the Servicer's response relative to when the request was sent
+2. **Latency**: The Round-Trip-Time (RTT) of the the Servicer's response relative to when the request was sent
+3. **Data Accuracy**: The integrity of the Servicer's response
 
 #### 3.2.3 Report Cards & Test Scores
 
@@ -304,17 +302,30 @@ A `ReportCard` is the logical aggregation of multiple `TestScores` over the Acto
 
 #### 3.2.4 Salary Eligibility & Distribution
 
-An `ServiceNodeSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by application volume usage based on the `(RelayChain, GeoZone)` data pair and the `UsageToRewardCoefficient` governance parameter.
+An `ServiceNodeSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by application volume of each `(RelayChain, GeoZone)` pair and scaled by the `UsageToRewardCoefficient` governance parameter.
+
+#### 3.2.5 Volume Estimation
+
+```mermaid
+sequenceDiagram
+	    title Steps 4-6
+	    autonumber
+	    actor Service Node
+        participant Internal State
+        participant Internal Storage
+        actor Fisherman
+	    loop Repeats Every Session End
+	        Service Node->>Internal State: GetSecretKey(sessionHeader)
+            Internal State->>Service Node: HashCollision = SecretKey(govParams)
+	        Service Node->>Internal Storage: RelaysThatEndWith(HashCollision)
+            Internal Storage->>Service Node: VolumeApplicableRelays
+            Service Node->>Fisherman: Send(VolumeApplicableRelays)
+	    e
+```
+
+Probabilistic hash collisions
 
 Volume usage of Applications is estimated through probabilistic hash collisions that are derived from a ServiceNode’s Verifiable Random Function output of the Session data and the Relay request. For an illustrative example, imagine a Nonce that represents a volume of 10K Relays is a ServiceNode VRF output that ends in four consecutive zeros when the message is SessionData+RelayHash. This mechanism allows a concise proof of probabilistic volume, without an actual aggregation of relays completed. These Nonces are sent by the ServiceNode to the Public Fishermen endpoint who verifies the claim and ultimately reports the volume usage to the network. The calculation is simple, TotalVolumeUsage is multiplied against reward coefficient parameters for the specific RelayChain/Geozone and is evenly divided into buckets per ServiceNode that is above the MinimumReportCardThreshold. This value is known as the MaxServiceNodeReward, and is decreased (burned) proportional to ReportCard scores. For instance, a 100% ReportCard results in zero burning of the MaxServiceNodeReward and an 80% ReportCard results in 20% burning of the MaxServiceNodeReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. In addition to the ReportCard weight, the ServiceNode reward is also scaled linearly based on the amount they stake between MinimumServiceNodeStake and MaximumServiceNodeStake. For safety and adaptability, the weight of ReportCardBasedDistribution vs StakeBasedDistribution is parameterized. It is important to note that a MinimumTestScoresThreshold of TestScores must be accumulated before a ServiceNode is even eligible for a salary distribution and the oldest TestScores are removed in a FIFO fashion once MaxTestScores is reached or TestScoreExpiration is passed. The resulting final amount after the decrease is the net ServiceNodeSalary, which is sent directly to the custodial account. Similar to real world paychecks, First and Final Salaries of ServiceNodes are decreased further relative to the time served vs the full pay period. To further clarify, ServiceNodeSalary pseudocode is provided below:
-
-```go
-func IsSalaryEligible(ReportCard, RCThreshold, TSThreshold) Bool {
-  If ReportCard.Score < RCThreshold { Return False }
-  If ReportCard.Samples < TSThreshold { Return False }
-  Return True
-}
-```
 
 ```go
 func GetSalary(ReportCard, StakeAmountScore, TotalAvailReward, EligibleNodesCount) Salary {
@@ -331,32 +342,17 @@ func GetSalary(ReportCard, StakeAmountScore, TotalAvailReward, EligibleNodesCoun
 
 #### 3.2.5 Servicer Pausing
 
-Servicers are able to gracefully pause their service (e.g. for maintenance reasons) without the need to unstake or be penalized for downtime. In addition to an Operator initiated `PauseMsg`, Fishermen are able to temporarily pause a Servicer if a faulty or malicious process is detected during sampling. WHen a Servicer is paused, they are able resume service by submitting an `UnpauseMsg` after the `MinPauseTime` has elapsed. After a successful `UnpauseMsg` is validated updates the World State, the Servicer is eligible to continue providing Web3 service to Applications andto is once again eligible to receive Web3 traffic from Applications and Fisherman.
+Servicers are able to gracefully pause their service (e.g. for maintenance reasons) without the need to unstake or be penalized for downtime. In addition to an Operator initiated `PauseMsg`, Fishermen are able to temporarily pause a Servicer if a faulty or malicious process is detected during sampling. WHen a Servicer is paused, they are able resume service by submitting an `UnpauseMsg` after the `MinPauseTime` has elapsed. After a successful `UnpauseMsg` is validated updates the World State, the Servicer is eligible to continue providing Web3 service to Applications and to is once again eligible to receive Web3 traffic from Applications and Fisherman.
 
-#### 3.2.5 Servicer Updates
+#### 3.2.5 Parameter Updates
 
-A ServiceNode is able to modify their initial staking values including GeoZone, RelayChain(s), ServiceURL, and StakeAmount by submitting a StakeMsg while already staked. It is important to note, that if the GeoZone or RelayChain values are modified, the ReportCard is reset for the ServiceNode effectively pruning historical QOS data. In addition to that restriction, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any ServiceNode and enables an overall simpler implementation.
+A Servicer can update any of the values in its on-chain attributes by submitting another `StakeMsg` while it is already staked. The only limitation is that it's `StakeAmount` must be equal to or greater than its currently staked value. In addition, the Servicer's historical QoS (TestScores, ReportCard, etc...) will be pruned from the state.
 
-```go
-# ServiceNode(Edit)StakeMsg Interface
-type ServiceNodeStakeMsg interface {
-  GetPublicKey()  PublicKey       # The public cryptographic id of the ServiceNode being edited
-  GetStakeAmount() BigInt         # must be greater than or equal to the current value
-  GetServiceURL() ServiceURL      # may be modified, does not reset ReportCard
-  GetRelayChains() RelayChain[]   # may be modified, but removal resets ReportCard
-  GetGeoZone() LocationIdentifier # may be modified, but resets ReportCard
-  GetOperatorPubKey() PublicKey   # may be modified, does not reset ReportCard
-}
-```
+#### 3.2.6 Unstaking
 
 A ServiceNode is able to submit an UnstakeMsg to exit the network and remove themself from service. After a successful UnstakeMsg, the ServiceNode is no longer eligible to receive Web3 traffic from ServiceNodes and Fisherman. After ServiceNodeUnstakingTime elapses, any Stake amount left is returned to the custodial account.
 
-```go
-# ServiceNodeUnstake Interface
-type ServiceNodeUnstake interface {
-  GetAddress()  Address       # The address of the ServiceNode unstaking
-}
-```
+#### 3.2.6 Stake Burning
 
 A ServiceNode stake is only able to be burned in two situations: A TestScore below the TestScoreBurnThreshold or a Fisherman initiated PauseMsg. If a ServiceNode stake amount ever falls below the MinimumServiceNode stake, the protocol automatically executes an UnstakeMsg for that node, subjecting the Servicer to the unstaking process described above.
 
