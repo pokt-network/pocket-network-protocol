@@ -7,27 +7,7 @@
     Version 1.0.1 - Jan 2023
 </p>
 
-- [1. Overview](#1-overview)
-  - [1.1 Important Context](#11-important-context)
-- [2. Requirements](#2-requirements)
-- [3 Specification](#3-specification)
-  - [3.1 Session Protocol](#31-session-protocol)
-    - [3.1.1 Dispatch / Actor Selection](#311-dispatch--actor-selection)
-    - [3.1.2 RelayChain](#312-relaychain)
-    - [3.1.3 GeoZone](#313-geozone)
-    - [3.1.4 Actor Substitution](#314-actor-substitution)
-    - [3.1.5 Rate Limits](#315-rate-limits)
-    - [3.1.6 Interface](#316-interface)
-  - [3.2 Servicer Protocol](#32-servicer-protocol)
-    - [3.2.1 Staking / Registration](#321-staking--registration)
-    - [3.2.2 Network SLA (Service Level Agreement)](#322-network-sla-service-level-agreement)
-    - [3.2.3 Report Cards \& Test Scores](#323-report-cards--test-scores)
-    - [3.2.4 Volume Estimation](#324-volume-estimation)
-    - [3.2.5 Salary Eligibility \& Distribution](#325-salary-eligibility--distribution)
-    - [3.2.5 Servicer Pausing](#325-servicer-pausing)
-    - [3.2.5 Parameter Updates](#325-parameter-updates)
-    - [3.2.6 Stake Burning](#326-stake-burning)
-    - [3.2.7 Unstaking](#327-unstaking)
+- [Salary Distribution](#salary-distribution) - [3.2.5 Servicer Pausing](#325-servicer-pausing) - [3.2.5 Parameter Updates](#325-parameter-updates) - [3.2.6 Stake Burning](#326-stake-burning) - [3.2.7 Unstaking](#327-unstaking)
   - [3.3 Fisherman Protocol](#33-fisherman-protocol)
     - [3.3.1 Fisherman Election](#331-fisherman-election)
     - [3.3.2 Fisherman Registration](#332-fisherman-registration)
@@ -51,16 +31,16 @@
     - [3.7.3 Pool](#373-pool)
   - [3.8 State Change Protocol](#38-state-change-protocol)
   - [3.9 Governance Protocol](#39-governance-protocol)
-- [4. Sequence](#4-sequence)
-  - [4.1 ProtoGateFish](#41-protogatefish)
-  - [4.2 Castaway](#42-castaway)
-  - [4.2 Fishermen](#42-fishermen)
-  - [4.3 CastNet](#43-castnet)
-- [5. Attack Vectors](#5-attack-vectors)
-  - [5.1 Attack Category Types](#51-attack-category-types)
-  - [5.1 Attack Examples](#51-attack-examples)
-- [6. Dissenting Opinions (FAQ)](#6-dissenting-opinions-faq)
-- [7. Future Research \& Candidate Features](#7-future-research--candidate-features)
+  - [4. Sequence](#4-sequence)
+    - [4.1 ProtoGateFish](#41-protogatefish)
+    - [4.2 Castaway](#42-castaway)
+    - [4.2 Fishermen](#42-fishermen)
+    - [4.3 CastNet](#43-castnet)
+  - [5. Attack Vectors](#5-attack-vectors)
+    - [5.1 Attack Category Types](#51-attack-category-types)
+    - [5.1 Attack Examples](#51-attack-examples)
+  - [6. Dissenting Opinions (FAQ)](#6-dissenting-opinions-faq)
+  - [7. Future Research \& Candidate Features](#7-future-research--candidate-features)
 
 ## 1. Overview
 
@@ -375,13 +355,40 @@ sequenceDiagram
     end
 ```
 
-TODO: Should this be a commit & reveal scheme?
-
 #### 3.2.5 Salary Eligibility & Distribution
 
 A `ServiceNodeSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by Application volume of each `(RelayChain, GeoZone)` pair and scaled by the `UsageToRewardCoefficient` governance parameter.
 
-The calculation is simple, TotalVolumeUsage is multiplied against reward coefficient parameters for the specific RelayChain/GeoZone and is evenly divided into buckets per ServiceNode that is above the MinimumReportCardThreshold. This value is known as the MaxServiceNodeReward, and is decreased (burned) proportional to ReportCard scores. For instance, a 100% ReportCard results in zero burning of the MaxServiceNodeReward and an 80% ReportCard results in 20% burning of the MaxServiceNodeReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. In addition to the ReportCard weight, the ServiceNode reward is also scaled linearly based on the amount they stake between MinimumServiceNodeStake and MaximumServiceNodeStake. For safety and adaptability, the weight of ReportCardBasedDistribution vs StakeBasedDistribution is parameterized. It is important to note that a MinimumTestScoresThreshold of TestScores must be accumulated before a ServiceNode is even eligible for a salary distribution and the oldest TestScores are removed in a FIFO fashion once MaxTestScores is reached or TestScoreExpiration is passed. The resulting final amount after the decrease is the net ServiceNodeSalary, which is sent directly to the custodial account. Similar to real world paychecks, First and Final Salaries of ServiceNodes are decreased further relative to the time served vs the full pay period. To further clarify, ServiceNodeSalary pseudocode is provided below:
+A Servicer must accumulate `MinimumTestScoreThreshold` TestScores before it is eligible for salary distribution. A ReportCard can be viewed as a rolling average of the Servicer's performance, where TestScores are removed when either `TestScoreExpiration` is passed or the TestScore FIFO queue exceeds `MaxTestScores`.
+
+Salary distribution is accomplished by aggregating the total volume estimated (see above) for a specific `(RelayChain, GeoZone)` pair (i.e. `TotalVolumeUsage`), multiplied by `UsageToRewardCoefficient`, and evenly divided into buckets per Servicer that exceed the minimum threshold (i.e. the `MaxServicerReward`). Each Servicer's reward is scaled proportionally to both their stake and their ReportCard. Tokens that are not allocated to a servicer are burnt.
+
+For example, a 100% ReportCard results in zero burning of the maxServicerReward, while a 80% ReportCard results in 20% burning of the maxServicerReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes.
+
+The following is pseudo-code to illustrate this business logic:
+
+```go
+# Called for each (relayChain, geoZone) pair every SessionBlockFrequency
+func DistributeRewards(relayChain, geoZone, height):
+  totalVolumeUsage = WorldState.RetrieveTotalVolumeEstimate(relayChain, geoZone, height)
+  totalAvailableReward = totalVolumeUsage * GovParams.UsageToRewardCoefficient(height)
+
+  allServicers = WorldState.RetrieveEligibleServicers(relayChain, geoZone, height)
+  eligibleServicers = filterServicers(allServicers, GovParams.MinimumTestScoreThreshold(height))
+
+  maxServicerReward = totalAvailableReward / len(eligibleServicers)
+
+  for servicer := eligibleServicers {
+      stake = WorldState.GetServicerStake(servicer, height)
+      score = WorldState.GetReportCard(servicer, height)
+
+      burnPercent = getBurnPercent(stake, score, height)
+      burnAmount = burnPercent * maxServicerReward
+
+      awardTokens(servicers, maxServicerReward - burnAmount)
+      burnTokens(relayChain, geoZone, burnAmount)
+  }
+```
 
 ```go
 
@@ -393,10 +400,7 @@ func DistributeSalaries(relayChain, geoZone, height) {
 
 func GetSalary(servicerReportCard, stakeAmountScore, totalAvailableReward, eligibleServicerCount) Salary {
   maxServicerReward = totalAvailableReward / eligibleServicerCount
-  burnPercent = (100-ReportCard.Score + 100-StakeAmountScore)/200
-  burnAmount = burnPercent * maxServiceNodeReward
-  netServiceNodeReward = maxServiceNodeReward - burnAmount
-  burnTokensFromTotalAvailableRewardPool(burnAmount)
+
   return netServiceNodeReward
 }
 ```
@@ -1135,6 +1139,7 @@ Future work:
 - Extending OperatorPublicKey for improve rev share
 - Registering in multiple GeoLocations?
 - proof of sequential work?
+TODO: Should this be a commit & reveal scheme?
 - -->
 
 <!-- TODO(olshansky): Add a references section
