@@ -13,17 +13,17 @@
 - [3 Specification](#3-specification)
   - [3.1 Session Protocol](#31-session-protocol)
     - [3.1.1 Dispatch / Actor Selection](#311-dispatch--actor-selection)
-    - [3.1.2 Relay Chain](#312-relay-chain)
+    - [3.1.2 RelayChain](#312-relaychain)
     - [3.1.3 GeoZone](#313-geozone)
-    - [3.1.4 Actor Replacements](#314-actor-replacements)
+    - [3.1.4 Actor Substitution](#314-actor-substitution)
     - [3.1.5 Rate Limits](#315-rate-limits)
     - [3.1.6 Interface](#316-interface)
   - [3.2 Servicer Protocol](#32-servicer-protocol)
     - [3.2.1 Registration / Staking](#321-registration--staking)
     - [3.2.2 Network SLA (Service Level Agreement)](#322-network-sla-service-level-agreement)
     - [3.2.3 Report Cards \& Test Scores](#323-report-cards--test-scores)
-    - [3.2.4 Salary Eligibility \& Distribution](#324-salary-eligibility--distribution)
-    - [3.2.5 Volume Estimation](#325-volume-estimation)
+    - [3.2.4 Volume Estimation](#324-volume-estimation)
+    - [3.2.5 Salary Eligibility \& Distribution](#325-salary-eligibility--distribution)
     - [3.2.5 Servicer Pausing](#325-servicer-pausing)
     - [3.2.5 Parameter Updates](#325-parameter-updates)
     - [3.2.6 Unstaking](#326-unstaking)
@@ -47,6 +47,8 @@
   - [3.6 Validator Protocol](#36-validator-protocol)
     - [3.6.1 Validator Registration](#361-validator-registration)
   - [3.7 Account Protocol](#37-account-protocol)
+    - [3.7.2 Send Transaction](#372-send-transaction)
+    - [3.7.3 Pool](#373-pool)
   - [3.8 State Change Protocol](#38-state-change-protocol)
   - [3.9 Governance Protocol](#39-governance-protocol)
 - [4. Sequence](#4-sequence)
@@ -179,13 +181,13 @@ The logical abstraction of the specification system is comprised of multiple sub
 
 ### 3.1 Session Protocol
 
-A `Session` is a time-based mechanism the used to regulate Web3 access between protocol actors to enable the Utilitarian economy in a fair and secure manner. A single session may extend multiple Blocks as determined by `SessionBlockFrequency`.
+A `Session` is a time-based mechanism used to regulate the various interactions (Web3 access, monitoring, etc) between protocol actors to enable the Utilitarian economy in a fair and secure manner. A single session may extend multiple Blocks as determined by `SessionBlockFrequency`.
 
 #### 3.1.1 Dispatch / Actor Selection
 
 Under the Random Oracle Model, a Session can be seeded to deterministically select which group of actors will interact for some duration of time. This enables a random, deterministic and uniform distribution of Web3 access, provisioning and monitoring. It limits what work, and by whom, can be rewarded or penalized at the protocol layer.
 
-The seed data for a session is an implementation detail that could be composed of multiple variables. It could include, but not limited to, attributes such as `LatestBlockHash`, timestamp, etc...
+The seed data for a session is an implementation detail that could be composed of multiple variables. It includes, but is not limited to, attributes such as `LatestBlockHash`, `Timestamp`, etc...
 
 To start a new session, or retrieve the metadata for an existing / prior session, the Querier (e.g. Application, Client) can execute a request to any synched Full Node (protocol actor or not).
 
@@ -219,7 +221,7 @@ func NewSession(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey) Se
 }
 ```
 
-#### 3.1.2 Relay Chain
+#### 3.1.2 RelayChain
 
 A `RelayChain` is an identifier of the specified Web3 data source (i.e. a blockchain) being interacted with for that session.
 
@@ -233,22 +235,57 @@ For example, `GeoZone 0001` could represent `US East`, but alternative coordinat
 
 There is no formal requirement or validation (e.g. IP verification) for an actor to be physically located in the GeoZone it registers in. However, crypto-economic incentives promote actors to be close to where they are physically located to receive and provide the best service possible.
 
-#### 3.1.4 Actor Replacements
+#### 3.1.4 Actor Substitution
 
-Since a single Session extends multiple blocks, an actor could potentially send an on-chain transaction to exit (e.g. Unstake) prematurely. Any rewards for that Session for that actor are invalidated, and penalties may be applied. A replacement actor (e.g. a Servicer) will be found and dynamically added to the session in the closest following block.
+Since a single Session extends multiple blocks, an actor could potentially send an on-chain transaction to exit (e.g. Unstake, Pause) prematurely. Any rewards for that Session for that actor are invalidated, and penalties may be applied. A replacement actor (e.g. a Servicer) will be found and dynamically added to the session in the closest following block.
 
 #### 3.1.5 Rate Limits
 
-TODO: Rate Limits
+Rate limiting limits the amount of work (i.e. Web3 access) a Servicer can provide to an Application throughout the duration of a Session.
+
+During each Session, the amount of POKT an Application has staked (see [Application Protocol](#34-application-protocol) for more details) is mapped to "Service Tokens" that represent the amount of work a Servicer can provide using the `SessionTokenBucketCoefficient` governance parameter. The [Token Bucket](https://en.wikipedia.org/wiki/Token_bucket) rate limiting algorithm is used to determine the maximum number of requests a Servicer can relay, and be rewarded for, thereby disincentivizing it process relays for the Application once the cap is reached.
 
 - MaxRelays / NumServers for that session.
 - Application Burn
 - Best Effort
 - Show validation of relays
 
+At the beginning of the session, each Servicer initializes: `AppSessionTokens = (AppStakeAmount * SessionTokenBucketCoefficient) / NumServicersPerSession`. When one of the Servicers in the session is out of session tokens, the Application can continue to user others until they are all exhausted.
+
+```mermaid
+sequenceDiagram
+  participant App as Application
+  participant S1 as Servicer 1
+  participant SN as Servicer N
+
+  note over App, SN: Session Initialized
+
+  loop
+    App ->>+ S1: Relay
+    alt AppSessionTokens > 0
+      S1 ->> S1: AppSessionTokens -= 1
+      S1 ->> App: Relay Response
+    else
+      S1 ->>- App: Error
+    end
+  end
+
+  loop
+    App ->>+ SN: Relay
+    alt AppSessionTokens > 0
+      SN ->> SN: AppSessionTokens -= 1
+      SN ->> App: Relay Response
+    else
+      SN ->>- App: Error
+    end
+  end
+```
+
+Note that this mechanism enables future iterations of the protocol where different types of request may vary the required number of `AppSessionTokens` per request.
+
 #### 3.1.6 Interface
 
-An illustrative example of the Session interface can be summarized like so:
+An illustrative example of the Session interface can be summarized as follows:
 
 ```go
 type Session interface {
@@ -256,7 +293,7 @@ type Session interface {
 
   GetApplication() Application # The Application consuming Web3 access
   GetRelayChain() RelayChain   # The Web3 chain identifier being accessed this session
-  GetGeoZone() GeoZone         # The physical geo-location where all are actors registered
+  GetGeoZone() GeoZone         # The physical geo-location where all the actors are registered
   GetSessionHeight() uint64    # The block height when the session started
   GetServicers() []Servicer    # The Servicers providing Web3 access
   GetFishermen() []Fisherman   # The Fisherman monitoring Web3 service
@@ -300,43 +337,67 @@ A `TestScore` is a collection of samples by the Fisherman of a Servicer, based o
 
 A `ReportCard` is the logical aggregation of multiple `TestScores` over the Actor's lifetime.
 
-#### 3.2.4 Salary Eligibility & Distribution
+#### 3.2.4 Volume Estimation
 
-An `ServiceNodeSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by application volume of each `(RelayChain, GeoZone)` pair and scaled by the `UsageToRewardCoefficient` governance parameter.
+The Application's Web3 usage volume is estimated through probabilistic hash collisions. This enables a concise proof of probabilistic volume, without requiring compute or memory intensive storage and aggregation. Similar to [Bitcoin's Difficulty](https://en.bitcoin.it/wiki/Difficulty), a `RelayVolumeDifficulty` governance parameter will be used to determine the "difficulty", and to what degree, relay volume counts must be estimated.
 
-#### 3.2.5 Volume Estimation
+Each relay can be viewed as an independent Bernoulli Trial, that is either a volume applicable relay or not. A geometric distribution can be built of the number of relays that need to be performed until an applicable relay is made. For example, if a SHA256 algorithm is used and `RelayVolumeDifficulty` represents 4 leading zeroes, the hash of each `(SignedRelay, SignedRelayResponse)` pair below `0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` will represent `65536` (16^4) relays.
+
+A the end of each Session, the volume applicable relays are sent to the Fisherman for validation and salary distribution.
+
+Should this be a commit & reveal scheme?
 
 ```mermaid
 sequenceDiagram
-	    title Steps 4-6
-	    autonumber
-	    actor Service Node
-        participant Internal State
-        participant Internal Storage
-        actor Fisherman
-	    loop Repeats Every Session End
-	        Service Node->>Internal State: GetSecretKey(sessionHeader)
-            Internal State->>Service Node: HashCollision = SecretKey(govParams)
-	        Service Node->>Internal Storage: RelaysThatEndWith(HashCollision)
-            Internal Storage->>Service Node: VolumeApplicableRelays
-            Service Node->>Fisherman: Send(VolumeApplicableRelays)
-	    e
+    actor Client
+    actor Servicer
+    participant IS as Internal State
+    participant ISS as Internal Storage
+    participant Chain as Web3 Chain
+
+    loop Repeats During Session
+      Client ->> Client: Sign(Relay)
+      Client ->> Servicer: Send(Relay)
+      Servicer ->> IS: Validate(Relay)
+      IS ->> Servicer: IsValid(Relay)
+      Servicer ->> Chain: Execute(Relay, RelayChainURL)
+      Chain ->> Servicer: RelayResponse = GetResponse(RelayChain)
+      Servicer ->> Servicer: Sign(RelayResponse)
+      Servicer ->> ISS: IfValid(Relay) -> Persist(Relay, RelayResponse)
+      Servicer ->> Client: Send(RelayResponse)
+    end
+
+    loop Repeats Every Session End
+      Servicer ->> IS: GetSecretKey(sessionData)
+      IS ->> Servicer: HashCollision = SecretKey(govParams)
+      Servicer ->> ISS: RelaysThatEndWith(HashCollision)
+      ISS ->> Servicer: VolumeApplicableRelays
+      Servicer ->> Fisherman: Send(VolumeApplicableRelays)
+      Fisherman ->> Fisherman: Validate Relay & RelayResponse
+    end
 ```
 
-Probabilistic hash collisions
+#### 3.2.5 Salary Eligibility & Distribution
 
-Volume usage of Applications is estimated through probabilistic hash collisions that are derived from a ServiceNode’s Verifiable Random Function output of the Session data and the Relay request. For an illustrative example, imagine a Nonce that represents a volume of 10K Relays is a ServiceNode VRF output that ends in four consecutive zeros when the message is SessionData+RelayHash. This mechanism allows a concise proof of probabilistic volume, without an actual aggregation of relays completed. These Nonces are sent by the ServiceNode to the Public Fishermen endpoint who verifies the claim and ultimately reports the volume usage to the network. The calculation is simple, TotalVolumeUsage is multiplied against reward coefficient parameters for the specific RelayChain/Geozone and is evenly divided into buckets per ServiceNode that is above the MinimumReportCardThreshold. This value is known as the MaxServiceNodeReward, and is decreased (burned) proportional to ReportCard scores. For instance, a 100% ReportCard results in zero burning of the MaxServiceNodeReward and an 80% ReportCard results in 20% burning of the MaxServiceNodeReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. In addition to the ReportCard weight, the ServiceNode reward is also scaled linearly based on the amount they stake between MinimumServiceNodeStake and MaximumServiceNodeStake. For safety and adaptability, the weight of ReportCardBasedDistribution vs StakeBasedDistribution is parameterized. It is important to note that a MinimumTestScoresThreshold of TestScores must be accumulated before a ServiceNode is even eligible for a salary distribution and the oldest TestScores are removed in a FIFO fashion once MaxTestScores is reached or TestScoreExpiration is passed. The resulting final amount after the decrease is the net ServiceNodeSalary, which is sent directly to the custodial account. Similar to real world paychecks, First and Final Salaries of ServiceNodes are decreased further relative to the time served vs the full pay period. To further clarify, ServiceNodeSalary pseudocode is provided below:
+An `ServiceNodeSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by application volume of each `(RelayChain, GeoZone)` pair and scaled by the `UsageToRewardCoefficient` governance parameter.
+
+The calculation is simple, TotalVolumeUsage is multiplied against reward coefficient parameters for the specific RelayChain/Geozone and is evenly divided into buckets per ServiceNode that is above the MinimumReportCardThreshold. This value is known as the MaxServiceNodeReward, and is decreased (burned) proportional to ReportCard scores. For instance, a 100% ReportCard results in zero burning of the MaxServiceNodeReward and an 80% ReportCard results in 20% burning of the MaxServiceNodeReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. In addition to the ReportCard weight, the ServiceNode reward is also scaled linearly based on the amount they stake between MinimumServiceNodeStake and MaximumServiceNodeStake. For safety and adaptability, the weight of ReportCardBasedDistribution vs StakeBasedDistribution is parameterized. It is important to note that a MinimumTestScoresThreshold of TestScores must be accumulated before a ServiceNode is even eligible for a salary distribution and the oldest TestScores are removed in a FIFO fashion once MaxTestScores is reached or TestScoreExpiration is passed. The resulting final amount after the decrease is the net ServiceNodeSalary, which is sent directly to the custodial account. Similar to real world paychecks, First and Final Salaries of ServiceNodes are decreased further relative to the time served vs the full pay period. To further clarify, ServiceNodeSalary pseudocode is provided below:
 
 ```go
-func GetSalary(ReportCard, StakeAmountScore, TotalAvailReward, EligibleNodesCount) Salary {
-  # calculate max reward per ServiceNode
-  maxServiceNodeReward = perfectDivide(TotalAvailReward, EligibleNodesCount)
-  # calculate decrease (NOTE: likely will weight each score with a coefficient param)
+
+func DistributeSalaries(relayChain, geoZone, height) {
+  servicers = getEligibleServicers(relayChain, geoZone, height)
+  rewards = getAvailableReward(relayChain, geoZone, height)
+
+}
+
+func GetSalary(servicerReportCard, stakeAmountScore, totalAvailableReward, eligibleServicerCount) Salary {
+  maxServicerReward = totalAvailableReward / eligibleServicerCount
   burnPercent = (100-ReportCard.Score + 100-StakeAmountScore)/200
   burnAmount = burnPercent * maxServiceNodeReward
   netServiceNodeReward = maxServiceNodeReward - burnAmount
   burnTokensFromTotalAvailableRewardPool(burnAmount)
-  Return netServiceNodeReward
+  return netServiceNodeReward
 }
 ```
 
@@ -485,7 +546,6 @@ graph LR
 A Commit & Reveal type submission.
 
 ```go
-# FishermanTestScoreMsg Interface
 type FishermanTestScoreMsg interface {
   GetSessionHeader() SessionHeader # The Session Header (SessionHeight, AppPubKey, GeoZone, RelayChain, etc..)
   GetFirstSampleTime() Timestamp   # The timestamp of the first sample
@@ -628,6 +688,7 @@ An Application that requires just-in-time guarantees of the data it is processin
 
 #### 3.5.4 Delegated Trust
 
+```mermaid
 sequenceDiagram
 title Without Gateway
 actor AC as Application / Client
@@ -653,6 +714,7 @@ actor F as Fisherman
     end
 
     note over AC, F: Post Session Stuff
+```
 
 #### 3.5.5 Multiple Clients
 
@@ -662,7 +724,7 @@ A `Validator` is a protocol actor whose responsibility it is to achieve securely
 
 #### 3.6.1 Validator Registration
 
-Validators registration is permissionless. In order to parcitipate in the network as a Validator, the `ValidatorStakeMsg` must be
+Validators registration is permissionless. In order to participate in the network as a Validator, the `ValidatorStakeMsg` must be se
 
 Validators are a category of actor whose responsibility is to securely process transactions and blocks using the Pocket Network 1.0 Consensus Protocol. Though most of their functional behavior is described in the external 1.0 Consensus Protocol specification and the Transaction Protocol section, a state specific Validator Protocol is needed to allow a dynamic Validator set and provide the necessary incentive layer for their operations. In order to participate in the network as a Validator, each actor is required to bond a certain amount of tokens in escrow while they are providing the Validator services. These tokens are used as collateral to disincentivize byzantine behavior. Upon registration, a Validator must inform the network of how many tokens they are staking and the public endpoint where the Validator API is securely exposed. In addition to the required information, an optional OperatorPublicKey may be provided for non-custodial operation of the Validator. This registration message is formally known as the StakeMsg and is represented below in pseudocode:
 
@@ -719,31 +781,40 @@ type ValidatorUnstake interface {
 
 ### 3.7 Account Protocol
 
-An account is the structure where liquid tokens are maintained. The summation of the value of all the accounts in the network would equal the TotalSupply - StakedTokens. The structure is simply an identifier address and the value of the account. The only state modification operation accounts may execute is a transactional SendMsg, transferring tokens from one account to another.
+An `Account` is a structure that maintains the ownership of POKT via a mapping from an `Address` to a `Balance`.
+The summation of all balances of all accounts in the network equals the `TotalSupply`.
 
 ```go
-# Account Interface
 type Account interface {
-  GetAddress()  Address       # The cryptographic identifier of the account
-  GetValue() Big.Int          # The number of Tokens (uPOKT)
-}
-
-# Send Interface
-type SendMsg interface {
-  GetFromAddress()  Address       # Address of sender account; Must be the signer
-  GetToAddress() Address          # Address of receiver account
-  GetAmount() Big.Int             # The number of Tokens transferred (uPOKT)
+  GetAddress() Address # The cryptographic ID of the account
+  GetBalance() Big.Int # The amount of uPOKT
 }
 ```
 
-A ModulePool is a particular type that though similar in structure to an Account, the functionality of each is quite specialized to its use case. These pools are maintained by the protocol and are completely autonomous, owned by no actor on the network. Unlike Accounts, tokens are able to be directly minted to and burned from ModulePools. Examples of ModuleAccounts include StakingPools and the FeeCollector.
+#### 3.7.2 Send Transaction
+
+The only state modification an Account may execute is a `SendMsg` of tokens from one account to another.
 
 ```go
-type ModulePool interface {
-  GetAddress()  Address       # The cryptographic identifier of the account
-  GetValue() Big.Int          # The number of Tokens (uPOKT)
+type SendMsg interface {
+  GetFromAddress() Address # Address of sender Account; the signer
+  GetToAddress() Address # Address of receiver Account
+  GetAmount() Big.Int # The number of uPOKT transferred
 }
 ```
+
+#### 3.7.3 Pool
+
+A Pool is a special type of Account that is completely autonomous and owned by the network. POKT can be burnt, mint and transmitted to a Pool at the protocol layer at the time of state transition without explicit transactions. Pools can be used for tasks such as fee aggregation and distribution based on state machine changes.
+
+```go
+type Pool interface {
+  GetAccount() Account # The cryptographic ID of the account
+  GetName() string     # The name of the pool
+}
+```
+
+The list of pools includes, but is not limited to, the `DAO`, `FeeCollector`, `AppStakePool`, `ValidatorStakePool`, `ServiceNodeStakePool`.
 
 ### 3.8 State Change Protocol
 
@@ -1065,3 +1136,16 @@ Future work:
 - V0 docs & implementation
 - V1 docs & implementation
 -->
+
+Changelog:
+
+- Simplifying text throughout and removed unnecessary details
+- Replace Application/Fisherman handshake with ring signatures
+- Provided details Probabilistic Volume Computation
+  - Modified it to a commit-and-reveal mechanism
+- Added gateway protocol actor
+- Removed the need for Evidence
+- Add Token Bucket Rate Limiting
+- Add "Would you like a proof with that RPC"
+- Added example of GeoZones
+- Remove the need for NTP
