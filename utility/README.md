@@ -19,15 +19,15 @@
     - [3.1.5 Rate Limits](#315-rate-limits)
     - [3.1.6 Interface](#316-interface)
   - [3.2 Servicer Protocol](#32-servicer-protocol)
-    - [3.2.1 Registration / Staking](#321-registration--staking)
+    - [3.2.1 Staking / Registration](#321-staking--registration)
     - [3.2.2 Network SLA (Service Level Agreement)](#322-network-sla-service-level-agreement)
     - [3.2.3 Report Cards \& Test Scores](#323-report-cards--test-scores)
     - [3.2.4 Volume Estimation](#324-volume-estimation)
     - [3.2.5 Salary Eligibility \& Distribution](#325-salary-eligibility--distribution)
     - [3.2.5 Servicer Pausing](#325-servicer-pausing)
     - [3.2.5 Parameter Updates](#325-parameter-updates)
-    - [3.2.6 Unstaking](#326-unstaking)
     - [3.2.6 Stake Burning](#326-stake-burning)
+    - [3.2.7 Unstaking](#327-unstaking)
   - [3.3 Fisherman Protocol](#33-fisherman-protocol)
     - [3.3.1 Fisherman Election](#331-fisherman-election)
     - [3.3.2 Fisherman Registration](#332-fisherman-registration)
@@ -302,15 +302,15 @@ type Session interface {
 
 ### 3.2 Servicer Protocol
 
-A `Servicer` is a protocol actor that provisions Web3 access for Pocket Network Applications to consume. Servicers are the **supply** side of the Utilitarian Economy, who are compensated in the native cryptographic token, POKT, for their work.
+A `Servicer` is a protocol actor that provisions Web3 access for Pocket Network Applications to consume. Servicers are the **supply** side of the Utilitarian Economy, who are compensated in the native cryptographic token, POKT, for their work, relaying RPC requests.
 
-#### 3.2.1 Registration / Staking
+#### 3.2.1 Staking / Registration
 
-In order to participate as a Servicer in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are providing Web3 access. These tokens may be burned or removed from the actor as a result of breaking the **Protocol’s Service Level Agreement**, a DAO defined set of requirements for the minimum quality of service.
+In order to participate as a Servicer in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are providing Web3 access. These tokens may be burnt or removed from the actor as a result of breaking the **Protocol’s Service Level Agreement**, a DAO defined set of requirements for the minimum quality of service.
 
-Upon registration, the Servicer is required to provide the network with sufficient information to pair it with Applications. This includes the GeoZone it is in, RelayChain(s) it supports, and the Pocket API endpoint known as the `ServiceURL` where its service is exposed. An optional `OperatorPublicKey` may be provided for non-custodial operation of the Servicer.
+Upon registration, the Servicer is required to provide the network with sufficient information to be paired with Applications. This includes the `GeoZone` it is in, `RelayChain`(s) it supports, and `ServiceURL`, the Pocket API endpoint exposed where its service can ne accessed. An optional `OperatorPublicKey` may be provided for non-custodial operation of the Servicer.
 
-This registration message is formally known as the `StakeMsg`, and a Servicer can only start providing service once it is registered: the StakeMsg has been validated, included in the subsequent block, and the World State has been updated. An illustrative example can be summarized like so:
+This registration message is formally known as the `StakeMsg`, and a Servicer can only start providing service once it is registered: the StakeMsg has been validated and included in a following block, modifying the World State. An illustrative example can be summarized like so:
 
 ```go
 type ServicerStakeMsg interface {
@@ -318,7 +318,7 @@ type ServicerStakeMsg interface {
   GetStakeAmount() BigInt         # The amount of POKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL      # The API endpoint where the Web3 service is provided
   GetRelayChains() RelayChain[]   # The flavor(s) of Web3 hosted by this Servicer
-  GetGeoZone() LocationIdentifier # The geo-location identifier this Servicer registered in
+  GetGeoZone() LocationIdentifier # The physical geo-location identifier this Servicer registered in
   GetOperatorPubKey() PublicKey   # OPTIONAL; The non-custodial pubKey operating this node
 }
 ```
@@ -333,19 +333,17 @@ Servicers are paid proportionally to how well their Relay responses meet the sta
 
 #### 3.2.3 Report Cards & Test Scores
 
-A `TestScore` is a collection of samples by the Fisherman of a Servicer, based on the SLA criteria outlined above, throughout the duration of a Session.
+A `TestScore` is a collection of samples by a Fisherman of a Servicer, based on the SLA criteria outlined above, throughout the duration of a Session.
 
-A `ReportCard` is the logical aggregation of multiple `TestScores` over the Actor's lifetime.
+A `ReportCard` is the logical aggregation of multiple `TestScores` over an Actor's registration lifetime.
 
 #### 3.2.4 Volume Estimation
 
-The Application's Web3 usage volume is estimated through probabilistic hash collisions. This enables a concise proof of probabilistic volume, without requiring compute or memory intensive storage and aggregation. Similar to [Bitcoin's Difficulty](https://en.bitcoin.it/wiki/Difficulty), a `RelayVolumeDifficulty` governance parameter will be used to determine the "difficulty", and to what degree, relay volume counts must be estimated.
+The Application's Web3 usage volume is estimated through probabilistic hash collisions. This enables a concise proof of probabilistic volume, without requiring compute or memory intensive storage and aggregation. Similar to [Bitcoin's Difficulty](https://en.bitcoin.it/wiki/Difficulty), a `RelayVolumeDifficulty` governance parameter will be used to determine the "difficulty", and how relay counts must be estimated.
 
-Each relay can be viewed as an independent Bernoulli Trial, that is either a volume applicable relay or not. A geometric distribution can be built of the number of relays that need to be performed until an applicable relay is made. For example, if a SHA256 algorithm is used and `RelayVolumeDifficulty` represents 4 leading zeroes, the hash of each `(SignedRelay, SignedRelayResponse)` pair below `0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` will represent `65536` (16^4) relays.
+Each relay can be viewed as an independent Bernoulli Trial, that is either a volume applicable relay or not. A geometric distribution can be built of the number of relays that need to be serviced until an applicable relay is made. For example, if a SHA256 hash algorithm is used and `RelayVolumeDifficulty` represents 4 leading zeroes, the hash of each `(SignedRelay, SignedRelayResponse)` pair below `0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` will represent `65536` (16^4) relays.
 
 A the end of each Session, the volume applicable relays are sent to the Fisherman for validation and salary distribution.
-
-Should this be a commit & reveal scheme?
 
 ```mermaid
 sequenceDiagram
@@ -358,30 +356,32 @@ sequenceDiagram
     loop Repeats During Session
       Client ->> Client: Sign(Relay)
       Client ->> Servicer: Send(Relay)
-      Servicer ->> IS: Validate(Relay)
-      IS ->> Servicer: IsValid(Relay)
-      Servicer ->> Chain: Execute(Relay, RelayChainURL)
-      Chain ->> Servicer: RelayResponse = GetResponse(RelayChain)
+      Servicer ->> +IS: Validate(Relay)
+      IS ->> -Servicer: IsValid(Relay)
+      Servicer ->> +Chain: Execute(Relay, RelayChainURL)
+      Chain ->> -Servicer: RelayResponse = GetResponse(RelayChain)
       Servicer ->> Servicer: Sign(RelayResponse)
       Servicer ->> ISS: IfValid(Relay) -> Persist(Relay, RelayResponse)
       Servicer ->> Client: Send(RelayResponse)
     end
 
     loop Repeats Every Session End
-      Servicer ->> IS: GetSecretKey(sessionData)
-      IS ->> Servicer: HashCollision = SecretKey(govParams)
-      Servicer ->> ISS: RelaysThatEndWith(HashCollision)
-      ISS ->> Servicer: VolumeApplicableRelays
+      Servicer ->> +IS: GetSecretKey(sessionData)
+      IS ->> -Servicer: HashCollision = SecretKey(govParams)
+      Servicer ->> +ISS: RelaysThatEndWith(HashCollision)
+      ISS ->> -Servicer: VolumeApplicableRelays
       Servicer ->> Fisherman: Send(VolumeApplicableRelays)
       Fisherman ->> Fisherman: Validate Relay & RelayResponse
     end
 ```
 
+TODO: Should this be a commit & reveal scheme?
+
 #### 3.2.5 Salary Eligibility & Distribution
 
-An `ServiceNodeSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by application volume of each `(RelayChain, GeoZone)` pair and scaled by the `UsageToRewardCoefficient` governance parameter.
+A `ServiceNodeSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by Application volume of each `(RelayChain, GeoZone)` pair and scaled by the `UsageToRewardCoefficient` governance parameter.
 
-The calculation is simple, TotalVolumeUsage is multiplied against reward coefficient parameters for the specific RelayChain/Geozone and is evenly divided into buckets per ServiceNode that is above the MinimumReportCardThreshold. This value is known as the MaxServiceNodeReward, and is decreased (burned) proportional to ReportCard scores. For instance, a 100% ReportCard results in zero burning of the MaxServiceNodeReward and an 80% ReportCard results in 20% burning of the MaxServiceNodeReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. In addition to the ReportCard weight, the ServiceNode reward is also scaled linearly based on the amount they stake between MinimumServiceNodeStake and MaximumServiceNodeStake. For safety and adaptability, the weight of ReportCardBasedDistribution vs StakeBasedDistribution is parameterized. It is important to note that a MinimumTestScoresThreshold of TestScores must be accumulated before a ServiceNode is even eligible for a salary distribution and the oldest TestScores are removed in a FIFO fashion once MaxTestScores is reached or TestScoreExpiration is passed. The resulting final amount after the decrease is the net ServiceNodeSalary, which is sent directly to the custodial account. Similar to real world paychecks, First and Final Salaries of ServiceNodes are decreased further relative to the time served vs the full pay period. To further clarify, ServiceNodeSalary pseudocode is provided below:
+The calculation is simple, TotalVolumeUsage is multiplied against reward coefficient parameters for the specific RelayChain/GeoZone and is evenly divided into buckets per ServiceNode that is above the MinimumReportCardThreshold. This value is known as the MaxServiceNodeReward, and is decreased (burned) proportional to ReportCard scores. For instance, a 100% ReportCard results in zero burning of the MaxServiceNodeReward and an 80% ReportCard results in 20% burning of the MaxServiceNodeReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. In addition to the ReportCard weight, the ServiceNode reward is also scaled linearly based on the amount they stake between MinimumServiceNodeStake and MaximumServiceNodeStake. For safety and adaptability, the weight of ReportCardBasedDistribution vs StakeBasedDistribution is parameterized. It is important to note that a MinimumTestScoresThreshold of TestScores must be accumulated before a ServiceNode is even eligible for a salary distribution and the oldest TestScores are removed in a FIFO fashion once MaxTestScores is reached or TestScoreExpiration is passed. The resulting final amount after the decrease is the net ServiceNodeSalary, which is sent directly to the custodial account. Similar to real world paychecks, First and Final Salaries of ServiceNodes are decreased further relative to the time served vs the full pay period. To further clarify, ServiceNodeSalary pseudocode is provided below:
 
 ```go
 
@@ -403,19 +403,24 @@ func GetSalary(servicerReportCard, stakeAmountScore, totalAvailableReward, eligi
 
 #### 3.2.5 Servicer Pausing
 
-Servicers are able to gracefully pause their service (e.g. for maintenance reasons) without the need to unstake or be penalized for downtime. In addition to an Operator initiated `PauseMsg`, Fishermen are able to temporarily pause a Servicer if a faulty or malicious process is detected during sampling. WHen a Servicer is paused, they are able resume service by submitting an `UnpauseMsg` after the `MinPauseTime` has elapsed. After a successful `UnpauseMsg` is validated updates the World State, the Servicer is eligible to continue providing Web3 service to Applications and to is once again eligible to receive Web3 traffic from Applications and Fisherman.
+Servicers are able to gracefully pause their service (e.g. for maintenance reasons) without the need to unstake or face downtime penalization. In addition to an Operator initiated `PauseMsg`, Fishermen are also able to temporarily pause a Servicer if a faulty or malicious process is detected during sampling (see the [Fisherman Protocol](#33-fisherman-protocol) for more details). When a Servicer is paused, they are able resume service by submitting an `UnpauseMsg` after the `MinPauseTime` has elapsed. After a `UnpauseMsg` is validated and the World State is updated, the Servicer is eligible to continue providing Web3 service to Applications, and receive rewards.
 
 #### 3.2.5 Parameter Updates
 
 A Servicer can update any of the values in its on-chain attributes by submitting another `StakeMsg` while it is already staked. The only limitation is that it's `StakeAmount` must be equal to or greater than its currently staked value. In addition, the Servicer's historical QoS (TestScores, ReportCard, etc...) will be pruned from the state.
 
-#### 3.2.6 Unstaking
-
-A ServiceNode is able to submit an UnstakeMsg to exit the network and remove themself from service. After a successful UnstakeMsg, the ServiceNode is no longer eligible to receive Web3 traffic from ServiceNodes and Fisherman. After ServiceNodeUnstakingTime elapses, any Stake amount left is returned to the custodial account.
-
 #### 3.2.6 Stake Burning
 
-A ServiceNode stake is only able to be burned in two situations: A TestScore below the TestScoreBurnThreshold or a Fisherman initiated PauseMsg. If a ServiceNode stake amount ever falls below the MinimumServiceNode stake, the protocol automatically executes an UnstakeMsg for that node, subjecting the Servicer to the unstaking process described above.
+A Servicer's stake can be burnt in two situations:
+
+1. A Servicer receives a `TestScore` below the `TestScoreBurnThreshold`
+2. A Fisherman initiates a `PauseMsg` with the required evidence
+
+#### 3.2.7 Unstaking
+
+A Servicer is able to submit an `UnstakeMsg` to exit the network and remove itself from service. After a successful UnstakeMsg, the Servicer is no longer eligible to receive Web3 traffic from Servicers and Fisherman. The original stake (i.e. deposit) is returned to the Servicer's custodial account after `ServicerUnbondingPeriod` has elapsed.
+
+If a Servicer's stake ever falls below the `MinimumServicerStake` stake, the protocol automatically executes an UnstakeMsg on behalf of the custodial or operator accounts, subjecting the Servicer to the unstaking process described above.
 
 ### 3.3 Fisherman Protocol
 
@@ -563,7 +568,6 @@ Furthermore, due to alignment of Fisherman incentives and desired brevity of on-
 ![alt_text](image2.png)
 
 ```go
-# FishermanProofMsg Interface
 type FishermanProofMsg interface {
   GetSessionHeader() SessionHeader # The AppPubKey, the SessionHeight, geozone, and relaychain
   GetProofLeaf() Timestamp         # Actual sample containing the proper timestamp
@@ -584,7 +588,6 @@ type FishermenUnpauseMsg interface {
 A Fisherman is able to modify their initial staking values including GeoZone, ServiceURL, and StakeAmount by submitting a StakeMsg while already staked. It is important to note that contrary to ServiceNodes, Fishermen GeoZone changes must be permissioned through the DAO ACL. In addition to that restriction, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Fisherman and enables an overall simpler implementation.
 
 ```go
-# FishermenNode(Edit)StakeMsg Interface
 type FishermenStakeMsg interface {
   GetPublicKey()  PublicKey       # identity of edited Fishermen
   GetStakeAmount() BigInt         # must be greater than or equal to the current value
@@ -597,7 +600,6 @@ type FishermenStakeMsg interface {
 A Fishermen is able to submit an UnstakeMsg to exit the network and remove themself from service. After a successful UnstakeMsg, the Fishermen is no longer eligible to receive monitoring requests. It is important to note, a Fisherman is permissioned to unstake if removed from the DAO ACL parameter. After FishermenUnstakingTime elapses, any Stake amount left is returned to the custodial account.
 
 ```go
-# FishermenUnstakeMsg Interface
 type FishermenUnstake interface {
   GetAddress()  Address       # The address of the Fishermen unstaking
 }
@@ -1124,11 +1126,15 @@ Future work:
 - Client Side Challenges
 - "Would you like a proof with that RPC"
 - Multiple RelayChains per session?
+- Multiple GeoZones
+- Business opportunities
+- Delegated validation
 - Tokenizing Request Cost/Type
 - Delegated Validation
 - Multiple simultaneous sessions?
 - Extending OperatorPublicKey for improve rev share
 - Registering in multiple GeoLocations?
+- proof of sequential work?
 - -->
 
 <!-- TODO(olshansky): Add a references section
