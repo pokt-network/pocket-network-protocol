@@ -7,9 +7,29 @@
     Version 1.0.1 - Jan 2023
 </p>
 
-- [Salary Distribution](#salary-distribution) - [3.2.5 Servicer Pausing](#325-servicer-pausing) - [3.2.5 Parameter Updates](#325-parameter-updates) - [3.2.6 Stake Burning](#326-stake-burning) - [3.2.7 Unstaking](#327-unstaking)
+- [1. Overview](#1-overview)
+  - [1.1 Important Context](#11-important-context)
+- [2. Requirements](#2-requirements)
+- [3 Specification](#3-specification)
+  - [3.1 Session Protocol](#31-session-protocol)
+    - [3.1.1 Dispatch / Actor Selection](#311-dispatch--actor-selection)
+    - [3.1.2 RelayChain](#312-relaychain)
+    - [3.1.3 GeoZone](#313-geozone)
+    - [3.1.4 Actor Substitution](#314-actor-substitution)
+    - [3.1.5 Rate Limiting](#315-rate-limiting)
+    - [3.1.6 Interface](#316-interface)
+  - [3.2 Servicer Protocol](#32-servicer-protocol)
+    - [3.2.1 Staking / Registration](#321-staking--registration)
+    - [3.2.2 Network SLA (Service Level Agreement)](#322-network-sla-service-level-agreement)
+    - [3.2.3 Report Cards \& Test Scores](#323-report-cards--test-scores)
+    - [3.2.4 Volume Estimation](#324-volume-estimation)
+    - [3.2.5 Salary Eligibility \& Distribution](#325-salary-eligibility--distribution)
+    - [3.2.5 Servicer Pausing](#325-servicer-pausing)
+    - [3.2.5 Parameter Updates](#325-parameter-updates)
+    - [3.2.6 Stake Burning](#326-stake-burning)
+    - [3.2.7 Unstaking](#327-unstaking)
   - [3.3 Fisherman Protocol](#33-fisherman-protocol)
-    - [3.3.1 Fisherman Election](#331-fisherman-election)
+    - [3.3.1 Election \& Registration](#331-election--registration)
     - [3.3.2 Fisherman Registration](#332-fisherman-registration)
     - [3.3.3 Sampling Protocol](#333-sampling-protocol)
     - [3.3.4 Incognito Sampling](#334-incognito-sampling)
@@ -31,16 +51,16 @@
     - [3.7.3 Pool](#373-pool)
   - [3.8 State Change Protocol](#38-state-change-protocol)
   - [3.9 Governance Protocol](#39-governance-protocol)
-  - [4. Sequence](#4-sequence)
-    - [4.1 ProtoGateFish](#41-protogatefish)
-    - [4.2 Castaway](#42-castaway)
-    - [4.2 Fishermen](#42-fishermen)
-    - [4.3 CastNet](#43-castnet)
-  - [5. Attack Vectors](#5-attack-vectors)
-    - [5.1 Attack Category Types](#51-attack-category-types)
-    - [5.1 Attack Examples](#51-attack-examples)
-  - [6. Dissenting Opinions (FAQ)](#6-dissenting-opinions-faq)
-  - [7. Future Research \& Candidate Features](#7-future-research--candidate-features)
+- [4. Sequence](#4-sequence)
+  - [4.1 ProtoGateFish](#41-protogatefish)
+  - [4.2 Castaway](#42-castaway)
+  - [4.2 Fishermen](#42-fishermen)
+  - [4.3 CastNet](#43-castnet)
+- [5. Attack Vectors](#5-attack-vectors)
+  - [5.1 Attack Category Types](#51-attack-category-types)
+  - [5.1 Attack Examples](#51-attack-examples)
+- [6. Dissenting Opinions (FAQ)](#6-dissenting-opinions-faq)
+- [7. Future Research \& Candidate Features](#7-future-research--candidate-features)
 
 ## 1. Overview
 
@@ -219,7 +239,7 @@ There is no formal requirement or validation (e.g. IP verification) for an actor
 
 Since a single Session extends multiple blocks, an actor could potentially send an on-chain transaction to exit (e.g. Unstake, Pause) prematurely. Any rewards for that Session for that actor are invalidated, and penalties may be applied. A replacement actor (e.g. a Servicer) will be found and dynamically added to the session in the closest following block.
 
-#### 3.1.5 Rate Limits
+#### 3.1.5 Rate Limiting
 
 Rate limiting limits the amount of work (i.e. Web3 access) a Servicer can provide to an Application throughout the duration of a Session.
 
@@ -294,12 +314,12 @@ This registration message is formally known as the `StakeMsg`, and a Servicer ca
 
 ```go
 type ServicerStakeMsg interface {
-  GetPublicKey()  PublicKey       # The public cryptographic id of the custodial account
-  GetStakeAmount() BigInt         # The amount of POKT in escrow (i.e. a security deposit)
-  GetServiceURL() ServiceURL      # The API endpoint where the Web3 service is provided
-  GetRelayChains() RelayChain[]   # The flavor(s) of Web3 hosted by this Servicer
-  GetGeoZone() LocationIdentifier # The physical geo-location identifier this Servicer registered in
-  GetOperatorPubKey() PublicKey   # OPTIONAL; The non-custodial pubKey operating this node
+  GetPublicKey()  PublicKey     # The public cryptographic id of the custodial account
+  GetStakeAmount() BigInt       # The amount of POKT in escrow (i.e. a security deposit)
+  GetServiceURL() ServiceURL    # The API endpoint where the Web3 service is provided
+  GetRelayChains() []RelayChain # The flavor(s) of Web3 hosted by this Servicer
+  GetGeoZone() GeoZone          # The physical geo-location identifier this Servicer registered in
+  GetOperatorPubKey() PublicKey # OPTIONAL; The non-custodial pubKey operating this node
 }
 ```
 
@@ -357,7 +377,7 @@ sequenceDiagram
 
 #### 3.2.5 Salary Eligibility & Distribution
 
-A `ServiceNodeSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by Application volume of each `(RelayChain, GeoZone)` pair and scaled by the `UsageToRewardCoefficient` governance parameter.
+A `ServicerSalary` is assigned to each individual Servicer based on their specific `ReportCard`, and is distributed every `SalaryBlockFrequency`. Salaries are distributed from the `TotalAvailableReward` pool, whose inflation is governed by Application volume of each `(RelayChain, GeoZone)` pair and scaled by the `UsageToRewardCoefficient` governance parameter.
 
 A Servicer must accumulate `MinimumTestScoreThreshold` TestScores before it is eligible for salary distribution. A ReportCard can be viewed as a rolling average of the Servicer's performance, where TestScores are removed when either `TestScoreExpiration` is passed or the TestScore FIFO queue exceeds `MaxTestScores`.
 
@@ -401,7 +421,7 @@ func DistributeSalaries(relayChain, geoZone, height) {
 func GetSalary(servicerReportCard, stakeAmountScore, totalAvailableReward, eligibleServicerCount) Salary {
   maxServicerReward = totalAvailableReward / eligibleServicerCount
 
-  return netServiceNodeReward
+  return netServicerReward
 }
 ```
 
@@ -428,13 +448,13 @@ If a Servicer's stake ever falls below the `MinimumServicerStake` stake, the pro
 
 ### 3.3 Fisherman Protocol
 
-A `Fisherman` is a protocol actor whose responsibility is to monitor and report the behavior and quality of Servicers' work. Their fundamental unit of work is to periodically sample the Servicers’s Web3 service, record the quality in a TestScore, and succinctly report the TestScore to the network in a ReportCard.
+A `Fisherman` is a protocol actor whose responsibility is to monitor and report the behavior and quality of Servicers' work. Their fundamental unit of work is to periodically sample the Servicers’s Web3 service, record the quality in a `TestScore`, and succinctly report the TestScore to the network in a `ReportCard`.
 
-#### 3.3.1 Fisherman Election
+#### 3.3.1 Election & Registration
 
 In the current version of the specification, Fishermen are not permissionless actors. The DAO must vote in each participant in order for the Fishermen to register themselves with the network on-chain. This requires Fisherman to advertise their identity and use their reputation as collateral against faulty and malicious behavior.
 
-The Fishermen are bound by a DAO defined SLA to conduct incognito sampling services of the Servicers. Detailed requirements and conditions must be defined in the Fisherman SLA document to create an acceptable level of secrecy from the sampling server to ensure sample accuracy collection. It is important to note that the Fisherman StakeMsg message differs from other permissionless actors in Pocket Network because it is only valid if permissioned through the DAO Access Control List (ACL) a prior.
+The Fishermen are bound by a DAO defined SLA to conduct incognito sampling services of the Servicers. Detailed requirements and conditions must be defined in the Fisherman SLA document to create an acceptable level of secrecy from the sampling server to ensure sample accuracy collection. It is important to note that the Fisherman `StakeMsg` message differs from other permissionless actors in Pocket Network because it is only valid if permissioned through the DAO Access Control List (ACL) a prior.
 
 ```mermaid
 stateDiagram-v2
@@ -457,11 +477,10 @@ PoA and PoS are used to filter madmen adversaries who defy economic incentives i
 
 ```go
 type FishermanStakeMsg interface {
-  GetPublicKey()  PublicKey       # The public cryptographic id of the Fisherman
-  GetStakeAmount() BigInt         # The amount of POKT in escrow (i.e. a security deposit)
-  GetServiceURL() ServiceURL      # The API endpoint where the Fishermen service is provided
-  GetGeoZone() LocationIdentifier # The geo-location identifiers this Fishermen registered in
-  GetOperatorPubKey() PublicKey   # OPTIONAL; The non-custodial pubKey operating this node
+  GetPublicKey()  PublicKey  # The public cryptographic id of the Fisherman custodial account
+  GetStakeAmount() BigInt    # The amount of POKT in escrow (i.e. a security deposit)
+  GetServiceURL() ServiceURL # The API endpoint where the Fishermen service is provided
+  GetGeoZone() GeoZone       # The physical geo-location identifiers this Fisherman is registered in
 }
 ```
 
@@ -482,16 +501,16 @@ sequenceDiagram
     autonumber
     actor App
     actor Fisherman
-    actor Service Nodes
+    actor Servicers
     App->>Fisherman: App Auth Token
     loop Repeats Throughout Session Duration
-        App->>Service Nodes: RPC Request
-        Service Nodes->>App: RPC Response
-        Fisherman->>Service Nodes: Incognito Sampling (RPC) Request
-        Service Nodes->>Fisherman: RPC Response
+        App->>Servicers: RPC Request
+        Servicers->>App: RPC Response
+        Fisherman->>Servicers: Incognito Sampling (RPC) Request
+        Servicers->>Fisherman: RPC Response
     end
-    Fisherman->>Blockchain State: TestScore (Aggregate of Samples) Txn
-    Blockchain State ->>Service Nodes: Reward For Service (Based on Report Card)
+    Fisherman ->> Blockchain State: TestScore (Aggregate of Samples) Txn
+    Blockchain State ->> Servicers: Reward For Service (Based on Report Card)
     Blockchain State ->> Fisherman: Reward For Sampling  (Based on Non-Null Samples)
 ```
 
@@ -517,22 +536,22 @@ Fishermen are also expected to obfuscate their IP through IP address rotation, V
 
 Fisherman salaries are dependant on the quantity and completeness of the `TestScoreMsg`s they send, but are agnostic to their contents with regard to how the Servicers performed.
 
-**Report completeness** is based on the number of non-null samples collected by the Fisherman. `NumSamplesPerSession` are expected to be performed by each Fisherman on each ServiceNode throughout a session, and
+**Report completeness** is based on the number of non-null samples collected by the Fisherman. `NumSamplesPerSession` are expected to be performed by each Fisherman on each Servicer throughout a session, and
 
 The `
 
-Fishermen incentive design is an important factor in Pocket 1.0’s security model, as wrongly aligned incentives can lead to systemic breakdowns of actor roles. Contrary to ServiceNodes, Fishermen rewards are not affected by the content of the samples and TestScoreMsgs as long as they are not null.
+Fishermen incentive design is an important factor in Pocket 1.0’s security model, as wrongly aligned incentives can lead to systemic breakdowns of actor roles. Contrary to Servicers, Fishermen rewards are not affected by the content of the samples and TestScoreMsgs as long as they are not null.
 
-However, similar to ServiceNodes, Fishermen salaries are generated from Application usage data. Exactly like the ServiceNodeSalaryPool, the FishermenSalaryPool inflation is based on the Volume metrics reported by the ServiceNodes. However, Fishermen salary distribution is only based on the quantity and completeness of TestScoreMsgs and are designed to be agnostic to latency, data consistency, and volume metrics. The completeness of any report is based on the number of non-null samples limited up to the MaxSamplesPerSession upper bound. A non-null sample is abstracted as a signed Web3 response from the assigned ServiceNode in the Session. Given sampling is a time based strategy, the number of samples possible in any given session is upper bounded by the duration of the Session and the timing of the Application handshake. Fishermen incentives are oriented such that they will exhaust attempts to retrieve a non null sample before the sampling time slot expires, meaning an offline sample penalizes both the Fisherman and the ServiceNode.
+However, similar to Servicers, Fishermen salaries are generated from Application usage data. Exactly like the ServicerSalaryPool, the FishermenSalaryPool inflation is based on the Volume metrics reported by the Servicers. However, Fishermen salary distribution is only based on the quantity and completeness of TestScoreMsgs and are designed to be agnostic to latency, data consistency, and volume metrics. The completeness of any report is based on the number of non-null samples limited up to the MaxSamplesPerSession upper bound. A non-null sample is abstracted as a signed Web3 response from the assigned Servicer in the Session. Given sampling is a time based strategy, the number of samples possible in any given session is upper bounded by the duration of the Session and the timing of the Application handshake. Fishermen incentives are oriented such that they will exhaust attempts to retrieve a non null sample before the sampling time slot expires, meaning an offline sample penalizes both the Fisherman and the Servicer.
 
-If a threshold of null samples are collected, Fishermen will opt to submit a PauseMsg for the non-responsive ServiceNode, replacing them with a new ServiceNode, in order to salvage any potential reward out of a Session. The PauseMsg action is limited up to MaxFishermenPauses per Session to prevent faulty Fishermen behavior. Individual Fishermen salaries are then calculated by taking the quantity of samples reported in a certain pay period compared to the total number of samples reported during that time.
+If a threshold of null samples are collected, Fishermen will opt to submit a PauseMsg for the non-responsive Servicer, replacing them with a new Servicer, in order to salvage any potential reward out of a Session. The PauseMsg action is limited up to MaxFishermenPauses per Session to prevent faulty Fishermen behavior. Individual Fishermen salaries are then calculated by taking the quantity of samples reported in a certain pay period compared to the total number of samples reported during that time.
 
 ```mermaid
 graph LR
     Fish(Fisherman Selected By Session Protocol)
     B[Blockchain]
     RC(Report Card)
-    SN[Service Nodes]
+    SN[Servicer]
 
     Fish -- TestScore Txn From Sampling --> B
     B -- Computation On Testscore Aggregation --> RC
@@ -546,7 +565,7 @@ graph LR
     B[Blockchain]
 
     Fish --> TS
-    TS -- Num Non Null Samples<br>*Requiring Service Node Signature* -->B
+    TS -- Num Non Null Samples<br>*Requiring Servicer Signature* -->B
     B -- Reward --> Fish
 ```
 
@@ -567,7 +586,7 @@ Fishermen `TestScoreMsgs` operate under a probabilistic submission and proof mod
 
 ![alt_text](image1.png)
 
-Furthermore, due to alignment of Fisherman incentives and desired brevity of on-chain Proof data, ProofTxs only require the Fisherman to prove they executed the sampling by verifying a single non-null sample. The specific sample required to prove the TestScore is determined by the ‘claimed’ TestScoreMsg and the BlockHash after ProofTestScoreDelay blocks elapse and is required to be submitted before MaxProofMsgDelay. This reveal mechanism allows for an unpredictable assignment of the required sample but is deterministic once the BlockHash is finalized. Using the timing requirement of the sampling strategy, the protocol can easily verify the sample index when submitted in the ProofMsg. It is important to note, that all Web3 requests and responses are signed by the requester (Fisherman or Application) and the responder (ServiceNode). This cryptographic mechanism ensures the integrity of a timestamp, as without the signature from the particular ServiceNode PrivateKey, a Fisherman would be able to falsify the timestamp. Though a successful ProofMsg has no effect on the reward of any Fishermen, an unsuccessful ProofMsg burn is severe to make up for the probabilistic nature of the proof requirement.
+Furthermore, due to alignment of Fisherman incentives and desired brevity of on-chain Proof data, ProofTxs only require the Fisherman to prove they executed the sampling by verifying a single non-null sample. The specific sample required to prove the TestScore is determined by the ‘claimed’ TestScoreMsg and the BlockHash after ProofTestScoreDelay blocks elapse and is required to be submitted before MaxProofMsgDelay. This reveal mechanism allows for an unpredictable assignment of the required sample but is deterministic once the BlockHash is finalized. Using the timing requirement of the sampling strategy, the protocol can easily verify the sample index when submitted in the ProofMsg. It is important to note, that all Web3 requests and responses are signed by the requester (Fisherman or Application) and the responder (Servicer). This cryptographic mechanism ensures the integrity of a timestamp, as without the signature from the particular Servicer PrivateKey, a Fisherman would be able to falsify the timestamp. Though a successful ProofMsg has no effect on the reward of any Fishermen, an unsuccessful ProofMsg burn is severe to make up for the probabilistic nature of the proof requirement.
 
 ![alt_text](image2.png)
 
@@ -589,15 +608,15 @@ type FishermenUnpauseMsg interface {
 }
 ```
 
-A Fisherman is able to modify their initial staking values including GeoZone, ServiceURL, and StakeAmount by submitting a StakeMsg while already staked. It is important to note that contrary to ServiceNodes, Fishermen GeoZone changes must be permissioned through the DAO ACL. In addition to that restriction, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Fisherman and enables an overall simpler implementation.
+A Fisherman is able to modify their initial staking values including GeoZone, ServiceURL, and StakeAmount by submitting a StakeMsg while already staked. It is important to note that contrary to Servicers, Fishermen GeoZone changes must be permissioned through the DAO ACL. In addition to that restriction, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Fisherman and enables an overall simpler implementation.
 
 ```go
 type FishermenStakeMsg interface {
-  GetPublicKey()  PublicKey       # identity of edited Fishermen
-  GetStakeAmount() BigInt         # must be greater than or equal to the current value
-  GetServiceURL() ServiceURL      # may be modified
-  GetGeoZone() LocationIdentifier # may be modified
-  GetOperatorPubKey() PublicKey   # may be modified
+  GetPublicKey()  PublicKey     # identity of edited Fishermen
+  GetStakeAmount() BigInt       # must be greater than or equal to the current value
+  GetServiceURL() ServiceURL    # may be modified
+  GetGeoZone() GeoZone          # may be modified
+  GetOperatorPubKey() PublicKey # may be modified
 }
 ```
 
@@ -609,41 +628,41 @@ type FishermenUnstake interface {
 }
 ```
 
-In Pocket 1.0, Fishermen monitoring is an off-chain endeavor undertaken by the DAO and crowdsourced through the Good Citizens protocol of each ServiceNode and Application. DAO monitoring consists of Fishermen audits, statistical analysis of Fishermen behaviors, and incognito network actors that police interactions of Fishermen. The details, conditions, and limitations of DAO monitoring are defined further in the 1.0 Constitution. In practice, the Good Citizens Protocol is sanity checks for the network actors, the community, and the software developers, but it ultimately is the crowd sourced monitoring solution for the Fishermen. Specifically, the Good Citizens Protocol is an opt-in, configurable module that checks individual interactions against resulting finality data and automatically reports suspicious, faulty, or malicious behavior of the Fishermen to offchain data sites which are analyzed and filtered up to the DAO and to the public. Individual Fishermen burns and Good Citizen bounties are determined by the DAO and defined in the 1.0 Constitution.
+In Pocket 1.0, Fishermen monitoring is an off-chain endeavor undertaken by the DAO and crowdsourced through the Good Citizens protocol of each Servicer and Application. DAO monitoring consists of Fishermen audits, statistical analysis of Fishermen behaviors, and incognito network actors that police interactions of Fishermen. The details, conditions, and limitations of DAO monitoring are defined further in the 1.0 Constitution. In practice, the Good Citizens Protocol is sanity checks for the network actors, the community, and the software developers, but it ultimately is the crowd sourced monitoring solution for the Fishermen. Specifically, the Good Citizens Protocol is an opt-in, configurable module that checks individual interactions against resulting finality data and automatically reports suspicious, faulty, or malicious behavior of the Fishermen to offchain data sites which are analyzed and filtered up to the DAO and to the public. Individual Fishermen burns and Good Citizen bounties are determined by the DAO and defined in the 1.0 Constitution.
 
 ### 3.4 Application Protocol
 
-Applications are a category of actors who consume Web3 access from Pocket Network ServiceNodes. Effectively, Applications are the ‘demand’ end of the Utilitarian Economy, who purchase access in the native cryptographic token, POKT, to use the decentralized service. In order to participate as a Application in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are consuming the Web3 access. Upon registration, the Application is required to provide the network information necessary to create applicable Sessions including the GeoZone, the RelayChain(s), the bond amount, and the number of ServiceNodes per Session limited by the MinimumServiceNodesPerSession and MaximumServiceNodesPerSession parameters. It is important to note, the bond amount of Applications is directly proportional to the MaxRelaysPerSession which rate-limits Application usage per ServiceNode per Session. In Pocket 1.0, Relay cost is discounted the higher amount an Application stakes to incentivize consolidation up to MaximumApplicationStakeAmount. This registration message is formally known as the StakeMsg and is represented below in pseudocode:
+Applications are a category of actors who consume Web3 access from Pocket Network Servicers. Effectively, Applications are the ‘demand’ end of the Utilitarian Economy, who purchase access in the native cryptographic token, POKT, to use the decentralized service. In order to participate as a Application in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are consuming the Web3 access. Upon registration, the Application is required to provide the network information necessary to create applicable Sessions including the GeoZone, the RelayChain(s), the bond amount, and the number of Servicers per Session limited by the MinimumServicersPerSession and MaximumServicersPerSession parameters. It is important to note, the bond amount of Applications is directly proportional to the MaxRelaysPerSession which rate-limits Application usage per Servicer per Session. In Pocket 1.0, Relay cost is discounted the higher amount an Application stakes to incentivize consolidation up to MaximumApplicationStakeAmount. This registration message is formally known as the StakeMsg and is represented below in pseudocode:
 
 ```go
 # ApplicationStakeMsg Interface
 type ApplicationStakeMsg interface {
-  GetPublicKey()  PublicKey       # The public cryptographic id of the custodial account
-  GetStakeAmount() BigInt         # The amount of uPOKT put in escrow
-  GetRelayChains() RelayChain[]   # The flavor(s) of Web3 consumed by this application
-  GetGeoZone() LocationIdentifier # The general geolocation identifier of the application
-  GetNumOfNodes() int8            # The number of ServiceNodes per session
+  GetPublicKey()  PublicKey     # The public cryptographic id of the custodial account
+  GetStakeAmount() BigInt       # The amount of uPOKT put in escrow
+  GetRelayChains() []RelayChain # The flavor(s) of Web3 consumed by this application
+  GetGeoZone() GeoZone          # The general geolocation identifier of the application
+  GetNumServicers() int8        # The number of Servicers per session
 }
 ```
 
-Once successfully staked and a new SessionBlock is created, an Application is officially registered and may consume Web3 access from ServiceNodes that are assigned through the Session Protocol in the form of a request/response cycle known as a Relay. In order for an Application to get Session information, i.e. their assigned Fisherman and ServiceNodes, they may query a public Dispatch endpoint of any full node. To ensure Pocket Network SLA backed service, the Application executes a handshake with the assigned Fishermen. The Application provides the Fisherman with a temporary and limited Application Authentication Token and a matching Ephemeral Private Key that is used by the Fisherman to sample the service of the Session in real time. Once the Application handshake is executed, the Application may use up to MaxRelaysPerSession/NumberOfServiceNodes per ServiceNode during a Session. If the Application maxes out the usage of all of its ServiceNodes, it is unable to Relay any further until the Session elapses.
+Once successfully staked and a new SessionBlock is created, an Application is officially registered and may consume Web3 access from Servicers that are assigned through the Session Protocol in the form of a request/response cycle known as a Relay. In order for an Application to get Session information, i.e. their assigned Fisherman and Servicers, they may query a public Dispatch endpoint of any full node. To ensure Pocket Network SLA backed service, the Application executes a handshake with the assigned Fishermen. The Application provides the Fisherman with a temporary and limited Application Authentication Token and a matching Ephemeral Private Key that is used by the Fisherman to sample the service of the Session in real time. Once the Application handshake is executed, the Application may use up to MaxRelaysPerSession/NumberOfServicers per Servicer during a Session. If the Application maxes out the usage of all of its Servicers, it is unable to Relay any further until the Session elapses.
 
 #### 3.4.X Application Stake
 
-An Application is able to modify their initial staking values including GeoZone, RelayChain(s), NumberOfNodes, and StakeAmount by submitting a StakeMsg while already staked. It is important to note, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Application and enables an overall simpler implementation.
+An Application is able to modify their initial staking values including GeoZone, RelayChain(s), NumServicers, and StakeAmount by submitting a StakeMsg while already staked. It is important to note, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Application and enables an overall simpler implementation.
 
 ```go
 # Application(Edit)StakeMsg Interface
 type ApplicationStakeMsg interface {
-  GetPublicKey()  PublicKey       # identity of edited ServiceNode
-  GetStakeAmount() BigInt         # must be greater than or equal to the current value
-  GetRelayChains() RelayChain[]   # may be modified
-  GetGeoZone() LocationIdentifier # may be modified
-  GetNumOfNodes() int8            # may be modified
+  GetPublicKey()  PublicKey     # identity of edited Servicer
+  GetStakeAmount() BigInt       # must be greater than or equal to the current value
+  GetRelayChains() []RelayChain # may be modified
+  GetGeoZone() GeoZone          # may be modified
+  GetNumServicers() int8        # may be modified
 }
 ```
 
-An Application is able to submit an UnstakeMsg to exit the network and remove themself from the network. After a successful UnstakeMsg, the Application is no longer eligible to consume Web3 traffic from ServiceNodes. After ApplicationUnstakingTime elapses, any Stake amount left is returned to the custodial account.
+An Application is able to submit an UnstakeMsg to exit the network and remove themself from the network. After a successful UnstakeMsg, the Application is no longer eligible to consume Web3 traffic from Servicers. After ApplicationUnstakingTime elapses, any Stake amount left is returned to the custodial account.
 
 ```go
 # ApplicationUnstake Interface
@@ -703,7 +722,7 @@ actor SN as Service Node
 actor F as Fisherman
 
     AC->>+LN: StartSession()
-    LN->>-AC: (AccessToken, [ServiceNodeId])
+    LN->>-AC: (AccessToken, [ServicerId])
 
     loop Session Duration
         %% AC->>+SN: Request
@@ -820,7 +839,7 @@ type Pool interface {
 }
 ```
 
-The list of pools includes, but is not limited to, the `DAO`, `FeeCollector`, `AppStakePool`, `ValidatorStakePool`, `ServiceNodeStakePool`.
+The list of pools includes, but is not limited to, the `DAO`, `FeeCollector`, `AppStakePool`, `ValidatorStakePool`, `ServicerStakePool`.
 
 ### 3.8 State Change Protocol
 
@@ -951,23 +970,23 @@ The primary goal of the attack is to increase the total value of the attacker’
 
 ### 5.1 Attack Examples
 
-**Fisherman collude with ServiceNodes (Profit seeking passive, Collusion active, Hacker**
+**Fisherman collude with Servicers (Profit seeking passive, Collusion active, Hacker**
 
-If a Fisherman is colluding with one or more ServiceNodes and is in possession of the private key(s) of those nodes, he is able to falsify all aspects of that node’s report card. Therefore, all of his colluding node partners get A+ report cards and resultantly larger paychecks.
+If a Fisherman is colluding with one or more Servicers and is in possession of the private key(s) of those nodes, he is able to falsify all aspects of that node’s report card. Therefore, all of his colluding node partners get A+ report cards and resultantly larger paychecks.
 
 This is the “big one”. It is the primary reason that Fishermen are (at this stage) DAO Approval is required. It is why off chain data logs, good-citizen reporting and DAO oversight exist. It is also the reason that Fishermen require large stake/deposit, as well as increased destaking period and delayed payments (See attached spreadsheet of projected collusion ROI based on such factors as Node Percentage, Risk Rate, etc.)
 
 The attack is easy to describe, but not easy to perform because a rather large body of work has gone into making sure that it is extremely difficult to perform, a very small payoff, and extremely costly to get caught.
 
-**Fisherman attacking ServiceNodes through TestScores (Collusion passive, Hacker, Mad Man Lazy, Inflation/Deflation)**
+**Fisherman attacking Servicers through TestScores (Collusion passive, Hacker, Mad Man Lazy, Inflation/Deflation)**
 
-If a Fisherman falsifies certain aspects of a node’s report card, he can lower that node’s proper payment share (direct attack) and increase the relative profit of all non-attacked nodes (indirect benefit if Fisherman is also a ServiceNode owner)
+If a Fisherman falsifies certain aspects of a node’s report card, he can lower that node’s proper payment share (direct attack) and increase the relative profit of all non-attacked nodes (indirect benefit if Fisherman is also a Servicer owner)
 
 This attack is a lot of work with very little reward. The “excess” POKT does not get distributed to the non-attacked nodes. It gets burned. Therefore the benefit to non-attacked nodes is only a relative gain in terms of the overall network inflation rate. This is a highly detectable attack and the victims are highly motivated to report it. Bottom line here is: We’re talking about a highly motivated hacker, who is also Mad Man Lazy.
 
 **Fisherman false reporting Application volume metrics (Mad Man Lazy)**
 
-There is no financial incentive for a Fisherman to report Application volume higher or lower than actual. ServiceNodes are incentivised to check for under reporting. There is no specific disincentive for over reporting. Other than (of course) losing all of your stake and reputation.
+There is no financial incentive for a Fisherman to report Application volume higher or lower than actual. Servicers are incentivised to check for under reporting. There is no specific disincentive for over reporting. Other than (of course) losing all of your stake and reputation.
 
 **Fisherman using AAT to get free Web3 access (Masochistic Mad Man)**
 
@@ -981,19 +1000,19 @@ No one benefits by DDOSing a Fisherman. The relay, dispatch, service and blockch
 
 Fishermen act in “incognito” fashion purely as a deterrent to a particular theoretical publicity seeking attack called Mad Man Blogger. Neither honest, nor dishonest nodes gain any advantage by identifying a particular relay request as belonging to a Fisherman. You can only provide your best service, it’s not possible to provide “better” service to a Fisherman than you already provide. However, the Mad Man Blogger could (if he chose to and if he successfully identified all Fishermen) provide service to only Fishermen and not to applications. We consider this an edge case attack in which the attacker has made a significant investment in POKT and in backend node infrastructure solely for the purpose of “proving” that the system can be gamed. Therefore, the contract with the DAO which Fishermen agree to, requires periodic changing of IP address and reasonable efforts to keep it unknown by other actors in the ecosystem.
 
-**Fisherman or ServiceNode will register spam applications for selfish economic benefit (Inflation Attack, Mad Man Lazy)**
+**Fisherman or Servicer will register spam applications for selfish economic benefit (Inflation Attack, Mad Man Lazy)**
 
 As to Fishermen spamming via owned app:
 
 There is no economic benefit to Fishermen from this activity as their payment is independent of application usage. One could argue that the Fisherman will benefit from the increase in supply caused by spamming the network this way. However, any inflation attack which benefits the majority of the network to a greater degree than the person who pays for and performs the attack is non-profit seeking.
 
-As to ServiceNode spamming via owned app:
+As to Servicer spamming via owned app:
 
 This activity is an inflation attack which is not profitable to the attacker.
 
 **Actors intentionally staking in “wrong” geo-zone to gain some advantage/attack.**
 
-It is economically advantageous for actors to stake within their true GeoZone as Session actor pairings are generated specifically for the GeoZone registered. Specifically, Applications will receive worse QOS and worse fidelity of Fishermen QOS monitoring by proxy as the ServiceNodes are farther away but still within the same GeoZone as the Fishermen. ServiceNodes are the same way, as once a GeoZone is mature the ServiceNodes in other GeoZones are no longer competitive.
+It is economically advantageous for actors to stake within their true GeoZone as Session actor pairings are generated specifically for the GeoZone registered. Specifically, Applications will receive worse QOS and worse fidelity of Fishermen QOS monitoring by proxy as the Servicers are farther away but still within the same GeoZone as the Fishermen. Servicers are the same way, as once a GeoZone is mature the Servicers in other GeoZones are no longer competitive.
 
 ## 6. Dissenting Opinions (FAQ)
 
@@ -1001,9 +1020,9 @@ It is economically advantageous for actors to stake within their true GeoZone as
 
 **Public facing Fisherman is a vulnerability for censorship and defeats the purpose of decentralized infra.**
 
-Public facing Fishermen are no more subject to censorship than the DAO is. Just like the DAO voters, the more Fishermen participating in the network, the safer the mechanism they control is. The true difference between the DAO voters and Fishermen is the Fishermen’s scope of control is limited only to the quality of service enforcement and the DAO’s control spans the entirety of the system. If the DAO were to ever be compromised by an adversary, the Validators are able to fork the chain and install a new governing body through a social consensus of the ACL. In a parallel situation, if the Fishermen were ever compromised, the DAO would be able to modify the actors without forking the chain and halting service. The architectural separation of powers between Validators, ServiceNodes, Fishermen, and the DAO is what truly ensures the safety of Pocket Network.
+Public facing Fishermen are no more subject to censorship than the DAO is. Just like the DAO voters, the more Fishermen participating in the network, the safer the mechanism they control is. The true difference between the DAO voters and Fishermen is the Fishermen’s scope of control is limited only to the quality of service enforcement and the DAO’s control spans the entirety of the system. If the DAO were to ever be compromised by an adversary, the Validators are able to fork the chain and install a new governing body through a social consensus of the ACL. In a parallel situation, if the Fishermen were ever compromised, the DAO would be able to modify the actors without forking the chain and halting service. The architectural separation of powers between Validators, Servicers, Fishermen, and the DAO is what truly ensures the safety of Pocket Network.
 
-**Quality of Service is a second order metric thus it is not a good criteria for salaries of ServiceNodes.**
+**Quality of Service is a second order metric thus it is not a good criteria for salaries of Servicers.**
 
 Quality of Service is harder to measure than Quantity of Service, but it is not a second order metric. Total value of anything is measured as: (How Much X How Pure) minus the cost of making it pure.
 
@@ -1015,9 +1034,9 @@ A powerful government might be able to temporarily stop quality of service metri
 
 Sure, this is a concern that all people in public office deal with.
 
-**Fishermen are not truly Applications, rather a proxy, so the accuracy of their TestScores is questionable and not a valid criteria for salaries of ServiceNodes.**
+**Fishermen are not truly Applications, rather a proxy, so the accuracy of their TestScores is questionable and not a valid criteria for salaries of Servicers.**
 
-From a ServiceNode’s perspective, Fishermen are indistinguishable from applications and therefore are not only valid criteria, but - in fact - preferable sources of information because they are financially incentivised to collect honest and complete reports. Experience with V0 has shown that although applications have the ability to enforce some aspects of ServiceNode quality, they do not avail themselves of this opportunity.
+From a Servicer’s perspective, Fishermen are indistinguishable from applications and therefore are not only valid criteria, but - in fact - preferable sources of information because they are financially incentivised to collect honest and complete reports. Experience with V0 has shown that although applications have the ability to enforce some aspects of Servicer quality, they do not avail themselves of this opportunity.
 
 **The requirements of Fishermen actors are too high. The incentives are oriented properly so POA/POS is overkill.**
 
@@ -1028,12 +1047,12 @@ If the requirements are too high, the DAO can choose to lower them. Better to st
 Off-chain data monitoring and reporting for some aspects of Fishermen activities serves three purposes:
 
 1. It reduces blockchain bloat which is one of the key goals of V1 and an absolute necessity if Pocket network is to grow successfully.
-2. It provides a method by which “mad man” actors and Fisherman/ServiceNode collusion can be detected and punished.
+2. It provides a method by which “mad man” actors and Fisherman/Servicer collusion can be detected and punished.
 3. Very importantly, it creates a testable, modifiable, tunable environment where large portions of the action and incentive system can be studied without risk of chain state errors. This tested and tuned incentive system is considered a prerequisite for the eventual codification of the system and translation into a fully self-enforced, decentralized solution (Phase II, AKA CastNet)
 
 Keep in mind that good actors by definition do not need to be incentivized to maintain the rules of the system. +2/3 of the network is assumed to want the network to run. Examples of this is how there's no incentive for Validators to propagate Byzantine Evidence in Tendermint and no incentive for Validators to destroy their ephemeral private keys in Algorand's BA. Or even in Hotstuff, there's no incentive for Validators to uphold the integrity of their 'LockedQC' values.
 
-In this case, the people monitoring the Fishermen are the DAO who's largely invested in Network security and integrity and the other network actors who are interacting with the fishermen and are highly incentivized to keep them in-check, like Apps and ServiceNodes. Apps rely on fishermen to enforce the network's decentralized Service Level Agreement. Nodes rely on fishermen to accurately shape their report cards against their peers.
+In this case, the people monitoring the Fishermen are the DAO who's largely invested in Network security and integrity and the other network actors who are interacting with the fishermen and are highly incentivized to keep them in-check, like Apps and Servicers. Apps rely on fishermen to enforce the network's decentralized Service Level Agreement. Servicers rely on fishermen to accurately shape their report cards against their peers.
 
 Vitalik on Social Coordination argument:
 
@@ -1043,7 +1062,7 @@ _However, this logic ignores why consensus algorithms exist in the first place. 
 
 **Applications handshaking with Fishermen is more burdensome than V0’s requirements for Applications.**
 
-The only additional requirement of V1 for Applications is to provide the Fisherman a limited AAT/Key combination. V1 also removes the difficult decision of Applications configuring for Quality or Throughput. V1 comes with QOS out of the box so the burden of challenging ServiceNodes is completely eliminated.
+The only additional requirement of V1 for Applications is to provide the Fisherman a limited AAT/Key combination. V1 also removes the difficult decision of Applications configuring for Quality or Throughput. V1 comes with QOS out of the box so the burden of challenging Servicers is completely eliminated.
 
 **Applications granting an AAT to a Fishermen is completely insecure as they are providing the Fishermen access to their authenticator.**
 
@@ -1061,11 +1080,11 @@ Each and every metric which is sampled is collected and verifiable on the off-ch
 
 Optimistic Submission:
 
-We imagine that an argument could be put together which tries to demonstrate a security reduction because of optimistic submission. However, since the only aspect of security which is being affected is the amount of payment that ServiceNodes receive, the argument would have to restrict itself to only that single aspect of V1 and (in our opinion, at this time) we do not see such an argument as being valid. However, we look forward to review and discussion of any such argument if and when someone presents it.
+We imagine that an argument could be put together which tries to demonstrate a security reduction because of optimistic submission. However, since the only aspect of security which is being affected is the amount of payment that Servicers receive, the argument would have to restrict itself to only that single aspect of V1 and (in our opinion, at this time) we do not see such an argument as being valid. However, we look forward to review and discussion of any such argument if and when someone presents it.
 
 **The approximation of MaxRelays through hash collisions is probabilistic and will always have inaccuracies. Thus, it is an unfit method to determine Application usage and TotalAvailableReward inflation.**
 
-Although the first statement (probabilistic=inaccurate) is true, the conclusion (=unfit) does not follow from the premise. V0 is currently probabilistic in selection of ServiceNodes as well as quantity of relays per session. As they apply to node payments, V1 removes the probabilistic components of both node selection and quantity of relays, and replaces them with an amalgamated pool from which they are then distributed in a transparent and protocol enforced manner.
+Although the first statement (probabilistic=inaccurate) is true, the conclusion (=unfit) does not follow from the premise. V0 is currently probabilistic in selection of Servicers as well as quantity of relays per session. As they apply to node payments, V1 removes the probabilistic components of both node selection and quantity of relays, and replaces them with an amalgamated pool from which they are then distributed in a transparent and protocol enforced manner.
 
 We do see (and are working to mitigate) potential “bad luck” sessions where an application might receive less than an appropriate minimum relay amount. This is not seen as a hard problem to overcome. “Good Luck” sessions will also happen on occasion. This is not seen as a problem at all.
 
@@ -1097,7 +1116,7 @@ If people want to keep memos (which are helpful in the case of traceability/audi
 
 4 ) Feasibility of “loosening” the parameters around application staking such that an application may access multiple relayChains with a single ATT using a % allocation or aggregation among relayChain usage.
 
-1. Harberger Tax on ServiceNode Selection: What if apps could choose the nodes they want to receive service from? If multiple apps choose a node, the node gets re-assigned to the highest-staked app (Harberger Tax style), and the losing app gets nodes subbed in according to QoS, where highest-TestScore nodes are priority-assigned to the highest-staked apps. This way we have an on-chain continuous auction mechanism for maximizing the value captured of an app’s willingness-to-pay for high quality service. This also feeds into my other suggestions about not having staking requirements for “trial period” ServiceNodes, because it is another mechanism that ensures the highest-staked apps don’t have quality degraded by trial ServiceNodes.
+1. Harberger Tax on Servicer Selection: What if apps could choose the nodes they want to receive service from? If multiple apps choose a node, the node gets re-assigned to the highest-staked app (Harberger Tax style), and the losing app gets nodes subbed in according to QoS, where highest-TestScore nodes are priority-assigned to the highest-staked apps. This way we have an on-chain continuous auction mechanism for maximizing the value captured of an app’s willingness-to-pay for high quality service. This also feeds into my other suggestions about not having staking requirements for “trial period” Servicers, because it is another mechanism that ensures the highest-staked apps don’t have quality degraded by trial Servicers.
 
 X ) CastNet: AKA Phase 2
 
@@ -1107,7 +1126,7 @@ At this time we have two possible versions of CastNet which pass initial logical
 
 Candidate #1: The Evolution path
 
-V1 brings off chain data verification checks via time stamped and tamper proof log files, which are checked by ServiceNodes who forward potentially actionable enfractions to the DAO for review and action if needed. The evolution path envisions condensing and hashing those logs and reports into a verifiable “side chain” and automating the review and action process to something that happens without a DAO vote. Although (at least at first) DAO override ability is expected.
+V1 brings off chain data verification checks via time stamped and tamper proof log files, which are checked by Servicers who forward potentially actionable enfractions to the DAO for review and action if needed. The evolution path envisions condensing and hashing those logs and reports into a verifiable “side chain” and automating the review and action process to something that happens without a DAO vote. Although (at least at first) DAO override ability is expected.
 
 - Pro: Step by Step logical conversion of existing processes
 - Pro: Little or no overhead to main-chain.
