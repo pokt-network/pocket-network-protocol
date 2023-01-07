@@ -29,8 +29,8 @@
     - [3.2.6 Stake Burning](#326-stake-burning)
     - [3.2.7 Unstaking](#327-unstaking)
   - [3.3 Fisherman Protocol](#33-fisherman-protocol)
-    - [3.3.1 Election \& Registration](#331-election--registration)
-    - [3.3.2 Fisherman Registration](#332-fisherman-registration)
+    - [3.3.1 Election](#331-election)
+    - [3.3.2 Registration](#332-registration)
     - [3.3.3 Sampling Protocol](#333-sampling-protocol)
     - [3.3.4 Incognito Sampling](#334-incognito-sampling)
     - [3.3.5 Salary Distribution](#335-salary-distribution)
@@ -450,7 +450,7 @@ If a Servicer's stake ever falls below the `MinimumServicerStake` stake, the pro
 
 A `Fisherman` is a protocol actor whose responsibility is to monitor and report the behavior and quality of Servicers' work. Their fundamental unit of work is to periodically sample the Servicers’s Web3 service, record the quality in a `TestScore`, and succinctly report the TestScore to the network in a `ReportCard`.
 
-#### 3.3.1 Election & Registration
+#### 3.3.1 Election
 
 In the current version of the specification, Fishermen are not permissionless actors. The DAO must vote in each participant in order for the Fishermen to register themselves with the network on-chain. This requires Fisherman to advertise their identity and use their reputation as collateral against faulty and malicious behavior.
 
@@ -469,7 +469,7 @@ stateDiagram-v2
     registration --> [*]
 ```
 
-#### 3.3.2 Fisherman Registration
+#### 3.3.2 Registration
 
 In addition to the Proof of Authority (PoA) process described above, Fisherman are also required to participate in a Proof of Stake (PoS) process by bonding (i.e. staking) a certain amount of POKT in escrow, on-chain, while they are providing the Fishermen services.
 
@@ -486,32 +486,38 @@ type FishermanStakeMsg interface {
 
 #### 3.3.3 Sampling Protocol
 
-The Sampling Protocol is required to grade how each Servicer adheres to the network SLA criteria defined above: availability, data accuracy and latency. Registered Fishermen are responsible for monitoring and periodically sampling Servicers during active Sessions.
+The Sampling Protocol is required to grade how each Servicer adheres to the network SLA criteria defined in the [Servicer Protocol](#32-servicer-protocol). Registered Fishermen are responsible for monitoring and periodically sampling Servicers during active Sessions.
 
 `NumSamplesPerSession`, a governance parameter, defines how many samples a Fisherman is required to make to each Servicer during the duration of a sessions. To ensure a fair assessment across all Servicers in the session, the same request must be sent to all the Servicers at the same time during the time of evaluation. The exact frequency at which the samples are sent, as long as the `NumSamplesPerSession` quota is satisfied, may be random. The performance of the Servicer will smooth out to the expected value over time through [The Law of Large Numbers](https://en.wikipedia.org/wiki/Law_of_large_numbers).
 
 The data collected is:
 
-1. Availability: Null sample if the Servicer is not responsive
-2. Latency: Round-Trip-Time (RTT) in milliseconds
-3. Data Consistency: The accuracy of the data (TODO: refer to X)
+1. **Availability**: Null sample if the Servicer is down or unresponsive
+2. **Latency**: Round-Trip-Time (RTT) in milliseconds
+3. **Data Consistency**: The accuracy of the data through Honest Majority consensus
 
 ```mermaid
 sequenceDiagram
     autonumber
+
     actor App
     actor Fisherman
     actor Servicers
-    App->>Fisherman: App Auth Token
-    loop Repeats Throughout Session Duration
-        App->>Servicers: RPC Request
-        Servicers->>App: RPC Response
-        Fisherman->>Servicers: Incognito Sampling (RPC) Request
-        Servicers->>Fisherman: RPC Response
+
+    loop Repeats During Session
+        App ->> +Servicers: RPC Request
+        Servicers ->> -App: RPC Response
+        Fisherman ->> +Servicers: Incognito Sampling (RPC) Request
+        Servicers ->> -Fisherman: RPC Response
     end
-    Fisherman ->> Blockchain State: TestScore (Aggregate of Samples) Txn
-    Blockchain State ->> Servicers: Reward For Service (Based on Report Card)
-    Blockchain State ->> Fisherman: Reward For Sampling  (Based on Non-Null Samples)
+
+    Fisherman ->> Fisherman: Sample Aggregation
+    Fisherman ->> +World State: TestScore Txn
+    World State ->> -World State: ReportCard Update
+
+    Note over Fisherman, World State: Salary Distribution
+    World State ->> Servicers: Reward For Service (Based on ReportCard & Stake)
+    World State ->> Fisherman: Reward For Sampling (Based on NonNull Samples & Stake)
 ```
 
 #### 3.3.4 Incognito Sampling
@@ -534,13 +540,9 @@ Fishermen are also expected to obfuscate their IP through IP address rotation, V
 
 #### 3.3.5 Salary Distribution
 
-Fisherman salaries are dependant on the quantity and completeness of the `TestScoreMsg`s they send, but are agnostic to their contents with regard to how the Servicers performed.
+Fisherman salaries are dependant on the quantity and completeness of the `TestScoreMsg`s they send, but are agnostic to their contents with regard to how the Servicers' Quality of Service.
 
-**Report completeness** is based on the number of non-null samples collected by the Fisherman. `NumSamplesPerSession` are expected to be performed by each Fisherman on each Servicer throughout a session, and
-
-The `
-
-Fishermen incentive design is an important factor in Pocket 1.0’s security model, as wrongly aligned incentives can lead to systemic breakdowns of actor roles. Contrary to Servicers, Fishermen rewards are not affected by the content of the samples and TestScoreMsgs as long as they are not null.
+**Report completeness** is based on the number of NonNull samples collected by the Fisherman. `NumSamplesPerSession` are expected to be performed by each Fisherman on each Servicer throughout a session.
 
 However, similar to Servicers, Fishermen salaries are generated from Application usage data. Exactly like the ServicerSalaryPool, the FishermenSalaryPool inflation is based on the Volume metrics reported by the Servicers. However, Fishermen salary distribution is only based on the quantity and completeness of TestScoreMsgs and are designed to be agnostic to latency, data consistency, and volume metrics. The completeness of any report is based on the number of non-null samples limited up to the MaxSamplesPerSession upper bound. A non-null sample is abstracted as a signed Web3 response from the assigned Servicer in the Session. Given sampling is a time based strategy, the number of samples possible in any given session is upper bounded by the duration of the Session and the timing of the Application handshake. Fishermen incentives are oriented such that they will exhaust attempts to retrieve a non null sample before the sampling time slot expires, meaning an offline sample penalizes both the Fisherman and the Servicer.
 
@@ -578,7 +580,7 @@ type FishermanTestScoreMsg interface {
   GetSessionHeader() SessionHeader # The Session Header (SessionHeight, AppPubKey, GeoZone, RelayChain, etc..)
   GetFirstSampleTime() Timestamp   # The timestamp of the first sample
   GetNumberOfSamples() uint8       # The number of total samples completed, limited to Max
-  GetNullIndicies() []int8         # Indices of null samples
+  GetNullIndices() []int8          # Indices of null samples
 }
 ```
 
