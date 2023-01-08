@@ -1249,16 +1249,3 @@ This path sees the direct conversion of Fishermen functionality into a multi mem
 11. [Bitcoin](https://en.bitcoin.it/wiki/Difficulty)
 12. [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature)
 13. [OAuth](https://oauth.net)
-
---- Changelog ---
-
-- Simplifying text throughout and removed unnecessary details
-- Replace Application/Fisherman handshake with ring signatures
-- Provided details Probabilistic Volume Computation
-- Modified it to a commit-and-reveal mechanism
-- Added gateway protocol actor
-- Removed the need for Evidence
-- Add Token Bucket Rate Limiting
-- Add "Would you like a proof with that RPC"
-- Added example of GeoZones
-- Remove the need for NTP
