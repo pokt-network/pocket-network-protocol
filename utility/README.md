@@ -8,7 +8,9 @@
 </p>
 
 - [1. Overview](#1-overview)
-  - [1.1 Important Context](#11-important-context)
+  - [1.1 The RPC Trilemma](#11-the-rpc-trilemma)
+  - [1.2 Protocol Actors](#12-protocol-actors)
+  - [1.3 Background Context](#13-background-context)
 - [2. Requirements](#2-requirements)
 - [3 Specification](#3-specification)
   - [3.1 Session Protocol](#31-session-protocol)
@@ -74,9 +76,19 @@
 
 ## 1. Overview
 
-This document describes Pocket Network’s Utility Module: an account based, state machine protocol that enables applications to permissionlessly access high quality decentralized Web3 services without the need of maintaining clients themselves thereby solving the RPC Trilemma:
+This document describes Pocket Network’s Utility Module: an account based, state machine protocol that enables applications to permissionlessly access high quality decentralized Web3 services without the need of maintaining clients themselves.
+
+### 1.1 The RPC Trilemma
+
+Pocket Network aims to solve the RPC Trilemma:
+
+1. **R**eliability: Uptime, geo-political redundancy, trustless, etc...
+2. **P**erformance: QoS, latency, geographic decentralization, etc...
+3. **C**ost: Web3 access, infrastructure maintenance, tokenomic incentivization & penalties etc...
 
 ![The RPC Trilemma](rpc_trilemma.png)
+
+### 1.2 Protocol Actors
 
 This is achieved by defining a Utilitarian economy that proportionally incentivizes or penalizes the corresponding infrastructure providers based on their quality of the service. It is composed of the following actors:
 
@@ -161,7 +173,7 @@ flowchart TD
     class A1,AN purple
 ```
 
-### 1.1 Important Context
+### 1.3 Background Context
 
 Readers of this document must keep in mind the following:
 
