@@ -45,12 +45,12 @@
     - [3.4.3 Unstaking](#343-unstaking)
     - [3.4.4 Stake Burning](#344-stake-burning)
   - [3.5 Gateway Protocol](#35-gateway-protocol)
-    - [3.5.1. OAuth Parallels](#351-oauth-parallels)
-    - [3.5.2 Trustless - Just In Time](#352-trustless---just-in-time)
-    - [3.5.3 Trustless - Eventual Penalties](#353-trustless---eventual-penalties)
-    - [3.5.4 Delegated Trust](#354-delegated-trust)
-    - [3.5.5 Multiple Clients](#355-multiple-clients)
-    - [3.5.6 On-Chain Registration](#356-on-chain-registration)
+    - [3.5.1 OAuth](#351-oauth)
+    - [3.5.2 Application w/o Gateway](#352-application-wo-gateway)
+    - [3.5.2 Application Delegation](#352-application-delegation)
+    - [3.5.3 Application Servicing](#353-application-servicing)
+    - [3.5.4 Off-Chain Benefits](#354-off-chain-benefits)
+    - [3.5.5 Registration](#355-registration)
   - [3.6 Validator Protocol](#36-validator-protocol)
     - [3.6.1 Validator Registration](#361-validator-registration)
   - [3.7 Account Protocol](#37-account-protocol)
@@ -331,7 +331,7 @@ This registration message is formally known as the `StakeMsg`, and a Servicer ca
 ```go
 type ServicerStakeMsg interface {
   GetPublicKey()  PublicKey     # The public cryptographic id of the custodial account
-  GetStakeAmount() BigInt       # The amount of POKT in escrow (i.e. a security deposit)
+  GetStakeAmount() BigInt       # The amount of uPOKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL    # The API endpoint where the Web3 service is provided
   GetRelayChains() []RelayChain # The flavor(s) of Web3 hosted by this Servicer
   GetGeoZone() GeoZone          # The physical geo-location identifier this Servicer registered in
@@ -494,7 +494,7 @@ PoA and PoS are used to filter madmen adversaries who defy economic incentives i
 ```go
 type FishermanStakeMsg interface {
   GetPublicKey()  PublicKey  # The public cryptographic id of the Fisherman custodial account
-  GetStakeAmount() BigInt    # The amount of POKT in escrow (i.e. a security deposit)
+  GetStakeAmount() BigInt    # The amount of uPOKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL # The API endpoint where the Fishermen service is provided
   GetGeoZone() []GeoZone     # The physical geo-locations identifiers this Fisherman is registered in
 }
@@ -660,11 +660,11 @@ Applications are a category of actors who consume Web3 access from Pocket Networ
 
 ```go
 type ApplicationStakeMsg interface {
-  GetPublicKey()  PublicKey     # The public cryptographic id of the custodial account
-  GetStakeAmount() BigInt       # The amount of uPOKT put in escrow
-  GetRelayChains() []RelayChain # The flavor(s) of Web3 consumed by this application
-  GetGeoZone() GeoZone          # The general geolocation identifier of the application
-  GetNumServicers() int8        # The number of Servicers per session
+  GetPublicKey()  PublicKey     # The public cryptographic id of the Application
+  GetStakeAmount() BigInt       # The amount of uPOKT in escrow (i.e. a security deposit)
+  GetRelayChains() []RelayChain # The flavor(s) of Web3 hosted by this Application
+  GetGeoZone() GeoZone          # The physical geo-location identifier this Servicer registered in
+  GetNumServicers() int8        # The number of Servicers requested per session
 }
 ```
 
@@ -700,15 +700,15 @@ Application Stake burn is a necessary mechanism to ensure an equilibratory econo
 
 ### 3.5 Gateway Protocol
 
-A `Gateway` is a protocol actor to whom the Application can **optionally** delegate trust.
+A `Gateway` is a permissionless protocol actor to whom the Application can **optionally** delegate on-chain trust in order to perform off-chain operations.
 
-A decentralized application that aims to be fully trustless, permissionless with full data integrity guarantees moves the onus onto the Application for state validation and infrastructure maintenance. This could be in the form of node operation, light client synching, proof validation and ETL pipelines maintenance such as data indexing.
+Pocket Network's Utilitarian Economy incentivizes data redundancy in a multi-chain ecosystem, with cheap, accessible and highly available multi-chain access. Depending on the level of trust, or lack thereof, an Application can optionally use a Gateway for various operations such as session dispatching or request signing.
 
-Pocket Network's Utilitarian Economy incentivizes data redundancy in a multi-chain ecosystem, with cheap, accessible and highly available multi-chain access. Depending on the level of trust, or lack thereof, an Application can optionally delegate trust to a Gateway to simplify its Web3 access.
+_Note that an Applications that requires just-in-time guarantees and full integrity of the data it is processing should maintain its own infrastructure and validate every piece of state before signing state changes dependant on them. This could come in the form of maintaining full nodes, synching light clients & validating proofs (if available by the Web3 resource), and running its own ETL pipelines (e.g. data indexing)._
 
-#### 3.5.1. OAuth Parallels
+#### 3.5.1 OAuth
 
-[OAuth](https://oauth.net) is an open protocol that authorizes clients or 3rd parties to gain access to restricted resources. It can be summarized via the flow below:
+[OAuth](https://oauth.net) is an open (Web2) protocol that authorizes clients or 3rd parties to gain access to restricted resources. It can be summarized via following flow:
 
 ```mermaid
 sequenceDiagram
@@ -717,56 +717,118 @@ sequenceDiagram
     participant S as Authorization Server<br>(e.g. Google)
     participant R as Resource Server<br>(e.g. Email)
 
-    U->>C: Request access<br>to protected resource
-    C->>S: Request authorization
-    S-->>U: Prompt for authorization
-    U-->>S: Grant authorization<br>(Username & Password)
-    S->>C: Return authorization_code
-    C->>S: Exchange authorization_code for access_token
-    S-->>C: Return access_token
-    C->>R: Request protected resource
-    R-->>C: Return protected resource
+    U ->> C: Request access<br>to protected resource
+    C ->> +S: Request authorization
+    S -->> U: Prompt for authorization
+    U -->> S: Grant authorization<br>(Username & Password)
+    S ->> C: Return authorization_code
+    C ->> S: Exchange authorization_code for access_token
+    S ->> -C: Return access_token
+    C ->> +R: Request protected resource
+    R -->> -C: Return protected resource
 ```
 
-#### 3.5.2 Trustless - Just In Time
+Some parallels can be drawn between existing centralized, trusted and permissioned systems relative to Pocket's Utilitarian Economy:
 
-An Application that requires just-in-time guarantees of the data it is processing
+- The `Client` remains as the `Client`
+- The `Application` is the `User`
+- The `Application` is a one-time `Authorization Server`
+- The `Gateways` is an ongoing `Authorization Server`
+- The `Servicer` is the `Resource Servicer`
+- The `Fisherman` is a separate monitoring party overlooking the `Resource Servicer` most often owned by the `Authorization Server`
 
-#### 3.5.3 Trustless - Eventual Penalties
+#### 3.5.2 Application w/o Gateway
 
-#### 3.5.4 Delegated Trust
+An Application that chooses to operate without a Gateway is responsible for dispatching sessions and signing RPC requests on its own. To do so, it will need to maintain a Pocket Full Node or a Pocket Light Client.
 
 ```mermaid
 sequenceDiagram
-title Without Gateway
-actor AC as Application / Client
-actor LN as Local Node
-actor SN as Service Node
-actor F as Fisherman
+    actor AC as Application / Client
+    actor LN as Local Pocket Node / <br>Local Light Client
+    actor SN as Servicer
 
-    AC->>+LN: StartSession()
-    LN->>-AC: (AccessToken, [ServicerId])
+    AC ->> +LN: StartSession()
+    LN ->> -AC: SessionData([ServicerIDs], ...)
 
     loop Session Duration
-        %% AC->>+SN: Request
-        %% SN->>-AC: Response
+        AC ->> AC: Sign Request
 
-        %% AC->>AC: Proof? Challange?
-        AC->>+SN: Request w/ Proof
-        SN->>-AC: (Response, Proof)
+        AC ->>+ SN: SignedRequest
+        SN ->> SN: Validate Signature<br>& Session Limits
+        SN ->> SN: Handle Request<br>& Sign Response
+        SN ->>- AC: SignedResponse
 
-        AC->>AC: Validate(Root, Proof)
-
-        F->>+SN: Grade
-        SN->>-F: Score
+        AC ->> AC: Process response
     end
-
-    note over AC, F: Post Session Stuff
 ```
 
-#### 3.5.5 Multiple Clients
+#### 3.5.2 Application Delegation
 
-#### 3.5.6 On-Chain Registration
+An Application that chooses to delegate trust to a Gateway will need to submit a one-time `DelegateMsg` transaction to delegate trust from the Application to the Gateway. It must include the PublicKey of the Gateway and be signed by the Application.
+
+```mermaid
+sequenceDiagram
+    actor A as Application
+    participant WS as World State
+    actor G as Gateway
+
+    A ->> A: Prepare Delegate Message
+    A ->> A: Sign Request
+
+    A ->>+ WS: Delegate(GatewayPubKey)
+    WS ->>- A: ok
+```
+
+#### 3.5.3 Application Servicing
+
+When an Application chooses to start a new session, the Gateway is responsible for dispatching the on-chain StartSession request and use an off-chain mechanism (e.g. AccessTokens) to service the Application. Throughout the duration of the session, validation and communication between the Application and Gateway are done using off-chain mechanisms.
+
+Similar to to the [incognito sampling section of the Fisherman Protocol](#334-incognito-sampling) section, Ring Signatures will be used by the Servicer to validate the signed request. As long the the request is done by the staked Application, or the delegated to Gateway, the Servicer is incentivized to process and be rewarded for the request.
+
+Applications may continue making permissionless requests to the servicer, in parallel with the Gateway, as the signature is agnostic to the Servicer. The session tokens used for rate limiting by the Servicer will come out of the same bucket as described in the [rate limiting algorithm](#315-rate-limiting).
+
+```mermaid
+sequenceDiagram
+    actor A as Application
+    participant WS as World State
+    actor G as Gateway
+    actor S as Servicer
+
+    A ->>+ G: StartSession
+    G ->> G: StartSession
+    G ->>- A: AccessToken
+
+    loop Session Duration
+        A ->> +G: Request(AccessToken)
+        G ->> G: Sign Request
+        G ->> +S: SignedRequest
+        S ->> S: Validate Signature<br>& Session Limits
+        S ->> S: Handle Request<br>& Sign Response
+        S ->> -G: SignedResponse
+        G ->> G: ** Gateway specific features ** <br>(altruist, check, challenge, proof, etc...)
+        G ->> -A: Response
+    end
+```
+
+#### 3.5.4 Off-Chain Benefits
+
+As shown in the section above, delegation enables free market off-chain economics where additional features, guarantees or payments can be made. For example, this includes but is not limited to a contractual agreement between Applications and Gateways to execute [Client Side Validation](https://forum.pokt.network/t/client-side-validation/148) with every Nth request.
+
+#### 3.5.5 Registration
+
+The Gateway must register on-chain in order for the Servicer to accept its signature as part of the ring. Future versions of the protocol may include on-chain rewards or penalties for the Gateway, but the current iteration will incentivize Gateways to provide a high quality, highly trusted service through free market economics.
+
+When staking, the Gateway must bond a certain amount of POKT to be able to participate in the network. The governance parameter, `StakePerAppDelegation` limits the number of Applications that can delegate to it, and it is the Gateway's responsibility to increase its stake as the number of Applications that trust it grow.
+
+For example, if `StakePerAppDelegation` is 100 POKT and the Gateway has staked 1000 POKT, a transaction by the 11th Application to delegate to it will be rejected until the stake is increased appropriately.
+
+```go
+type GatewayStakeMsg interface {
+  GetPublicKey()  PublicKey       # The public cryptographic id of the Gateway account
+  GetStakeAmount() BigInt         # The amount of uPOKT in escrow (i.e. a security deposit)
+  GetServiceURL() ServiceURL      # The API endpoint where the Gateway service is provided
+}
+```
 
 ### 3.6 Validator Protocol
 
@@ -781,7 +843,7 @@ Validators are a category of actor whose responsibility is to securely process t
 ```go
 type ValidatorStakeMsg interface {
   GetPublicKey()  PublicKey       # The public cryptographic id of the custodial account
-  GetStakeAmount() BigInt         # The amount of uPOKT put in escrow, like a security deposit
+  GetStakeAmount() BigInt         # The amount of uPOKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL      # The API endpoint where the validator service is provided
   GetOperatorPubKey() PublicKey   # OPTIONAL; The non-custodial pubKey operating this node
 }
@@ -887,7 +949,6 @@ type Transaction interface {
 Evidence is a category of state change operation derived from byzantine consensus information. Evidence is similar to Transactions in creation, structure, and handling, but its production and affects are limited to Validators. Evidence is largely a protection mechanism against faulty or malicious consensus participants and will often result in the burning of Validator stake.
 
 ```go
-# Evidence Interface
 type Evidence interface {
    GetMsg() Message                # Payload of the evidence; DoubleSign, timeoutCert, etc.
    GetHeight() Big.Int             # Height of the infraction
@@ -906,7 +967,6 @@ Though most off-chain governance specification is included in the DAO 1.0 Consti
 The Access Control List (ACL) is the primary mechanism that enables live parameter configuration. Specifically, the ACL maintains the "feature switches" that allow active modification of the behavior of the protocol without any forking. As the name suggests, the ACL also maintains the account(s) permissioned to modify said parameters. A value can be modified by a `ParamUpdateMsg` from the permissioned owner of that parameter.
 
 ```go
-# ParamChange Interface
 type ParamChangeMsg interface {
   GetAddress() Address  # Address of sender account; must be permissioned through ACL)
   GetParamName() String # The name of the parameter being updated
@@ -919,7 +979,6 @@ type ParamChangeMsg interface {
 In addition to the ParamChange message, the DAO is able to burn or transfer from a specified DAO Module Account. In practice, this Module Account is used as the on-chain Treasury of the DAO, the limitations and specifics of which are maintained in the DAO 1.0 Constitution document.
 
 ```go
-# DAOTreasury Interface
 type DAOTreasuryMsg interface {
   GetSrcAddress() Address  # The sender of the funds; must be permissioned through ACL
   GetDstAddress() *Address # OPTIONAL; the receiver of the funds if applicable
@@ -931,7 +990,6 @@ type DAOTreasuryMsg interface {
 As the only permissioned actors in the network, Fishermen are subject to individual burns, pauses, or removals initiated by the DAO. Usages of this message type are a result of the off-chain monitoring mechanisms described in the Fisherman Protocol section of the document. The specifics and limitations of usage of this message type is detailed in the DAO 1.0 Constitution.
 
 ```go
-# Policing Interface
 type PolicingMsg interface {
   GetAddress() Address           # Address of sender account; Must be permissioned on ACL
   GetPoliced() Address           # Address of the policed actor
@@ -1190,6 +1248,7 @@ This path sees the direct conversion of Fishermen functionality into a multi mem
 10. [Token Bucket Algorithm](https://en.wikipedia.org/wiki/Token_bucket)
 11. [Bitcoin](https://en.bitcoin.it/wiki/Difficulty)
 12. [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature)
+13. [OAuth](https://oauth.net)
 
 --- Changelog ---
 
