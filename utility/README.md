@@ -21,7 +21,7 @@
     - [3.1.5 Rate Limiting](#315-rate-limiting)
     - [3.1.6 Interface](#316-interface)
   - [3.2 Servicer Protocol](#32-servicer-protocol)
-    - [3.2.1 Staking / Registration](#321-staking--registration)
+    - [3.2.1 Staking](#321-staking)
     - [3.2.2 Network SLA (Service Level Agreement)](#322-network-sla-service-level-agreement)
     - [3.2.3 Report Cards \& Test Scores](#323-report-cards--test-scores)
     - [3.2.4 Volume Estimation](#324-volume-estimation)
@@ -32,7 +32,7 @@
     - [3.2.8 Unstaking](#328-unstaking)
   - [3.3 Fisherman Protocol](#33-fisherman-protocol)
     - [3.3.1 Election](#331-election)
-    - [3.3.2 Registration](#332-registration)
+    - [3.3.2 Staking](#332-staking)
     - [3.3.3 Sampling Protocol](#333-sampling-protocol)
     - [3.3.4 Incognito Sampling](#334-incognito-sampling)
     - [3.3.5 Salary Distribution](#335-salary-distribution)
@@ -42,7 +42,7 @@
     - [3.3.9 Unstaking](#339-unstaking)
     - [3.3.10 DAO Monitoring](#3310-dao-monitoring)
   - [3.4 Application Protocol](#34-application-protocol)
-    - [3.4.1 Registration \& Staking](#341-registration--staking)
+    - [3.4.1 Staking](#341-staking)
     - [3.4.2 Parameter Updates](#342-parameter-updates)
     - [3.4.3 Unstaking](#343-unstaking)
     - [3.4.4 Stake Burning](#344-stake-burning)
@@ -69,7 +69,26 @@
   - [4.3 CastNet](#43-castnet)
 - [5. Attack Vectors](#5-attack-vectors)
   - [5.1 Attack Category Types](#51-attack-category-types)
-  - [5.1 Attack Examples](#51-attack-examples)
+    - [5.1.1 Profit Seeking Passive](#511-profit-seeking-passive)
+    - [5.1.2 Profit Seeking Active](#512-profit-seeking-active)
+    - [5.1.3 Collusion Passive](#513-collusion-passive)
+    - [5.1.4 Collusion Active](#514-collusion-active)
+    - [5.1.5 Target Network Isolation (DDoS)](#515-target-network-isolation-ddos)
+    - [5.1.6 Hacker](#516-hacker)
+    - [5.1.7 Inflation, Deflation](#517-inflation-deflation)
+    - [5.1.8 Mad Man Attacks](#518-mad-man-attacks)
+      - [5.1.8.1 Mad Man Lazy](#5181-mad-man-lazy)
+      - [5.1.8.2 Mad Man Hacker](#5182-mad-man-hacker)
+      - [5.1.8.3 Masochistic Mad Man](#5183-masochistic-mad-man)
+  - [5.2 Attack Examples](#52-attack-examples)
+    - [5.2.1 Fisherman \<\> Servicer Collusion](#521-fisherman--servicer-collusion)
+    - [5.2.2 Fisherman attacking Servicers through TestScores (Collusion passive, Hacker, Mad Man Lazy, Inflation/Deflation)](#522-fisherman-attacking-servicers-through-testscores-collusion-passive-hacker-mad-man-lazy-inflationdeflation)
+    - [5.2.3](#523)
+    - [5.2.X](#52x)
+    - [5.2.X](#52x-1)
+    - [5.2.X](#52x-2)
+    - [5.2.X](#52x-3)
+    - [5.2.X](#52x-4)
 - [6. Dissenting Opinions (FAQ)](#6-dissenting-opinions-faq)
 - [7. Future Research \& Candidate Features](#7-future-research--candidate-features)
 - [References](#references)
@@ -332,7 +351,7 @@ type Session interface {
 
 A `Servicer` is a protocol actor that provisions Web3 access for Pocket Network Applications to consume. Servicers are the **supply** side of the Utilitarian Economy, who are compensated in the native cryptographic token, POKT, for their work, relaying RPC requests.
 
-#### 3.2.1 Staking / Registration
+#### 3.2.1 Staking
 
 In order to participate as a Servicer in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are providing Web3 access. These tokens may be burnt or removed from the actor as a result of breaking the **Protocol’s Service Level Agreement**, a DAO defined set of requirements for the minimum quality of service.
 
@@ -497,7 +516,7 @@ stateDiagram-v2
     registration --> [*]
 ```
 
-#### 3.3.2 Registration
+#### 3.3.2 Staking
 
 In addition to the Proof of Authority (PoA) process described above, Fisherman are also required to participate in a Proof of Stake (PoS) process by bonding (i.e. staking) a certain amount of POKT in escrow, on-chain, while they are providing the Fishermen services.
 
@@ -668,7 +687,7 @@ In practice, the _Good Citizens Protocol_ act as sanity checks for the network a
 
 Applications are a category of actors who consume Web3 access from Pocket Network Servicers. Effectively, Applications are the ‘demand’ end of the Utilitarian Economy, who purchase access in the native cryptographic token, POKT, to use the decentralized service. In order to participate as a Application in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are consuming the Web3 access. Upon registration, the Application is required to provide the network information necessary to create applicable Sessions including the GeoZone, the RelayChain(s), the bond amount, and the number of Servicers per Session limited by the MinimumServicersPerSession and MaximumServicersPerSession parameters. It is important to note, the bond amount of Applications is directly proportional to the MaxRelaysPerSession which rate-limits Application usage per Servicer per Session. In Pocket 1.0, Relay cost is discounted the higher amount an Application stakes to incentivize consolidation up to MaximumApplicationStakeAmount. This registration message is formally known as the StakeMsg and is represented below in pseudocode:
 
-#### 3.4.1 Registration & Staking
+#### 3.4.1 Staking
 
 ```go
 type ApplicationStakeMsg interface {
@@ -827,6 +846,8 @@ sequenceDiagram
 As shown in the section above, delegation enables free market off-chain economics where additional features, guarantees or payments can be made. For example, this includes but is not limited to a contractual agreement between Applications and Gateways to execute [Client Side Validation](https://forum.pokt.network/t/client-side-validation/148) with every Nth request.
 
 #### 3.5.5 Registration
+
+Registration differs from staking in the sense that the pubKey is known but there are no economic benefits/penalties in this stage of the protocol's progression.
 
 The Gateway must register on-chain in order for the Servicer to accept its signature as part of the ring. Future versions of the protocol may include on-chain rewards or penalties for the Gateway, but the current iteration will incentivize Gateways to provide a high quality, highly trusted service through free market economics.
 
@@ -1026,6 +1047,9 @@ During the testing and development of a v1 TestNet:
 Upon the initial launch of Pocket Network v1 MainNet:
 
 - The DAO will need to approve a single PNI owned Fisherman
+  - Other Gateways will have the option to register shortly after
+  - PNI Gateway registration will be part of the genesis file
+  - This guarantees at least one gateway on launch (no upper bound)
 - PNI will need to operate the first live Gateway
 - Pocket Network scalability issues will be resolve
 - Permissionless Applications will be enabled
@@ -1042,37 +1066,83 @@ Upon the initial launch of Pocket Network v1 MainNet:
 
 ## 5. Attack Vectors
 
-<!-- TODO(olshansky): Review & Re-evaluate -->
-
 _NOTE: This section does not exhaust all attack vectors considered, rather details the ones that were deemed important._
 
 ### 5.1 Attack Category Types
 
-**Profit Seeking Passive**:
+#### 5.1.1 Profit Seeking Passive
 
-The primary goal of the attack is to increase the total value of the attacker’s assets. Secondary goals of: avoiding detection, avoiding damage to personal or network reputation, AKA: Don’t kill the goose that lays the golden eggs.
+**Primary goal**: Long term. Increase the total value of the attacker's assets.
 
-**Profit Seeking Active**: Primary goal is short term increase in quantity of POKT accessible. This attacker is trying to grab a bunch of POKT and sell it before the network notices or the DAO has a chance to react.. AKA Take the Money and Run.
+**Secondary goals**: Avoiding detection and damage to personal or network reputation.
 
-**Collusion Passive**: Only one active attacker, but relying on tacit cooperation from a second party who receives some type of benefit from not reporting the attack AKA Don’t ask. Don’t tell.
+**AKA**: Don’t kill the goose that lays the golden eggs.
 
-**Collusion Active**: Two players in two different parts of the economic system seek to circumvent the system by actively submitting fraudulent information and/or blocking attempts to punish, penalize or burn the malfeasant actor(s)
+#### 5.1.2 Profit Seeking Active
 
-**Network, Communication, DDOS, Isolation Targeted**: These are profit seeking attacks which seek to reduce the number and/or effectiveness of competitors, thereby increasing the share of rewards received. AKA Kill The Competition.
+Short term. Increase the total value of the attacker's assets and sell it before the network/DAO can notice and react.
 
-**Hacker**: An attack which requires creation, modification and upkeep of the core software in a private repository.
+**AKA**: Take the money and run.
 
-**Inflation, Deflation**: Attacks whose net effect is an increase or decrease in the rate of production of new POKT tokens. In most cases, these are Mad Man attacks because any benefit that they create will be distributed more in favor of other network actors than to themselves. AKA: Make It Rain.
+#### 5.1.3 Collusion Passive
 
-**Mad Man Attacks**: All non-profit seeking attacks or behaviors which cost more to perform than can reasonably be expected to benefit the attacker.
+A single active attacker relies on tacit cooperation from a second party that benefits from not reporting the attack.
 
-- <span style="text-decoration:underline;">Mad Man Lazy</span>. An attack which does not require significant time, energy or resources. AKA: What happens when I push this button?
-- <span style="text-decoration:underline;">Mad Man Hacker:</span> A non-profit seeking attack which requires creation, modification and upkeep of the core software in a private repository.
-- <span style="text-decoration:underline;">Masochistic Mad Man</span>: Any attack which, although possible, makes no sense because you could accomplish the same thing without doing all that work.
+**AKA**: Don’t ask. Don’t tell.
 
-### 5.1 Attack Examples
+#### 5.1.4 Collusion Active
 
-**Fisherman collude with Servicers (Profit seeking passive, Collusion active, Hacker**
+Two active players in two different parts of the economic system seek to circumvent the system by actively submitting fraudulent information and/or blocking attempts to punish, penalize or burn the malfeasant actor(s).
+
+**AKA**: The master plan.
+
+#### 5.1.5 Target Network Isolation (DDoS)
+
+Profit seeking attacks seek to reduce the effectiveness and/or number of competitors, thereby increasing the share of rewards received.
+
+**AKA**: Kill the competition.
+
+#### 5.1.6 Hacker
+
+An attack which requires creation, modification and upkeep of the core software in a private repository w/ deep protocol expertise.
+
+**AKA**: Mr. Robot
+
+#### 5.1.7 Inflation, Deflation
+
+An attack whose net effect is an increase or decrease in the rate of production of new tokens.
+
+In most cases, these are likely to be **Mad Man Attacks** because any benefit/deficit created will be distributed throughout the entire network.
+
+**AKA**: Make It Rain.
+
+#### 5.1.8 Mad Man Attacks
+
+Non-profit seeking seeking attacks/behaviors which cost more to perform than can reasonably be expected to benefit the attacker. Usually results in damage to the network's reputation.
+
+**AKA**: Kill 'em all.
+
+##### 5.1.8.1 Mad Man Lazy
+
+Attack does not require significant time, energy or resources.
+
+**AKA**: What happens when I push this button?
+
+##### 5.1.8.2 Mad Man Hacker
+
+Non-profit seeking attack which requires creation, modification and upkeep of the core software in a private repository.
+
+##### 5.1.8.3 Masochistic Mad Man
+
+Any attack which, although possible, makes no sense because you could accomplish the same thing without doing all that work.
+
+**AKA**: Rube Goldberg Attack.
+
+### 5.2 Attack Examples
+
+#### 5.2.1 Fisherman <> Servicer Collusion
+
+**Attack Vectors**: Profit seeking passive, Collusion active, Hacker
 
 If a Fisherman is colluding with one or more Servicers and is in possession of the private key(s) of those nodes, he is able to falsify all aspects of that node’s report card. Therefore, all of his colluding node partners get A+ report cards and resultantly larger paychecks.
 
@@ -1080,27 +1150,37 @@ This is the “big one”. It is the primary reason that Fishermen are (at this 
 
 The attack is easy to describe, but not easy to perform because a rather large body of work has gone into making sure that it is extremely difficult to perform, a very small payoff, and extremely costly to get caught.
 
-**Fisherman attacking Servicers through TestScores (Collusion passive, Hacker, Mad Man Lazy, Inflation/Deflation)**
+#### 5.2.2 Fisherman attacking Servicers through TestScores (Collusion passive, Hacker, Mad Man Lazy, Inflation/Deflation)
 
 If a Fisherman falsifies certain aspects of a node’s report card, he can lower that node’s proper payment share (direct attack) and increase the relative profit of all non-attacked nodes (indirect benefit if Fisherman is also a Servicer owner)
 
 This attack is a lot of work with very little reward. The “excess” POKT does not get distributed to the non-attacked nodes. It gets burned. Therefore the benefit to non-attacked nodes is only a relative gain in terms of the overall network inflation rate. This is a highly detectable attack and the victims are highly motivated to report it. Bottom line here is: We’re talking about a highly motivated hacker, who is also Mad Man Lazy.
 
+#### 5.2.3
+
 **Fisherman false reporting Application volume metrics (Mad Man Lazy)**
 
 There is no financial incentive for a Fisherman to report Application volume higher or lower than actual. Servicers are incentivised to check for under reporting. There is no specific disincentive for over reporting. Other than (of course) losing all of your stake and reputation.
+
+#### 5.2.X
 
 **Fisherman using AAT to get free Web3 access (Masochistic Mad Man)**
 
 WOW.. a Lazy Mad Man with too much money and too much free time. Sorry, I can’t take this attack seriously. It’s like stealing a car so that you can plug in your phone and charge it up for free.
 
+#### 5.2.X
+
 **Fisherman DDOS (Mad Man)**
 
 No one benefits by DDOSing a Fisherman. The relay, dispatch, service and blockchain processes are not dependent on Fishermen. The attack does not change node report cards. It only makes less forof them and less overall network inflation. The Fisherman loses money, but no one gets the excess.
 
+#### 5.2.X
+
 **Fisherman incognito identified (Lazy Mad Man, Hacker)**
 
 Fishermen act in “incognito” fashion purely as a deterrent to a particular theoretical publicity seeking attack called Mad Man Blogger. Neither honest, nor dishonest nodes gain any advantage by identifying a particular relay request as belonging to a Fisherman. You can only provide your best service, it’s not possible to provide “better” service to a Fisherman than you already provide. However, the Mad Man Blogger could (if he chose to and if he successfully identified all Fishermen) provide service to only Fishermen and not to applications. We consider this an edge case attack in which the attacker has made a significant investment in POKT and in backend node infrastructure solely for the purpose of “proving” that the system can be gamed. Therefore, the contract with the DAO which Fishermen agree to, requires periodic changing of IP address and reasonable efforts to keep it unknown by other actors in the ecosystem.
+
+#### 5.2.X
 
 **Fisherman or Servicer will register spam applications for selfish economic benefit (Inflation Attack, Mad Man Lazy)**
 
@@ -1111,6 +1191,8 @@ There is no economic benefit to Fishermen from this activity as their payment is
 As to Servicer spamming via owned app:
 
 This activity is an inflation attack which is not profitable to the attacker.
+
+#### 5.2.X
 
 **Actors intentionally staking in “wrong” geo-zone to gain some advantage/attack.**
 
