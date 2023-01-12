@@ -275,11 +275,11 @@ For example, `0021` represents `Ethereum Mainnet` in Pocket Network V0.
 
 #### 3.1.3 GeoZone
 
-A `GeoZone` is a representation of a physical geo-location the actors advertise that they are in.
+A `GeoZone` is a representation of a physical geo-location the actors advertise they are in.
 
 For example, `GeoZone 0001` could represent `US East`, but alternative coordinate systems such as [Uber's H3](https://h3geo.org) or [PostGIS](https://postgis.net/) could be used as well.
 
-There is no formal requirement or validation (e.g. IP verification) for an actor to be physically located in the GeoZone it registers in. However, crypto-economic incentives promote actors to be close to where they are physically located to receive and provide the best service possible.
+There is no formal requirement or validation (e.g. IP verification) for an actor to be physically located in the GeoZone it registers in. However, crypto-economic incentives drive actors to be registered close to where they are physically located to receive and provide the best service possible.
 
 #### 3.1.4 Actor Substitution
 
@@ -289,14 +289,9 @@ Since a single Session extends multiple blocks, an actor could potentially send 
 
 Rate limiting limits the amount of work (i.e. Web3 access) a Servicer can provide to an Application throughout the duration of a Session.
 
-During each Session, the amount of POKT an Application has staked (see [Application Protocol](#34-application-protocol) for more details) is mapped to "Service Tokens" that represent the amount of work a Servicer can provide using the `SessionTokenBucketCoefficient` governance parameter. The [Token Bucket](https://en.wikipedia.org/wiki/Token_bucket) rate limiting algorithm is used to determine the maximum number of requests a Servicer can relay, and be rewarded for, thereby disincentivizing it process relays for the Application once the cap is reached.
+During each Session, the amount of POKT an Application has staked (see [Application Protocol](#34-application-protocol) for more details) is mapped to "Service Tokens" that represent the amount of work a Servicer can provide using the `SessionTokenBucketCoefficient` governance parameter. The [Token Bucket](https://en.wikipedia.org/wiki/Token_bucket) rate limiting algorithm is used to determine the maximum number of requests a Servicer can relay, and be rewarded for, thereby disincentivizing it to process relays for the Application once the cap is reached.
 
-- MaxRelays / NumServers for that session.
-- Application Burn
-- Best Effort
-- Show validation of relays
-
-At the beginning of the session, each Servicer initializes: `AppSessionTokens = (AppStakeAmount * SessionTokenBucketCoefficient) / NumServicersPerSession`. When one of the Servicers in the session is out of session tokens, the Application can continue to user others until they are all exhausted.
+At the beginning of the session, each Servicer initializes: `AppSessionTokens = (AppStakeAmount * SessionTokenBucketCoefficient) / NumServicersPerSession`. When one of the Servicers in the session is out of session tokens, the Application can continue to user other Servicers until every they are all exhausted.
 
 ```mermaid
 sequenceDiagram
@@ -327,7 +322,7 @@ sequenceDiagram
   end
 ```
 
-Note that this mechanism enables future iterations of the protocol where different types of request may vary the required number of `AppSessionTokens` per request.
+The mechanism described above enables future iterations of the protocol where different types of request may vary the required number of `AppSessionTokens` per request.
 
 #### 3.1.6 Interface
 
