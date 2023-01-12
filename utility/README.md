@@ -10,7 +10,7 @@
 - [1. Overview](#1-overview)
   - [1.1 The RPC Trilemma](#11-the-rpc-trilemma)
   - [1.2 Protocol Actors](#12-protocol-actors)
-  - [1.3 Background Context](#13-background-context)
+  - [1.3 Document Context](#13-document-context)
 - [2. Requirements](#2-requirements)
 - [3 Specification](#3-specification)
   - [3.1 Session Protocol](#31-session-protocol)
@@ -101,7 +101,7 @@ This document describes Pocket Network’s Utility Module: an account based, sta
 
 Pocket Network aims to solve the RPC Trilemma:
 
-1. **R**eliability: Uptime, geo-political redundancy, trustless, etc...
+1. **R**eliability: Uptime, geo-political redundancy, etc...
 2. **P**erformance: QoS, latency, geographic decentralization, etc...
 3. **C**ost: Web3 access, infrastructure maintenance, tokenomic incentivization & penalties etc...
 
@@ -109,13 +109,13 @@ Pocket Network aims to solve the RPC Trilemma:
 
 ### 1.2 Protocol Actors
 
-This is achieved by defining a Utilitarian economy that proportionally incentivizes or penalizes the corresponding infrastructure providers based on their quality of the service. It is composed of the following actors:
+Pocket Network enables a Utilitarian economy that proportionally incentivizes or penalizes the corresponding infrastructure providers based on their quality of the service. It is composed of the following actors:
 
-- Registered **Applications** that purchase Web3 access over a function of volume and time
-- Registered **Servicers** that provide Web3 access
+- Staked **Applications** that purchase Web3 access over a function of volume and time
+- Staked **Servicers** that earn rewards for providing Web3 access over a function of volume and quality
 - Elected **Fishermen** who grade and enforce the quality of the Web3 access provided by **Servicers**
-- Registered **Gateways** that can be optionally used by **Applications** through trust delegation
-- Registered **Validators** responsible for maintaining safety & liveness of the replicated state machine
+- Staked **Validators** responsible for maintaining safety & liveness of the replicated state machine
+- Registered **Gateways** that can be optionally leveraged by **Applications** through delegated trust
 
 ```mermaid
 flowchart TD
@@ -192,16 +192,15 @@ flowchart TD
     class A1,AN purple
 ```
 
-### 1.3 Background Context
+### 1.3 Document Context
 
 Readers of this document must keep in mind the following:
 
 1. This living document is subject to change. Ongoing R&D will shape the specification until it is formalized and finished.
-2. This document represents one stage of Fisherman decentralization. Future iterations will aim to make Fisherman fully permissionless.
-3. This document is not a complete Pocket Network whitepaper. It is a specification of the utility module components and background knowledge of the protocol internals is required.
-4. This document is not an academic paper paper. The reader's knowledge of background concepts is implicitly assumed.
-5. This document does not outline implementation specific interfaces or details.
-6. This document is a foundation specifications and formally defined components/details will be added over time
+2. This document represents one stage of Pocket Network's evolution. Future iterations will aim to iterate on tokenomic incentives, Fisherman permisionless, Gateway incentives, etc.
+3. This document should not be treated as a complete whitepaper. It is a specification of Utility Module components intended to drive the design and implementation of the technical specifications.
+4. This document is not an academic paper paper. Formal proofs and verifications are absent and knowledge of background concepts is implicitly assumed.
+5. This document does not outline implementation specific interfaces or details. Any interfaces presented are for illustrative purposes only.
 
 ## 2. Requirements
 
@@ -211,7 +210,7 @@ The specification must:
 2. Account for both inflationary and deflationary economic scenarios
 3. Incentivize actors within the protocol through competing offerings and economic penalties
 4. Reward Servicers through a combination of quality of service, application demand volume, and services offered
-5. Constraint service capacity through a combination of time, volume and cost
+5. Constrain service capacity through a combination of time, volume and cost
 6. Account for gamification, collusion, and other attack vectors
 7. Enable Applications to gain permissionless Web3 access without maintaining their own infrastructure
 8. Enable Applications to optionally delegate trust to Gateways that ease the use of Web3 access
@@ -1142,9 +1141,9 @@ Any attack which, although possible, makes no sense because you could accomplish
 
 #### 5.2.1 Fisherman <> Servicer Collusion
 
-**Attack Vectors**: Profit seeking passive, Collusion active, Hacker
+**Attack Vectors**: Profit Seeking Passive; Collusion Active; Hacker
 
-If a Fisherman is colluding with one or more Servicers and is in possession of the private key(s) of those nodes, he is able to falsify all aspects of that node’s report card. Therefore, all of his colluding node partners get A+ report cards and resultantly larger paychecks.
+A Fisherman colluding with one or more Servicers and is in possession of their keys is able to falsify all aspects of that Servicer's report card. Therefore, all of his colluding node partners get A+ report cards and resultantly larger paychecks.
 
 This is the “big one”. It is the primary reason that Fishermen are (at this stage) DAO Approval is required. It is why off chain data logs, good-citizen reporting and DAO oversight exist. It is also the reason that Fishermen require large stake/deposit, as well as increased destaking period and delayed payments (See attached spreadsheet of projected collusion ROI based on such factors as Node Percentage, Risk Rate, etc.)
 
