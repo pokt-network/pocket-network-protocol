@@ -54,14 +54,23 @@
     - [3.5.5 Application Servicing](#355-application-servicing)
     - [3.5.6 Registration](#356-registration)
   - [3.6 Validator Protocol](#36-validator-protocol)
-    - [3.6.1 Validator Registration](#361-validator-registration)
+    - [3.6.1 Staking](#361-staking)
+    - [3.6.2 Block Rewards](#362-block-rewards)
+    - [3.6.3 Pausing](#363-pausing)
+    - [3.6.4 Parameter Updates](#364-parameter-updates)
+    - [3.6.5 Unstaking](#365-unstaking)
   - [3.7 Account Protocol](#37-account-protocol)
+    - [3.7.1 Structure](#371-structure)
     - [3.7.2 Send Transaction](#372-send-transaction)
     - [3.7.3 Pool](#373-pool)
   - [3.8 State Change Protocol](#38-state-change-protocol)
+    - [3.8.1 Transaction](#381-transaction)
+    - [3.8.2 Evidence](#382-evidence)
+    - [3.8.3 Autonomous State Changes](#383-autonomous-state-changes)
   - [3.9 Governance Protocol](#39-governance-protocol)
     - [3.9.1 Parameter Updates](#391-parameter-updates)
     - [3.9.2 DAO Treasury](#392-dao-treasury)
+    - [3.9.3 Policing](#393-policing)
 - [4. Sequence](#4-sequence)
   - [4.1 ProtoGateFish](#41-protogatefish)
   - [4.2 Castaway](#42-castaway)
@@ -930,9 +939,9 @@ type GatewayStakeMsg interface {
 
 ### 3.6 Validator Protocol
 
-A `Validator` is a protocol actor whose responsibility it is to achieve securely validate and process transactions. It does so through Byzantine Fault Tolerant consensus. See the accompanying [Consensus Specification](../consensus/README.md) for full details on its internals.
+A `Validator` is a protocol actor whose responsibility is to securely validate and process transactions. It does so through Byzantine Fault Tolerant consensus. See the accompanying [Consensus Specification](../consensus/README.md) for full details on its internals.
 
-#### 3.6.1 Validator Registration
+#### 3.6.1 Staking
 
 Validators registration is permissionless. In order to participate in the network as a Validator, the `ValidatorStakeMsg` must be se
 
@@ -947,6 +956,8 @@ type ValidatorStakeMsg interface {
 }
 ```
 
+#### 3.6.2 Block Rewards
+
 Pocket Network 1.0 adopts a traditional Validator reward process such that only the Block Producer for each height is rewarded proportional to the total Transaction Fees + RelayRewards held in the produced block. Though the Block Producer selection mechanism is described in greater detail in the external Consensus Specification document, it is important to understand that the percentage of stake relative to the total stake is directly proportional to the likelihood of being the block producer. The net BlockProducerReward is derived from the TotalBlockReward by simply subtracting the DAOBlockReward amount. Once a proposal block is finalized into the blockchain, the BlockProducerReward amount of tokens is sent to the custodial account.
 
 ```go
@@ -958,6 +969,8 @@ func CalculateBlockReward(TotalTxFees, DAOCutPercent) (blockProducerReward, daoB
   return
 }
 ```
+
+#### 3.6.3 Pausing
 
 In Pocket 1.0 Validators are able to use a PauseMsg to gracefully remove them from Validator operations. This feature allows for greater UX for Operators, enabling scheduled periods of maintenance or damage control in faulty situations. In addition to an Operator initiated PauseMsg, Validators are removed from service automatically by the network if byzantine behaviors are detected. Not signing blocks, signing against the majority, not producing blocks, and double signing blocks are byzantine behaviors reported to the Utility Module by the Consensus Module through the Evidence Mechanism. Anytime an automatic removal of service occurs for Validators, a burn proportional to the violation is applied against the Validator stake. The conditions, limitations, and severity of the Byzantine Valdiator burns are proposed and voted on by the DAO. If a Validator is ‘paused’, they are able to reverse the paused state by submitting an UnpauseMsg after the MinPauseTime has elapsed. After a successful UnpauseMsg, the Validator is once again eligible to execute Validator operations.
 
@@ -971,6 +984,8 @@ type ValidatorUnpauseMsg interface {
 }
 ```
 
+#### 3.6.4 Parameter Updates
+
 A Validator is able to modify their initial staking values including the ServiceURL, OperatorPubKey, and StakeAmount by submitting a StakeMsg while already staked. It is important to note, that a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Validator and enables an overall simpler implementation.
 
 ```go
@@ -981,6 +996,8 @@ type ValidatorStakeMsg interface {
   GetOperatorPubKey() PublicKey   # may be modified
 }
 ```
+
+#### 3.6.5 Unstaking
 
 A Validator is able to submit an UnstakeMsg to exit the network and remove itself from Validator Operations. After a successful UnstakeMsg, the Validator is no longer eligible to participate in the Consensus protocol. After ValidatorUnstakingTime elapses, any Stake amount left is returned to the custodial account. If a Validator stake amount ever falls below the MinimumValidator stake, the protocol automatically executes an UnstakeMsg for that node, subjecting the Validator to the unstaking process.
 
@@ -994,6 +1011,8 @@ type ValidatorUnstake interface {
 
 An `Account` is a structure that maintains the ownership of POKT via a mapping from an `Address` to a `Balance`.
 The summation of all balances of all accounts in the network equals the `TotalSupply`.
+
+#### 3.7.1 Structure
 
 ```go
 type Account interface {
@@ -1031,6 +1050,8 @@ The list of pools includes, but is not limited to, the `DAO`, `FeeCollector`, `A
 
 There are two categories of state changes in Pocket Network 1.0 that may be included in a block: Transactions and Evidence. The third and final category of state changes in Pocket Network is autonomous operations that are completed based on the lifecycle of block execution orchestrated by the Consensus Module.
 
+#### 3.8.1 Transaction
+
 By far the most publicly familiar of the three categories of state changes are Transactions: discrete state change operations executed by actors. The structure of a Transaction includes a payload, a dynamic fee, a corresponding authenticator, and a random number Nonce. The payload of any Transactions is a command that is structured in the form of a Message. Examples of these Messages include StakeMsg, PauseMsg, and SendMsg which all have individual handler functions that are executed within the Pocket Network state machine. A digital signature and public key combination is required for proper authentication of the sender, the dedicated fee incentivizes a block producer to include the transaction into finality and deter spam attacks, and the Nonce is a replay protection mechanism that ensures safe transaction execution.
 
 ```go
@@ -1044,6 +1065,8 @@ type Transaction interface {
 }
 ```
 
+#### 3.8.2 Evidence
+
 Evidence is a category of state change operation derived from byzantine consensus information. Evidence is similar to Transactions in creation, structure, and handling, but its production and affects are limited to Validators. Evidence is largely a protection mechanism against faulty or malicious consensus participants and will often result in the burning of Validator stake.
 
 ```go
@@ -1053,6 +1076,8 @@ type Evidence interface {
    GetAuth() Authenticator         # Authentication of evidence, can be Signature or Certif
 }
 ```
+
+#### 3.8.3 Autonomous State Changes
 
 Autonomous state change operations are performed by the protocol according to specific lifecycle triggers linked to consensus. Examples of these events are BeginBlock and EndBlock which occur at the beginning and ending of each height respectively. Rewarding the block producer, processing QuorumCertificates, and automatic unstaking are all illustrative instances of these autonomous state change commands.
 
@@ -1084,6 +1109,8 @@ type DAOTreasuryMsg interface {
   GetAmount() Big.Int      # The operation is executed on this amount of tokens
 }
 ```
+
+#### 3.9.3 Policing
 
 As the only permissioned actors in the network, Fishermen are subject to individual burns, pauses, or removals initiated by the DAO. Usages of this message type are a result of the off-chain monitoring mechanisms described in the Fisherman Protocol section of the document. The specifics and limitations of usage of this message type is detailed in the DAO 1.0 Constitution.
 
