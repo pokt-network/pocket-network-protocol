@@ -14,7 +14,7 @@
 - [2. Requirements](#2-requirements)
 - [3 Specification](#3-specification)
   - [3.1 Session Protocol](#31-session-protocol)
-    - [3.1.1 Dispatch / Actor Selection](#311-dispatch--actor-selection)
+    - [3.1.1 Actor Selection (Dispatch)](#311-actor-selection-dispatch)
     - [3.1.2 RelayChain](#312-relaychain)
     - [3.1.3 GeoZone](#313-geozone)
     - [3.1.4 Actor Substitution](#314-actor-substitution)
@@ -26,7 +26,7 @@
     - [3.2.3 Report Cards \& Test Scores](#323-report-cards--test-scores)
     - [3.2.4 Volume Estimation](#324-volume-estimation)
     - [3.2.5 Salary Eligibility \& Distribution](#325-salary-eligibility--distribution)
-    - [3.2.5 Servicer Pausing](#325-servicer-pausing)
+    - [3.2.5 Pausing](#325-pausing)
     - [3.2.6 Parameter Updates](#326-parameter-updates)
     - [3.2.7 Stake Burning](#327-stake-burning)
     - [3.2.8 Unstaking](#328-unstaking)
@@ -38,7 +38,7 @@
     - [3.3.5 Salary Distribution](#335-salary-distribution)
     - [3.3.6 Test Score Submission](#336-test-score-submission)
     - [3.3.7 Parameter Updates](#337-parameter-updates)
-    - [3.3.8 Fisherman Pause](#338-fisherman-pause)
+    - [3.3.8 Pausing](#338-pausing)
     - [3.3.9 Unstaking](#339-unstaking)
     - [3.3.10 DAO Monitoring](#3310-dao-monitoring)
   - [3.4 Application Protocol](#34-application-protocol)
@@ -229,7 +229,7 @@ The logical abstraction of the specification system is comprised of multiple sub
 
 A `Session` is a time-based mechanism used to regulate the various interactions (Web3 access, monitoring, etc) between protocol actors to enable the Utilitarian economy in a fair and secure manner. A single session may extend multiple Blocks as determined by `SessionBlockFrequency`.
 
-#### 3.1.1 Dispatch / Actor Selection
+#### 3.1.1 Actor Selection (Dispatch)
 
 Under the Random Oracle Model, a Session can be seeded to deterministically select which group of actors will interact for some duration of time. This enables a random, deterministic and uniform distribution of Web3 access, provisioning and monitoring. It limits what work, and by whom, can be rewarded or penalized at the protocol layer.
 
@@ -343,15 +343,15 @@ type Session interface {
 
 ### 3.2 Servicer Protocol
 
-A `Servicer` is a protocol actor that provisions Web3 access for Pocket Network Applications to consume. Servicers are the **supply** side of the Utilitarian Economy, who are compensated in the native cryptographic token, POKT, for their work, relaying RPC requests.
+A `Servicer` is a protocol actor that provisions Web3 access for Pocket Network Applications to consume. Servicers are the **supply** side of the Utilitarian Economy, who are compensated in the native cryptographic token, POKT, for their work: relaying RPC requests.
 
 #### 3.2.1 Staking
 
 In order to participate as a Servicer in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are providing Web3 access. These tokens may be burnt or removed from the actor as a result of breaking the **Protocol’s Service Level Agreement**, a DAO defined set of requirements for the minimum quality of service.
 
-Upon registration, the Servicer is required to provide the network with sufficient information to be paired with Applications. This includes the `GeoZone` it is in, `RelayChain`(s) it supports, and `ServiceURL`, the Pocket API endpoint exposed where its service can ne accessed. An optional `OperatorPublicKey` may be provided for non-custodial operation of the Servicer.
+Upon registration (i.e. staking), the Servicer is required to provide the network with sufficient information to be paired with Applications. This includes the `GeoZone` it is in, `RelayChain`(s) it supports, and `ServiceURL`, the Pocket API endpoint exposed where its services can be accessed. An optional `OperatorPublicKey` may be provided for non-custodial operation of the Servicer.
 
-This registration message is formally known as the `StakeMsg`, and a Servicer can only start providing service once it is registered: the StakeMsg has been validated and included in a following block, modifying the World State. An illustrative example can be summarized like so:
+This registration message is formally known as the `StakeMsg`, and a Servicer can only start providing service once it is registered: the StakeMsg has been validated and included in the following block, thereby modifying the World State. An illustrative example can be summarized like so:
 
 ```go
 type ServicerStakeMsg interface {
@@ -382,7 +382,7 @@ A `ReportCard` is the logical aggregation of multiple `TestScores` over an Actor
 
 The Application's Web3 usage volume is estimated through probabilistic hash collisions. This enables a concise proof of probabilistic volume, without requiring compute or memory intensive storage and aggregation. Similar to [Bitcoin's Difficulty](https://en.bitcoin.it/wiki/Difficulty), a `RelayVolumeDifficulty` governance parameter will be used to determine the "difficulty", and how relay counts must be estimated.
 
-Each relay can be viewed as an independent Bernoulli Trial, that is either a volume applicable relay or not. A geometric distribution can be built of the number of relays that need to be serviced until an applicable relay is made. For example, if a SHA256 hash algorithm is used and `RelayVolumeDifficulty` represents 4 leading zeroes, the hash of each `(SignedRelay, SignedRelayResponse)` pair below `0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` will represent `65536` (16^4) relays.
+Each relay can be viewed as an independent Bernoulli Trial that is either a volume applicable relay or not. A geometric distribution can be built of the number of relays that need to be serviced until an applicable relay is made. For example, if a SHA256 hash algorithm is used and `RelayVolumeDifficulty` represents 4 leading zeroes, the hash of each `(SignedRelay, SignedRelayResponse)` pair below `0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` will represent `65536` (16^4) relays.
 
 A the end of each Session, the volume applicable relays are sent to the Fisherman for validation and salary distribution.
 
@@ -422,9 +422,9 @@ A `ServicerSalary` is assigned to each individual Servicer based on their specif
 
 A Servicer must accumulate `MinimumTestScoreThreshold` TestScores before it is eligible for salary distribution. A ReportCard can be viewed as a rolling average of the Servicer's performance, where TestScores are removed when either `TestScoreExpiration` is passed or the TestScore FIFO queue exceeds `MaxTestScores`.
 
-Salary distribution is accomplished by aggregating the total volume estimated (see above) for a specific `(RelayChain, GeoZone)` pair (i.e. `TotalVolumeUsage`), multiplied by `UsageToRewardCoefficient`, and evenly divided into buckets per Servicer that exceed the minimum threshold (i.e. the `MaxServicerReward`). Each Servicer's reward is scaled proportionally to both their stake and their ReportCard. Tokens that are not allocated to a servicer are burnt.
+Salary distribution is accomplished by aggregating the total volume estimated (see above) for a specific `(RelayChain, GeoZone)` pair (i.e. `TotalVolumeUsage`), multiplied by `UsageToRewardCoefficient`, and evenly divided into buckets per Servicer that exceed the minimum threshold (i.e. the `MinimumReportCardThreshold`). Each Servicer's reward is scaled proportionally to both their stake and their ReportCard. Tokens that are not allocated to a servicer are burnt.
 
-For example, a 100% ReportCard results in zero burning of the maxServicerReward, while a 80% ReportCard results in 20% burning of the maxServicerReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes.
+For example, a 100% ReportCard results in zero burning of the `maxServicerReward`, while a 80% ReportCard results in 20% burning of the maxServicerReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. Unstaking causes the Servicer's ReportCard to be cleared and start from scratch.
 
 The following is pseudo-code to illustrate this business logic:
 
@@ -451,22 +451,7 @@ func DistributeRewards(relayChain, geoZone, height):
   }
 ```
 
-```go
-
-func DistributeSalaries(relayChain, geoZone, height) {
-  servicers = getEligibleServicers(relayChain, geoZone, height)
-  rewards = getAvailableReward(relayChain, geoZone, height)
-
-}
-
-func GetSalary(servicerReportCard, stakeAmountScore, totalAvailableReward, eligibleServicerCount) Salary {
-  maxServicerReward = totalAvailableReward / eligibleServicerCount
-
-  return netServicerReward
-}
-```
-
-#### 3.2.5 Servicer Pausing
+#### 3.2.5 Pausing
 
 Servicers are able to gracefully pause their service (e.g. for maintenance reasons) without the need to unstake or face downtime penalization. In addition to an Operator initiated `PauseMsg`, Fishermen are also able to temporarily pause a Servicer if a faulty or malicious process is detected during sampling (see the [Fisherman Protocol](#33-fisherman-protocol) for more details). When a Servicer is paused, they are able resume service by submitting an `UnpauseMsg` after the `MinPauseTime` has elapsed. After a `UnpauseMsg` is validated and the World State is updated, the Servicer is eligible to continue providing Web3 service to Applications, and receive rewards.
 
@@ -483,7 +468,7 @@ A Servicer's stake can be burnt in two situations:
 
 #### 3.2.8 Unstaking
 
-A Servicer is able to submit an `UnstakeMsg` to exit the network and remove itself from service. After a successful UnstakeMsg, the Servicer is no longer eligible to receive Web3 traffic from Servicers and Fisherman. The original stake (i.e. deposit) is returned to the Servicer's custodial account after `ServicerUnbondingPeriod` has elapsed.
+A Servicer is able to submit an `UnstakeMsg` to exit the network and remove itself from service. After a successful UnstakeMsg, the Servicer is no longer eligible to receive Web3 traffic from Applications or Fisherman. The original stake (i.e. deposit) is returned to the Servicer's custodial account after `ServicerUnbondingPeriod` has elapsed.
 
 If a Servicer's stake ever falls below the `MinimumServicerStake` stake, the protocol automatically executes an UnstakeMsg on behalf of the custodial or operator accounts, subjecting the Servicer to the unstaking process described above.
 
@@ -495,7 +480,7 @@ A `Fisherman` is a protocol actor whose responsibility is to monitor and report 
 
 In the current version of the specification, Fishermen are not permissionless actors. The DAO must vote in each participant in order for the Fishermen to register themselves with the network on-chain. This requires Fisherman to advertise their identity and use their reputation as collateral against faulty and malicious behavior.
 
-The Fishermen are bound by a DAO defined SLA to conduct incognito sampling services of the Servicers. Detailed requirements and conditions must be defined in the Fisherman SLA document to create an acceptable level of secrecy from the sampling server to ensure sample accuracy collection. It is important to note that the Fisherman `StakeMsg` message differs from other permissionless actors in Pocket Network because it is only valid if permissioned through the DAO Access Control List (ACL) a prior.
+The Fishermen are bound by a DAO defined SLA to conduct incognito sampling services of the Servicers. Detailed requirements and conditions must be defined in the Fisherman SLA document to create an acceptable level of secrecy from the sampling server to ensure sample accuracy collection. It is important to note that the Fisherman `StakeMsg` message differs from other permissionless actors in Pocket Network because it is only valid if publicKey is permissioned through the DAO Access Control List (ACL) a prior.
 
 ```mermaid
 stateDiagram-v2
@@ -552,18 +537,19 @@ sequenceDiagram
         Servicers ->> -Fisherman: RPC Response
     end
 
+    Servicers ->> Fisherman: Reward Applicable Relay Proofs
     Fisherman ->> Fisherman: Sample Aggregation
     Fisherman ->> +World State: TestScore Txn
     World State ->> -World State: ReportCard Update
 
     Note over Fisherman, World State: Salary Distribution
-    World State ->> Servicers: Reward For Service (Based on ReportCard & Stake)
-    World State ->> Fisherman: Reward For Sampling (Based on Nullable Samples & Stake)
+    World State ->> Servicers: Reward For Service<br>(Based on ReportCard & Stake)
+    World State ->> Fisherman: Reward For Sampling<br>(Based on Nullable Samples & Stake)
 ```
 
 #### 3.3.4 Incognito Sampling
 
-Servicers may bias to prioritizing responses to requests from Fisherman in order to achieve a higher score. [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to prevent identifying who signed the request: Fisherman, Application or Gateway.
+Servicers may bias to prioritize responding to requests from Fisherman in order to achieve a higher score. [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to prevent identifying who signed the request: Fisherman, Application or Gateway.
 
 ```mermaid
 flowchart
@@ -577,11 +563,11 @@ flowchart
     Servicer--Validate Signature-->Servicer
 ```
 
-Fishermen are also expected to obfuscate their IP through IP address rotation, VPNs, Tor networks or other mixers to prevent being easily identified over prolonged periods of time.
+Servicers may still be able to identify actors by aggregating and inspecting IP analytics, so other protocols (e.g. Tor, NYM, HOPR) or networking mechanism (IP rotations, VPNs, etc..) may be necessary to obfuscate the Fisherman as well.
 
 #### 3.3.5 Salary Distribution
 
-Fisherman salaries are dependant on the quantity and completeness of the `TestScoreMsg`s they send, but are agnostic to their contents with regard to the Servicer's Quality of Service.
+Fisherman salaries are dependant on the quantity and completeness of the `TestScoreMsg`s they send, but are agnostic to their contents with regard to the Servicers' Quality of Service.
 
 **Report completeness** is based on the number of Nullable samples that have a value collected by the Fisherman. `NumSamplesPerSession` are expected to be performed by each Fisherman on each Servicer throughout a session.
 
@@ -589,11 +575,11 @@ Similar to the salary distribution algorithm described in the [Servicer Protocol
 
 During each session, the Fisherman is expected to make `NumSamplesPerSession` of each active Servicer. The time at which they are made should be normally distributed throughout a session with some variance to avoid predictability. Servicers will timestamp and sign the requests to avoid forgery by the Fishermen.
 
-If a Servicer does not respond, the sample is marked as a Null. Since Fisherman salaries are based off of Nullable samples with a value, they are incentivized to exhaust sampling attempts to retrieve the Servicer's score, up to a maximum of `NumSamplesPerSession`.
+If a Servicer does not respond, the sample is marked as a Null. Since Fisherman salaries are based off of Nullable samples with a value, they are incentivized to exhaust sampling attempts to retrieve the Servicer's score, up to a maximum of `NumSamplesPerSession`. If a Servicer exceeds `MaxNullableSamples` in a single Session, the Fishermen will opt to submit a PauseMsg of the unavailable Servicer (which partially burns the Servicer's stake), enabling the protocol to introduce a new Servicer into the Session with the following block. The PauseMsg action is limited up to `MaxFishermenPauses` per Session to prevent faulty Fishermen behavior and incentivizing Fisherman to keep the Session access as healthy as possible.
 
-If a Servicer exceeds `MaxNullableSamples` in a single Session, the Fishermen will opt to submit a PauseMsg of the unavailable Servicer, enabling the protocol to introduce a new Servicer into the Session with the following block. The PauseMsg action is limited up to `MaxFishermenPauses` per Session to prevent faulty Fishermen behavior. Individual Fishermen salaries are then calculated through a combination of Application volume usage in a certain `(RelayChain, GeoZone)` pair as well as the quantity of non-Null samples.
+Individual Fishermen salaries are then calculated through a combination of Application volume usage in a certain `(RelayChain, GeoZone)` pair as well as the quantity of non-Null samples.
 
-The following graph summarized some of the high-level interactions described above.
+The following graph summarizes some of the high-level interactions described above.
 
 ```mermaid
 graph LR
@@ -602,20 +588,18 @@ graph LR
     RC((Report Card))
     S(Servicer)
 
-    F <-."1. Sample".-> S
-    F -- "2. TestScore Txn<br>From Sampling" --> B
-    B -- "3. TestScore Aggregation<br>(Nullable Sample)" --> RC
+    F <-."1. Sample<br>(collect TestScores)".-> S
+    F -- "2. TestScore Txn<br>(from sampling)" --> B
+    B -- "3. TestScore Aggregation<br>(nullable amples)" --> RC
     RC -- "4. Distribute Rewards<br>(based on work done)" --> S
-    RC -- "5. Pay Salaries<br>(based on report completeness)"--> F
+    RC -- "5. Pay Salaries<br>(based on report completeness)" --> F
 ```
 
 #### 3.3.6 Test Score Submission
 
-On-chain test score submission follows an optimistic **Commit & Reveal** methodology to avoid excessive chain state bloat while maintaining sampling security. It is similar to the [Claim & Proof lifecycle](https://github.com/pokt-network/pocket-core/blob/staging/doc/specs/reward_protocol.md) designed in Pocket Network
+On-chain test score submission follows an optimistic **Commit & Reveal** methodology to avoid excessive chain state bloat while maintaining sampling security. It is similar to the [Claim & Proof lifecycle](https://github.com/pokt-network/pocket-core/blob/staging/doc/specs/reward_protocol.md) designed in Pocket Network V0.
 
-Fisherman `TestScoreMsg`s have a `TestScoreSubmissionProbability` requirement of being submitted, and `TestScoreProofProbability` requirement of needing to be proven. In practice, this means that while all Sessions are monitored, and all samples are made, only some are submitted on-chain, and a subset of those are formally proven. Similar to Session generation, this selection is done under the [Random Oracle](https://en.wikipedia.org/wiki/Random_oracle), so the Fishermen cannot predict which TestScores will be sampled, which need to be committed, and which need to be proven on-chain. Deterministic but non-predictable on-chain parameters (e.g. FutureBlockHash) will be used to seed the selection.
-
-Test Score Submission
+Fisherman `TestScoreMsg`s have a `TestScoreSubmissionProbability` requirement of being submitted, and `TestScoreProofProbability` requirement of needing to be proven. In practice, this means that while all Sessions are monitored, and all samples are made, only some are submitted on-chain, and a subset of those are formally proven. Similar to Session generation, this selection is done under the [Random Oracle](https://en.wikipedia.org/wiki/Random_oracle) model, so the Fishermen cannot predict which TestScores will be sampled, which need a commitment, and which need to be proven on-chain. Deterministic but non-predictable on-chain parameters (e.g. BlockHash at CurrentHeight+N) will be used to seed the selection.
 
 ```mermaid
 pie title Test Scores Distribution
@@ -624,24 +608,68 @@ pie title Test Scores Distribution
     "Off-Chain" : 75
 ```
 
-Furthermore, due to alignment of Fisherman incentives and desired brevity of on-chain Proof data, ProofTxs only require the Fisherman to prove they executed the sampling by verifying a single Non-Null sample. The specific sample required to prove the TestScore is determined by the ‘claimed’ TestScoreMsg and the BlockHash after ProofTestScoreDelay blocks elapse and is required to be submitted before MaxProofMsgDelay. This reveal mechanism allows for an unpredictable assignment of the required sample but is deterministic once the BlockHash is finalized. Using the timing requirement of the sampling strategy, the protocol can easily verify the sample index when submitted in the ProofMsg. It is important to note, that all Web3 requests and responses are signed by the requester (Fisherman or Application) and the responder (Servicer). This cryptographic mechanism ensures the integrity of a timestamp, as without the signature from the particular Servicer PrivateKey, a Fisherman would be able to falsify the timestamp. Though a successful ProofMsg has no effect on the reward of any Fishermen, an unsuccessful ProofMsg burn is severe to make up for the probabilistic nature of the proof requirement.
+To reduce the amount of on-chain data, Fishermen are only required to prove a single Non-Null sample from their submitted `TestScoreCommitMsg` (i.e. claim) with a `TestScoreProofMsg` (i.e. reveal). This must be done before `MaxTestScoreProofDelay` blocks elapse.
 
-See
+Since the samples need to be normally distributed throughout the session, and the timestamp of each sample is signed by both the requester (i.e. Application/Gateway/Fisherman) and the responder (i.e. Servicer), the time of the sample selected using the seeded data is compared against the number of samples collected and the start time of the session sampling to verify its timestamp is within variance from the expected value.
 
-![alt_text](image2.png)
+```mermaid
+---
+title: Test Score Submission
+---
+classDiagram
+    direction LR
 
-```go
-type TestScoreMsg interface {
-  GetSessionHeader() SessionHeader # The Session Header (Height, AppPubKey, GeoZone, RelayChain, etc..)
-  GetFirstSampleTime() Timestamp   # First sample timestamp
-  GetNumberOfSamples() uint8       # Total number of samples collected (max of `NumSamplesPerSession`)
-  GetNullIndices() []int8          # Indices of null samples
-}
+    note for TestScoreCommitMsg "Used for rewarding & evaluating<br> Fisherman & Servicers"
+    class TestScoreCommitMsg{
+        Header: SessionData
+        Height: 9001
+        FirstSampleTime: 04:20 EST
+        NumSamples: 5
+        NumNullSamples: 2
+        NulIndices: [2,3]
+        Latencies: [p10, p25, p50, p75, p90]
+        DataAccuracy: 69%
+        EstimateRelaysServe: 1MM Relays
+        Commit: SamplesRoot
+    }
 
-type TestScoreProof interface {
-  GetSessionHeader() SessionHeader # The Session Header (Height, AppPubKey, GeoZone, RelayChain, etc..)
-  GetProofLeaf() Timestamp         # Actual sample containing the proper timestamp
-}
+    note for TestScoreProofMsg "Used for optimistically<br>validating Fishermen work"
+    class TestScoreProofMsg{
+        Header: SessionData
+        Sample: Sample2
+        SignatureRequest: FishermanSig
+        SignatureResponse: ServicerSig
+        Proof: SampleProof
+    }
+
+    class Sample1{
+        Time: 04:20 EST
+        Result: [...]
+    }
+    class Sample2{
+        Time: 04:21 EST
+        Result: [...]
+    }
+    class Sample3{
+        Time: 04:22 EST
+        Results: NULL
+    }
+    class Sample4{
+        Time: 04:23 EST
+        Results: NULL
+    }
+    class Sample5{
+        Time: 04:24 EST
+        Results: [...]
+    }
+
+    TestScoreCommitMsg --> TestScoreProofMsg: N blocks later
+    Sample2 --> TestScoreProofMsg: Index 1 (sample 2) selected
+
+    Sample1 --> Sample2
+    Sample2 --> Sample3
+    Sample3 --> Sample4
+    Sample4 --> Sample5
 ```
 
 #### 3.3.7 Parameter Updates
@@ -657,25 +685,25 @@ type FishermenStakeMsg interface {
 }
 ```
 
-#### 3.3.8 Fisherman Pause
+#### 3.3.8 Pausing
 
 A Fisherman can submit a `PauseMsg` to gracefully, and temporarily, remove themselves from service (e.g. for maintenance reasons).
 
 Since Fishermen are DAO permissioned, a minimum of `MinActiveFisherman` must be registered and active at any point in time for a Fisherman to be able to pause or unstake. Downtime or inability to meet the DAO defined SLA may result in burning of the Fisherman's stake.
 
-Similar to how Fishermen can send a `PauseMsg` on behalf of faulty Servicers, the DAO will also be able to pause faulty or malicious Fishermen as defined in Pocket Network's Constitution.
+Similar to how Fishermen can send a `PauseMsg` on behalf of faulty Servicers, the DAO is able to pause faulty or malicious Fishermen as defined in [Pocket Network's Constitution](https://github.com/pokt-foundation/governance/blob/master/constitution/constitution.md).
 
 A Fisherman can submit an `UnpauseMsg` after `MinPauseTime` has elapsed to resume monitoring services.
 
 #### 3.3.9 Unstaking
 
-Similar to unpausing, a Fisherman can permanently remove themselves from service and `MinActiveFisherman` are still active and registered. The stake will only be returned after `FishermenUnstakingTime` has elapsed and permissioned through the DAO to permanently end its services.
+Similar to unpausing, a Fisherman can permanently remove themselves from service when `MinActiveFisherman` are still active and registered. The stake will only be returned after `FishermenUnstakingTime` has elapsed and permissioned through the DAO to permanently end its services.
 
 #### 3.3.10 DAO Monitoring
 
 Enforcement of Fishermen behaviour and quality is an off-chain endeavor, undertaken by the DAO and crowd-sourced through the _Good Citizens Protocol_ of each protocol actor or community member. DAO monitoring consists of public Fishermen audits, statistical analysis, and incognito network actors that police interactions of Fishermen. The details, conditions, and limitations of DAO monitoring are defined further in the 1.0 Constitution.
 
-In practice, the _Good Citizens Protocol_ act as sanity checks for the network actors, developers, users and community to monitor the Fishermen. It is an opt-in, configurable module, that checks individual interactions against resulting finality data and automatically reports suspicious, faulty, or malicious behavior of the Fishermen to off-chain data sites which are analyzed and filtered up to the DAO and to the public. Individual Fishermen burns and Good Citizen bounties are determined by the DAO and defined in the 1.0 Constitution.
+In practice, the _Good Citizens Protocol_ acts as sanity checks for the network actors, developers, users and community to monitor the Fishermen. It is an opt-in, configurable module, that checks individual interactions against finalized on-chain data. Participants will be able to report suspicious, faulty, or malicious behavior of the Fishermen to off-chain data sites which are analyzed and filtered up to the DAO and public. Individual Fishermen burns and Good Citizen bounties are determined by the DAO and defined in the 1.0 Constitution.
 
 ### 3.4 Application Protocol
 
