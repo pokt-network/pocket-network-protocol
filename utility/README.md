@@ -57,7 +57,8 @@
     - [3.6.1 Staking](#361-staking)
     - [3.6.2 Block Rewards](#362-block-rewards)
     - [3.6.3 Pausing](#363-pausing)
-    - [3.6.4 Parameter Updates](#364-parameter-updates)
+    - [3.6.4 Stake Burning](#364-stake-burning)
+    - [3.6.5 Parameter Updates](#365-parameter-updates)
     - [3.6.5 Unstaking](#365-unstaking)
   - [3.7 Account Protocol](#37-account-protocol)
     - [3.7.1 Structure](#371-structure)
@@ -939,13 +940,15 @@ type GatewayStakeMsg interface {
 
 ### 3.6 Validator Protocol
 
-A `Validator` is a protocol actor whose responsibility is to securely validate and process transactions. It does so through Byzantine Fault Tolerant consensus. See the accompanying [Consensus Specification](../consensus/README.md) for full details on its internals.
+A `Validator` is a protocol actor whose responsibility is to securely validate and process state transitions through transactions. It does so through Byzantine Fault Tolerant consensus. See the accompanying [Consensus Specification](../consensus/README.md) for full details on its internals.
+
+Though most of their functional behavior is described in the external [Consensus Specification](../consensus/README.md), a state specific Validator Protocol is needed to allow a dynamic Validator set and provide the necessary incentive layer for their operations.
 
 #### 3.6.1 Staking
 
-Validators registration is permissionless. In order to participate in the network as a Validator, the `ValidatorStakeMsg` must be se
+Validators registration is permissionless. In order to participate in the network as a Validator, each actor is required to bond a certain amount of tokens in escrow while they are validating state transitions. These tokens are used as collateral to disincentive byzantine behavior.
 
-Validators are a category of actor whose responsibility is to securely process transactions and blocks using the Pocket Network 1.0 Consensus Protocol. Though most of their functional behavior is described in the external 1.0 Consensus Protocol specification and the Transaction Protocol section, a state specific Validator Protocol is needed to allow a dynamic Validator set and provide the necessary incentive layer for their operations. In order to participate in the network as a Validator, each actor is required to bond a certain amount of tokens in escrow while they are providing the Validator services. These tokens are used as collateral to disincentivize byzantine behavior. Upon registration, a Validator must inform the network of how many tokens they are staking and the public endpoint where the Validator API is securely exposed. In addition to the required information, an optional OperatorPublicKey may be provided for non-custodial operation of the Validator. This registration message is formally known as the StakeMsg and is represented below in pseudocode:
+Upon registration, a Validator must inform the network of how many tokens they are staking and the public endpoint where the Validator API is securely exposed. In addition to the required information, an optional OperatorPublicKey may be provided for non-custodial operation of the Validator. This registration message is formally known as the `ValidatorStakeMsg`:
 
 ```go
 type ValidatorStakeMsg interface {
@@ -958,54 +961,38 @@ type ValidatorStakeMsg interface {
 
 #### 3.6.2 Block Rewards
 
-Pocket Network 1.0 adopts a traditional Validator reward process such that only the Block Producer for each height is rewarded proportional to the total Transaction Fees + RelayRewards held in the produced block. Though the Block Producer selection mechanism is described in greater detail in the external Consensus Specification document, it is important to understand that the percentage of stake relative to the total stake is directly proportional to the likelihood of being the block producer. The net BlockProducerReward is derived from the TotalBlockReward by simply subtracting the DAOBlockReward amount. Once a proposal block is finalized into the blockchain, the BlockProducerReward amount of tokens is sent to the custodial account.
+The Block Producer for each height (i.e. a single Validator) will be rewarded `BlockProposerAllocation` % of the total `TransactionFees` and `RelayRewards` held in the new block.
 
-```go
-func CalculateBlockReward(TotalTxFees, DAOCutPercent) (blockProducerReward, daoBlockReward) {
-  # calculate the DAO's cut of the block reward
-  daoBlockReward = perfectMult(TotalTxFees, DAOCutPercent)
-  # calculate the block producer reward
-  blockProducerReward = TotalTxFees - daoBlockReward
-  return
-}
-```
+A single Validator's stake relative to the cumulative total of all Validators' stake is directly proportional to the likelihood of them being selected as a block producer. The external Consensus Specification outlines how block producers are selected for each height in greater detail.
+
+The net `BlockProducerReward` is derived from the `TotalBlockReward` by subtracting the `DAOBlockReward` amount. Once a proposal block is finalized into the blockchain, the `BlockProducerReward` is sent to the custodial account.
 
 #### 3.6.3 Pausing
 
-In Pocket 1.0 Validators are able to use a PauseMsg to gracefully remove them from Validator operations. This feature allows for greater UX for Operators, enabling scheduled periods of maintenance or damage control in faulty situations. In addition to an Operator initiated PauseMsg, Validators are removed from service automatically by the network if byzantine behaviors are detected. Not signing blocks, signing against the majority, not producing blocks, and double signing blocks are byzantine behaviors reported to the Utility Module by the Consensus Module through the Evidence Mechanism. Anytime an automatic removal of service occurs for Validators, a burn proportional to the violation is applied against the Validator stake. The conditions, limitations, and severity of the Byzantine Valdiator burns are proposed and voted on by the DAO. If a Validator is ‘paused’, they are able to reverse the paused state by submitting an UnpauseMsg after the MinPauseTime has elapsed. After a successful UnpauseMsg, the Validator is once again eligible to execute Validator operations.
+Validators are able to gracefully pause their service (e.g. for maintenance reasons) without the need to unstake or face downtime penalization.
 
-```go
-type ValidatorPauseMsg interface {
-  GetAddress()  Address       # The address of the Validator being paused
-}
+#### 3.6.4 Stake Burning
 
-type ValidatorUnpauseMsg interface {
-  GetAddress()  Address       # The address of the Validator being unpaused
-}
-```
+Validators are paused from service by the network if byzantine behaviors are detected. Some examples include:
 
-#### 3.6.4 Parameter Updates
+- Not producing blocks when expected to
+- Not signing blocks
+- Signing against the majority
+- Double signing blocks
 
-A Validator is able to modify their initial staking values including the ServiceURL, OperatorPubKey, and StakeAmount by submitting a StakeMsg while already staked. It is important to note, that a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Validator and enables an overall simpler implementation.
+Anytime an automatic removal of a Validator occurs, a burn proportional to the violation is applied against the Validator stake. The conditions, limitations, and severity of the Byzantine Validator burns are proposed and voted on by the DAO.
 
-```go
-type ValidatorStakeMsg interface {
-  GetPublicKey()  PublicKey       # which Validator stake data is being edited?
-  GetStakeAmount() BigInt         # must be greater than or equal to the current value
-  GetServiceURL() ServiceURL      # may be modified
-  GetOperatorPubKey() PublicKey   # may be modified
-}
-```
+If a Validator is `paused`, they are able to reverse the paused state by submitting an `UnpauseMsg` after the `MinValidatorPauseTime` has elapsed. After a successful UnpauseMsg, the Validator is once again eligible to execute Validator operations.
+
+#### 3.6.5 Parameter Updates
+
+A Validator can update any of the values in its on-chain attributes by submitting another `StakeMsg` while it is already staked. The only limitation is that it's `StakeAmount` must be equal to or greater than its currently staked value.
 
 #### 3.6.5 Unstaking
 
-A Validator is able to submit an UnstakeMsg to exit the network and remove itself from Validator Operations. After a successful UnstakeMsg, the Validator is no longer eligible to participate in the Consensus protocol. After ValidatorUnstakingTime elapses, any Stake amount left is returned to the custodial account. If a Validator stake amount ever falls below the MinimumValidator stake, the protocol automatically executes an UnstakeMsg for that node, subjecting the Validator to the unstaking process.
+A Validator is able to submit an `UnstakeMsg` to exit the network and remove itself from Validator Operations. After a successful UnstakeMsg, the Validator is no longer eligible to participate in the Consensus protocol.
 
-```go
-type ValidatorUnstake interface {
-  GetAddress()  Address       # The address of the Validator unstaking
-}
-```
+After `ValidatorUnstakingTime` elapses, any stake amount left is returned to the custodial account. If a Validator stake amount ever falls below the `MinimumValidatorStake`, the protocol automatically executes an UnstakeMsg on behalf of the node, subjecting the Validator to the unstaking process.
 
 ### 3.7 Account Protocol
 
