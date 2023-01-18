@@ -707,49 +707,49 @@ In practice, the _Good Citizens Protocol_ acts as sanity checks for the network 
 
 ### 3.4 Application Protocol
 
-Applications are a category of actors who consume Web3 access from Pocket Network Servicers. Effectively, Applications are the ‘demand’ end of the Utilitarian Economy, who purchase access in the native cryptographic token, POKT, to use the decentralized service. In order to participate as a Application in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are consuming the Web3 access. Upon registration, the Application is required to provide the network information necessary to create applicable Sessions including the GeoZone, the RelayChain(s), the bond amount, and the number of Servicers per Session limited by the MinimumServicersPerSession and MaximumServicersPerSession parameters. It is important to note, the bond amount of Applications is directly proportional to the MaxRelaysPerSession which rate-limits Application usage per Servicer per Session. In Pocket 1.0, Relay cost is discounted the higher amount an Application stakes to incentivize consolidation up to MaximumApplicationStakeAmount. This registration message is formally known as the StakeMsg and is represented below in pseudocode:
+An `Application` is a protocol actor that consumes Web3 access from Pocket Network Servicers. Applications are the **demand** side of the Utilitarian Economy, who are pay in the native cryptographic token, POKT, for the utility provided by the decentralized and permissionless network.
 
 #### 3.4.1 Staking
+
+In order to participate as a Application in Pocket Network, each actor is required to bond a certain amount of tokens in escrow while they are consuming the Web3 access. Upon registration, the Application is required to provide information necessary to create applicable Sessions (GeoZone(s), RelayChain(s), etc...). The Application will also be able to specify `NumServicers` (bounded by `MinServicersPerSession` and `MaxServicersPerSession`) to specify the number of servicers it would prefer, if available, for that session.
+
+It is important to note that the bond amount is directly proportional to `MaxRelaysPerSession`, which limits the number of requests each App can make per Servicer per Session as explained in the [Session Protocol](#31-session-protocol).
 
 ```go
 type ApplicationStakeMsg interface {
   GetPublicKey()  PublicKey     # The public cryptographic id of the Application
   GetStakeAmount() BigInt       # The amount of uPOKT in escrow (i.e. a security deposit)
   GetRelayChains() []RelayChain # The flavor(s) of Web3 hosted by this Application
-  GetGeoZone() GeoZone          # The physical geo-location identifier this Servicer registered in
-  GetNumServicers() int8        # The number of Servicers requested per session
+  GetGeoZone() GeoZone          # The physical geo-location identifier this Application registered in
+  GetNumServicers() uint8        # The number of Servicers requested per session
 }
 ```
 
-Once successfully staked and a new SessionBlock is created, an Application is officially registered and may consume Web3 access from Servicers that are assigned through the Session Protocol in the form of a request/response cycle known as a Relay. In order for an Application to get Session information, i.e. their assigned Fisherman and Servicers, they may query a public Dispatch endpoint of any full node. To ensure Pocket Network SLA backed service, the Application executes a handshake with the assigned Fishermen. The Application provides the Fisherman with a temporary and limited Application Authentication Token and a matching Ephemeral Private Key that is used by the Fisherman to sample the service of the Session in real time. Once the Application handshake is executed, the Application may use up to MaxRelaysPerSession/NumberOfServicers per Servicer during a Session. If the Application maxes out the usage of all of its Servicers, it is unable to Relay any further until the Session elapses.
-
 #### 3.4.2 Parameter Updates
 
-An Application is able to modify their initial staking values including GeoZone, RelayChain(s), NumServicers, and StakeAmount by submitting a StakeMsg while already staked. It is important to note, a StakeAmount is only able to be modified greater than or equal to the current value. This allows the protocol to not have to track pieces of stake from any Application and enables an overall simpler implementation.
+An Application can update any of the values in its on-chain attributes by submitting another `ApplicationStakeMsg` while it is already staked. Any parameter changes are permissible as long as the `StakeAmount` is equal to or greater than its current value.
 
 ```go
 type ApplicationStakeMsg interface {
-  GetPublicKey()  PublicKey     # identity of edited Servicer
-  GetStakeAmount() BigInt       # must be greater than or equal to the current value
-  GetRelayChains() []RelayChain # may be modified
-  GetGeoZone() GeoZone          # may be modified
-  GetNumServicers() int8        # may be modified
+  GetPublicKey()  PublicKey     # The public cryptographic ID of the Fisherman
+  GetStakeAmount() BigInt       # May be modified to a value greater or equal to the current value
+  GetRelayChains() []RelayChain # May be modified
+  GetGeoZone() GeoZone          # May be modified
+  GetNumServicers() int8        # May be modified
 }
 ```
 
 #### 3.4.3 Unstaking
 
-An Application is able to submit an UnstakeMsg to exit the network and remove themself from the network. After a successful UnstakeMsg, the Application is no longer eligible to consume Web3 traffic from Servicers. After ApplicationUnstakingTime elapses, any Stake amount left is returned to the custodial account.
-
-```go
-type ApplicationUnstake interface {
-  GetAddress()  Address       # The address of the Application unstaking
-}
-```
+An Application is able to submit an `UnstakeMsg` to exit and remove itself from the network. After a successful UnstakeMsg, the Application is no longer eligible to consume Web3 traffic from Servicers. After the `ApplicationUnstakingTime` unbonding time elapses, the remaining is returned to the custodial account.
 
 #### 3.4.4 Stake Burning
 
-Application Stake burn is a necessary mechanism to ensure an equilibratory economy at network maturity. Given the timeline for network maturity is approximated to be a decade from the time of publication, this document does not detail a non-inflationary economic scenario. In the inflationary phase of Pocket Network, Application Stake burn rate is able to be controlled through the AppBurnPerSession parameter which is expected to be set near zero. In practice, though the burn value is expected to be negligible, Application stake is able to be burned over a function of time. As described above, MaxRelaysPerSession is generated by the StakeAmount of the Application and the Application burn will affect this value as the StakeAmount changes.
+Application stake burn is a necessary mechanism to ensure economic equilibrium at network maturity by balancing POKT inflation and deflation.
+
+`AppBurnPerSession` is a governance parameter that will dictate the amount of POKT burnt for every session an Application initiates, and `AppBurnPerRelay` will govern the amount of POKT burnt based on the amount of work (i.e. number of relays serviced) Servicers provided to the Application throughout the session. Given that the Application's stake will decrease with every session, new rate limiting parameters, dictated via `MaxRelaysPerSession`, will be set at the start of each new session.
+
+As of updating this document, these governance parameters are expected to be 0 at the time of launching the next version of the network. More detailed tokenomic models will follow in future iterations of the specifications.
 
 ### 3.5 Gateway Protocol
 
