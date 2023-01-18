@@ -72,7 +72,7 @@
     - [3.9.1 Parameter Updates](#391-parameter-updates)
     - [3.9.2 DAO Treasury](#392-dao-treasury)
     - [3.9.3 Policing](#393-policing)
-- [4. Sequence](#4-sequence)
+- [4. Launch Sequence](#4-launch-sequence)
   - [4.1 ProtoGateFish](#41-protogatefish)
   - [4.2 Castaway](#42-castaway)
   - [4.2 Fishermen](#42-fishermen)
@@ -1082,15 +1082,15 @@ Autonomous state change operations are performed by the protocol according to sp
 
 ### 3.9 Governance Protocol
 
-Though most off-chain governance specification is included in the DAO 1.0 Constitution document, the Utility Module’s Governance Protocol defines how the DAO is able to interact with the on-chain protocol on a technical level.
+Though most off-chain governance specification is included in [Pocket Network's Constitution](https://github.com/pokt-foundation/governance/blob/master/constitution/constitution.md), the Utility Module’s Governance Protocol defines how the DAO is able to interact with the on-chain protocol on a technical level.
 
 #### 3.9.1 Parameter Updates
 
-The Access Control List (ACL) is the primary mechanism that enables live parameter configuration. Specifically, the ACL maintains the "feature switches" that allow active modification of the behavior of the protocol without any forking. As the name suggests, the ACL also maintains the account(s) permissioned to modify said parameters. A value can be modified by a `ParamUpdateMsg` from the permissioned owner of that parameter.
+The Access Control List (ACL) is the primary mechanism that enables live parameter configuration. Specifically, the ACL maintains the "feature switches" that allow active modification of the behavior of the protocol without forks. The ACL also maintains the account(s) permissioned to modify said parameters. A value can be modified by a `ParamUpdateMsg` from the permissioned owner of that parameter.
 
 ```go
 type ParamChangeMsg interface {
-  GetAddress() Address  # Address of sender account; must be permissioned through ACL)
+  GetAddress() Address  # Address of sender & signer; must be permissioned through ACL
   GetParamName() String # The name of the parameter being updated
   GetValue() any        # The new value of the parameter being modified
 }
@@ -1098,7 +1098,7 @@ type ParamChangeMsg interface {
 
 #### 3.9.2 DAO Treasury
 
-In addition to the ParamChange message, the DAO is able to burn or transfer from a specified DAO Module Account. In practice, this Module Account is used as the on-chain Treasury of the DAO, the limitations and specifics of which are maintained in the DAO 1.0 Constitution document.
+In addition to parameter changes, the DAO is able to burn or transfer from a specified DAO Module Account. In practice, this Module Account is used as the on-chain Treasury of the DAO, the limitations and specifics of which are maintained in the DAO 1.0 Constitution document.
 
 ```go
 type DAOTreasuryMsg interface {
@@ -1115,14 +1115,14 @@ As the only permissioned actors in the network, Fishermen are subject to individ
 
 ```go
 type PolicingMsg interface {
-  GetAddress() Address           # Address of sender account; Must be permissioned on ACL
-  GetPoliced() Address           # Address of the policed actor
-  Operation() DAOOp              # Identifier of the operation; burn, pause, remove
-  GetAmount() Big.Int            # Amount of tokens (if applicable)
+  GetAddress() Address # Address of sender & signer; must be permissioned on ACL
+  GetPoliced() Address # Address of the policed actor
+  Operation() DAOOp    # Identifier of the operation; burn, pause, remove, etc
+  GetAmount() Big.Int  # Amount of tokens (if applicable)
 }
 ```
 
-## 4. Sequence
+## 4. Launch Sequence
 
 In order to fully understand Pocket Network 1.0 and its place in the project's maturity, a rollout context is a prerequisite.
 
