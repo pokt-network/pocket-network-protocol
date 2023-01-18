@@ -61,13 +61,13 @@
     - [3.6.5 Parameter Updates](#365-parameter-updates)
     - [3.6.5 Unstaking](#365-unstaking)
   - [3.7 Account Protocol](#37-account-protocol)
-    - [3.7.1 Structure](#371-structure)
+    - [3.7.1 Account Structure](#371-account-structure)
     - [3.7.2 Send Transaction](#372-send-transaction)
     - [3.7.3 Pool](#373-pool)
   - [3.8 State Change Protocol](#38-state-change-protocol)
     - [3.8.1 Transaction](#381-transaction)
     - [3.8.2 Evidence](#382-evidence)
-    - [3.8.3 Autonomous State Changes](#383-autonomous-state-changes)
+    - [3.8.3 Autonomous](#383-autonomous)
   - [3.9 Governance Protocol](#39-governance-protocol)
     - [3.9.1 Parameter Updates](#391-parameter-updates)
     - [3.9.2 DAO Treasury](#392-dao-treasury)
@@ -999,7 +999,7 @@ After `ValidatorUnstakingTime` elapses, any stake amount left is returned to the
 An `Account` is a structure that maintains the ownership of POKT via a mapping from an `Address` to a `Balance`.
 The summation of all balances of all accounts in the network equals the `TotalSupply`.
 
-#### 3.7.1 Structure
+#### 3.7.1 Account Structure
 
 ```go
 type Account interface {
@@ -1010,7 +1010,7 @@ type Account interface {
 
 #### 3.7.2 Send Transaction
 
-The only state modification an Account may execute is a `SendMsg` of tokens from one account to another.
+The only state modification an Account may execute is a `SendMsg` of POKT from one account to another.
 
 ```go
 type SendMsg interface {
@@ -1022,7 +1022,7 @@ type SendMsg interface {
 
 #### 3.7.3 Pool
 
-A Pool is a special type of Account that is completely autonomous and owned by the network. POKT can be burnt, mint and transmitted to a Pool at the protocol layer at the time of state transition without explicit transactions. Pools can be used for tasks such as fee aggregation and distribution based on state machine changes.
+A Pool is a special type of Account that is completely autonomous and owned by the network. POKT can be burnt, minted and transmitted to a Pool at the protocol layer at the time of state transition (after a block is validated) without explicit transactions. Pools can be used for tasks such as fee aggregation, reward distribution and other operations based on state machine changes.
 
 ```go
 type Pool interface {
@@ -1035,38 +1035,50 @@ The list of pools includes, but is not limited to, the `DAO`, `FeeCollector`, `A
 
 ### 3.8 State Change Protocol
 
-There are two categories of state changes in Pocket Network 1.0 that may be included in a block: Transactions and Evidence. The third and final category of state changes in Pocket Network is autonomous operations that are completed based on the lifecycle of block execution orchestrated by the Consensus Module.
+There are two categories of state changes in Pocket Network that may be included in a block:
+
+1. Transactions - state changes initiated and signed by any account with or without a balance
+2. Evidence - state changes and/or signals initiated and signed by registered/staked protocol actors
+3. Autonomous - operations completed based on the results of the lifecycle of validated and finalized blocks
 
 #### 3.8.1 Transaction
 
-By far the most publicly familiar of the three categories of state changes are Transactions: discrete state change operations executed by actors. The structure of a Transaction includes a payload, a dynamic fee, a corresponding authenticator, and a random number Nonce. The payload of any Transactions is a command that is structured in the form of a Message. Examples of these Messages include StakeMsg, PauseMsg, and SendMsg which all have individual handler functions that are executed within the Pocket Network state machine. A digital signature and public key combination is required for proper authentication of the sender, the dedicated fee incentivizes a block producer to include the transaction into finality and deter spam attacks, and the Nonce is a replay protection mechanism that ensures safe transaction execution.
+Transactions are discrete state change operations executed by actors or accounts. The structure of a Transaction includes, at a minimum:
+
+- **Payload**: A command structured in the form of a Message (e.g. StakeMsg, PauseMsg, SendMsg, etc..)
+- **Dynamic fee**: A fee to incentivize the block producer to include the Transaction in a block and deter sybil attacks
+- **Authenticator**: A digital signature
+- **Entropy**: A Nonce (i.e. a random number) to prevent replay protection
 
 ```go
-# Transaction Interface
 type Transaction interface {
-  GetPublicKey()  PublicKey       # Identifier of sender account; Must be the signer
-  GetSignature() Signature        # Digital signature of the transaction
-  GetMsg() Message                # The payload of the transaction; Unstake, TestScore, etc.
-  GetFee() Big.Int                # The number of Tokens used to incentivize the execution
-  GetNonce() String               # Entropy used to prevent replay attacks; upper bounded
+  GetPublicKey() PublicKey  # Cryptographic identifier of sender account; must be the signer
+  GetSignature() Signature  # Digital signature of the transaction
+  GetMsg() Message          # The payload of the transaction; Unstake, TestScore, etc.
+  GetFee() Big.Int          # The number of tokens (uPOKT) used to incentivize and pay for the execution
+  GetNonce() String         # Entropy used to prevent replay attacks; upper bounded
 }
 ```
 
 #### 3.8.2 Evidence
 
-Evidence is a category of state change operation derived from byzantine consensus information. Evidence is similar to Transactions in creation, structure, and handling, but its production and affects are limited to Validators. Evidence is largely a protection mechanism against faulty or malicious consensus participants and will often result in the burning of Validator stake.
+Evidence is similar to Transactions in creation, structure and handling, but its production and affects are limited based on the actor's role.
+
+For example, only `Validators` are eligible to submit and are affected by `DoubleSign` evidence. Only `Servicers` are effected by the results of a `ClientSideChallenge` evidence. Only `Fishermen` are effected by the results of evidence that may challenge by the results of its TestScores (e.g. `RegradeServicer`)`.
+
+Evidence is a protection mechanism against faulty or malicious consensus participants, but may extend to other protocol actors as well. The full list of types of Evidence will be defined over time, but will often result in the burning of the actor's stake if proven true.
 
 ```go
 type Evidence interface {
-   GetMsg() Message                # Payload of the evidence; DoubleSign, timeoutCert, etc.
-   GetHeight() Big.Int             # Height of the infraction
-   GetAuth() Authenticator         # Authentication of evidence, can be Signature or Certif
+   GetMsg() Message        # Payload of the evidence; DoubleSign, TimeoutCert, ClientSideChallenge, etc.
+   GetHeight() Big.Int     # Height at which the evidence was collected and submitted
+   GetAuth() Authenticator # Authentication of evidence, can be a digital signature or certificate
 }
 ```
 
-#### 3.8.3 Autonomous State Changes
+#### 3.8.3 Autonomous
 
-Autonomous state change operations are performed by the protocol according to specific lifecycle triggers linked to consensus. Examples of these events are BeginBlock and EndBlock which occur at the beginning and ending of each height respectively. Rewarding the block producer, processing QuorumCertificates, and automatic unstaking are all illustrative instances of these autonomous state change commands.
+Autonomous state change operations are performed by the protocol according to specific lifecycle triggers linked to consensus. These operations include rewarding block producers, distributing relay rewards, etc.
 
 ### 3.9 Governance Protocol
 
