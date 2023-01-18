@@ -47,12 +47,12 @@
     - [3.4.3 Unstaking](#343-unstaking)
     - [3.4.4 Stake Burning](#344-stake-burning)
   - [3.5 Gateway Protocol](#35-gateway-protocol)
-    - [3.5.1 OAuth](#351-oauth)
-    - [3.5.2 Application w/o Gateway](#352-application-wo-gateway)
-    - [3.5.2 Application Delegation](#352-application-delegation)
-    - [3.5.3 Application Servicing](#353-application-servicing)
-    - [3.5.4 Off-Chain Benefits](#354-off-chain-benefits)
-    - [3.5.5 Registration](#355-registration)
+    - [3.5.1 Gateway Responsibilities](#351-gateway-responsibilities)
+    - [3.5.2 OAuth](#352-oauth)
+    - [3.5.3 Application w/o Gateway](#353-application-wo-gateway)
+    - [3.5.4 Application Delegation](#354-application-delegation)
+    - [3.5.5 Application Servicing](#355-application-servicing)
+    - [3.5.6 Registration](#356-registration)
   - [3.6 Validator Protocol](#36-validator-protocol)
     - [3.6.1 Validator Registration](#361-validator-registration)
   - [3.7 Account Protocol](#37-account-protocol)
@@ -66,7 +66,8 @@
   - [4.1 ProtoGateFish](#41-protogatefish)
   - [4.2 Castaway](#42-castaway)
   - [4.2 Fishermen](#42-fishermen)
-  - [4.3 CastNet](#43-castnet)
+  - [4.3 Feeder Fish](#43-feeder-fish)
+  - [4.4 CastNet](#44-castnet)
 - [5. Attack Vectors](#5-attack-vectors)
   - [5.1 Attack Category Types](#51-attack-category-types)
     - [5.1.1 Profit Seeking Passive](#511-profit-seeking-passive)
@@ -755,11 +756,15 @@ As of updating this document, these governance parameters are expected to be 0 a
 
 A `Gateway` is a permissionless protocol actor to whom the Application can **optionally** delegate on-chain trust in order to perform off-chain operations.
 
-Pocket Network's Utilitarian Economy incentivizes data redundancy in a multi-chain ecosystem, with cheap, accessible and highly available multi-chain access. Depending on the level of trust, or lack thereof, an Application can optionally use a Gateway for various operations such as session dispatching or request signing.
+#### 3.5.1 Gateway Responsibilities
 
-_Note that an Applications that requires just-in-time guarantees and full integrity of the data it is processing should maintain its own infrastructure and validate every piece of state before signing state changes dependant on them. This could come in the form of maintaining full nodes, synching light clients & validating proofs (if available by the Web3 resource), and running its own ETL pipelines (e.g. data indexing)._
+Pocket Network's Utilitarian Economy incentivizes data redundancy in a multi-chain ecosystem, with cheap, accessible and highly available multi-chain access. Depending on the level of trust, or lack thereof, an Application can optionally use a Gateway for various Pocket-specific operations such as, but not limited to, session dispatching or request signing.
 
-#### 3.5.1 OAuth
+Delegation also enables free market off-chain economics where additional features, guarantees or payments can be made. This could, for example, include a contractual agreement between Applications and Gateways to execute [Client Side Validation](https://forum.pokt.network/t/client-side-validation/148) with every Nth request. It could also enable L2 services, such as data indexing, that are outside the scope of the Pocket ecosystem, but are closely related to the utility it provides.
+
+Applications that requires just-in-time full data integrity guarantees may opt out of delegating to Gateways and operate in a completely permissionless manner. This may require them to maintain their own infrastructure (i.e. synching a full/light Pocket Node). Even with delegation, an Application would be able to continue operating permissionlessly as the two are not mutually exclusive.
+
+#### 3.5.2 OAuth
 
 [OAuth](https://oauth.net) is an open (Web2) protocol that authorizes clients or 3rd parties to gain access to restricted resources. It can be summarized via following flow:
 
@@ -790,7 +795,7 @@ Some parallels can be drawn between existing centralized, trusted and permission
 - The `Servicer` is the `Resource Servicer`
 - The `Fisherman` is a separate monitoring party overlooking the `Resource Servicer` most often owned by the `Authorization Server`
 
-#### 3.5.2 Application w/o Gateway
+#### 3.5.3 Application w/o Gateway
 
 An Application that chooses to operate without a Gateway is responsible for dispatching sessions and signing RPC requests on its own. To do so, it will need to maintain a Pocket Full Node or a Pocket Light Client.
 
@@ -815,7 +820,7 @@ sequenceDiagram
     end
 ```
 
-#### 3.5.2 Application Delegation
+#### 3.5.4 Application Delegation
 
 An Application that chooses to delegate trust to a Gateway will need to submit a one-time `DelegateMsg` transaction to delegate trust from the Application to the Gateway. It must include the PublicKey of the Gateway and be signed by the Application.
 
@@ -832,13 +837,55 @@ sequenceDiagram
     WS ->>- A: ok
 ```
 
-#### 3.5.3 Application Servicing
+The following message will need to be signed by the Application's PrivateKey in order for it to be validated committed to the world state.
 
-When an Application chooses to start a new session, the Gateway is responsible for dispatching the on-chain StartSession request and use an off-chain mechanism (e.g. AccessTokens) to service the Application. Throughout the duration of the session, validation and communication between the Application and Gateway are done using off-chain mechanisms.
+```go
+type DelegateMsg interface {
+  GetApplicationPublicKey() # The cryptographic ID of the Application
+  GetGatewayPublicKey() # The cryptographic ID of the Application
+}
+```
 
-Similar to to the [incognito sampling section of the Fisherman Protocol](#334-incognito-sampling) section, Ring Signatures will be used by the Servicer to validate the signed request. As long the the request is done by the staked Application, or the delegated to Gateway, the Servicer is incentivized to process and be rewarded for the request.
+Once committed, the Application can be serviced on behalf of the Gateway. Though an Application can delegate to multiple Gateways simultaneously, the rate limiting for each session still remains at the Servicer level.
 
-Applications may continue making permissionless requests to the servicer, in parallel with the Gateway, as the signature is agnostic to the Servicer. The session tokens used for rate limiting by the Servicer will come out of the same bucket as described in the [rate limiting algorithm](#315-rate-limiting).
+#### 3.5.5 Application Servicing
+
+When an Application chooses to start a new session, the Gateway is responsible for dispatching the on-chain `StartSession` request and use an off-chain mechanism (e.g. AccessTokens) to service the Application. Throughout the duration of the session, validation and communication between the Application and Gateway are done using off-chain mechanisms, which are outside the scope of this document.
+
+[Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to allow both the Application and the Gateway to sign the Relay.
+
+```mermaid
+flowchart
+    subgraph Ring
+        Application <--> G1["Gateway 1"]
+        G1 <--> G2["Gateway 2"]
+        G2 <--> Application
+    end
+    Ring --Signature--> Servicer
+    Servicer--Validate Signature-->Servicer
+```
+
+Similar to to the [incognito sampling section of the Fisherman Protocol](#334-incognito-sampling) section, Ring Signatures enable the Servicer to validate the signed request. This enables permissioned (w/ a Gateway) and permissionless (w/o a Gateway) operations to co-exist, without being mutually exclusive, and without the Servicer needing knowledge of the Application's current mode of operation.
+
+```mermaid
+---
+title: Signature Validation By Servicer
+---
+stateDiagram-v2
+    state "Get gateways the App<br>delegated to: [G1, G2]" as getGateways
+    state "Is relay signed by one of:<br>Application, Gateway1, Gateway2?" as sigCheck
+
+    state "Valid (should service relay)" as Valid
+    state "Invalid (do not service relay)" as Invalid
+
+    [*] --> getGateways
+    getGateways --> sigCheck
+
+    sigCheck --> Valid: Yes
+    sigCheck --> Invalid: No
+```
+
+Servicer's are incentivized to respond to any valid relay since it is applicable for reward distribution. The session tokens used for rate limiting by the Servicer will come out of the same bucket as described in the [rate limiting algorithm](#315-rate-limiting) regardless of who in the ring signed the request.
 
 ```mermaid
 sequenceDiagram
@@ -863,11 +910,7 @@ sequenceDiagram
     end
 ```
 
-#### 3.5.4 Off-Chain Benefits
-
-As shown in the section above, delegation enables free market off-chain economics where additional features, guarantees or payments can be made. For example, this includes but is not limited to a contractual agreement between Applications and Gateways to execute [Client Side Validation](https://forum.pokt.network/t/client-side-validation/148) with every Nth request.
-
-#### 3.5.5 Registration
+#### 3.5.6 Registration
 
 Registration differs from staking in the sense that the pubKey is known but there are no economic benefits/penalties in this stage of the protocol's progression.
 
@@ -875,13 +918,13 @@ The Gateway must register on-chain in order for the Servicer to accept its signa
 
 When staking, the Gateway must bond a certain amount of POKT to be able to participate in the network. The governance parameter, `StakePerAppDelegation` limits the number of Applications that can delegate to it, and it is the Gateway's responsibility to increase its stake as the number of Applications that trust it grow.
 
-For example, if `StakePerAppDelegation` is 100 POKT and the Gateway has staked 1000 POKT, a transaction by the 11th Application to delegate to it will be rejected until the stake is increased appropriately.
+For example, if `StakePerAppDelegation` is 100 POKT and the Gateway has staked 1000 POKT, a transaction by the 11th Application to delegate to it will be rejected until the stake is increased appropriately. However, if `StakePerAppDelegation` is 0 POKT, all Gateways, which are permissionless actors can have an unbounded number of Applications delegate to them.
 
 ```go
 type GatewayStakeMsg interface {
-  GetPublicKey()  PublicKey       # The public cryptographic id of the Gateway account
-  GetStakeAmount() BigInt         # The amount of uPOKT in escrow (i.e. a security deposit)
-  GetServiceURL() ServiceURL      # The API endpoint where the Gateway service is provided
+  GetPublicKey()  PublicKey   # The public cryptographic id of the Gateway account
+  GetStakeAmount() BigInt     # The amount of uPOKT in escrow (i.e. a security deposit)
+  GetServiceURL() ServiceURL  # The API endpoint where the Gateway service is provided
 }
 ```
 
@@ -1059,7 +1102,7 @@ In order to fully understand Pocket Network 1.0 and its place in the project's m
 
 ### 4.1 ProtoGateFish
 
-During the testing and development of a v1 TestNet:
+During the development & development of a v1 TestNet:
 
 - The Fisherman & Gateway models will be will be prototyped and live-tested
 - Major Servicer node runners of Pocket Network V0 may have the option to participate as Fisherman and/or Gateway actors
@@ -1068,23 +1111,33 @@ During the testing and development of a v1 TestNet:
 
 Upon the initial launch of Pocket Network v1 MainNet:
 
-- The DAO will need to approve a single PNI owned Fisherman
-  - Other Gateways will have the option to register shortly after
-  - PNI Gateway registration will be part of the genesis file
-  - This guarantees at least one gateway on launch (no upper bound)
-- PNI will need to operate the first live Gateway
-- Pocket Network scalability issues will be resolve
+- The DAO will need to approve at least one PNI owned Fisherman
+
+  - The publicKey of the Fisherman will be included in the re-genesis file
+
+- PNI will need to to register at least one Gateway
+
+  - The publicKey of the Gateway will be included in the re-genesis file
+  - `StakePerAppDelegation` will be set to 0
+  - Other actors can register their own Gateways shortly after launch
+
+- Pocket Network scalability issues will be resolved
 - Permissionless Applications will be enabled
 - The economy will enable Network participants to operate their own Gateways
+- `AppBurnPerSession` and `AppBurnPerRelay` will be set to 0
 
 ### 4.2 Fishermen
 
 - Fisherman governance parameters will be tuned
 - Additional Fisherman will be approved by the DAO
 
-### 4.3 CastNet
+### 4.3 Feeder Fish
 
-- A specification for fully permissionless fisherman is designed and developed
+- Application stake parameters (`AppBurnPerSession` and `AppBurnPerRelay`) will be tuned
+
+### 4.4 CastNet
+
+- A specification for fully permissionless Fisherman is designed and developed
 
 ## 5. Attack Vectors
 
