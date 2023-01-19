@@ -1,9 +1,9 @@
 # HotPocket - Pocket 1.0 Consensus Module Specification
 
 <p align="center">
-    Andrew Nguyen<br>
-    @andrewnguyen22<br>
-    Version 1.0.1
+    @andrewnguyen22 - Andrew Nguyen<br>
+    @olshansk - Daniel Olshansky<br>
+    Version 1.0.2 - Jan 2023
 </p>
 
 ## 1. Overview
