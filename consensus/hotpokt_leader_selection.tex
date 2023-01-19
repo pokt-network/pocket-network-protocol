@@ -1,0 +1,71 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+ \algnewcommand{\Initialize}[1]{%
+          \State \textbf{Initialize:}
+          \Statex \hspace*{\algorithmicindent}\parbox[t]{.8\linewidth}{\raggedright #1}
+        }
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={210mm,297mm},
+ left=20mm,
+ right=20mm,
+ top=20mm,
+ bottom=20mm,
+ }
+\begin{document}
+
+\begin{algorithm}
+  \caption{HotPocket Leader Selection}
+  \begin{algorithmic}[1]
+      \Initialize{
+        \strut$valSet = UniversalSet$ \\
+        \strut$expectedCandidateLeaders=1$ \\
+        \strut$publicKey= OperatorPubkey$\\
+        \strut$sk = VRFSecretKey$\\
+        \strut$votingPower=StakeAmount$\\
+        \strut$totalVotingPower=TotalValSetStake$ \\
+        \strut \\
+      }
+      \Function{IsLeaderCandidate}{$height, round, lastNLeaders, roundRobinLeader$} {\color{Bittersweet} \Comment{Candidate Selection}}
+         \State seed = \textbf{append}(height, round, lastNLeaders, publicKey)
+         {\color{OliveGreen}\State VRFOut, VRFProof = sk.Prove(seed)} // deterministic out using secret key
+         {\color{MidnightBlue}\State result = CDF(votingPower, totalVotingPower, expectedCandidateLeaders, VRFOut)} // sortition
+         \If{$result\neq0$} // must be non-zero to be a candidate
+           \State \textbf{return} True, result, VRFOut, VRFProof
+         \ElsIf{$roundRobinLeader.PubKey == publicKey$} // is fallback leader
+           \State \textbf{return} True, nil, nil, nil
+         \Else \quad // not a leader
+         \State \textbf{return} False, nil, nil, nil
+         \EndIf
+       \EndFunction \\
+       \Function{SelectLeader}{$sortitionLeaders, roundRobinLeader$} {\color{Bittersweet} \Comment{Leader Selection}}
+         \State highLeader, highProof = nil, 0
+         \For{leader ← sortitionLeaders}
+             \State seed = \textbf{append}(height, round, lastNLeaders, leader.publicKey)
+             \If{{\color{OliveGreen}$!leader.VRFPub.Verify(seed, leader.VRFOut, leader.VRFProof)$}}
+               \State \textbf{Continue}
+             \ElsIf{{\color{MidnightBlue}$leader.CDFResult==0$}} // must be non-zero to be a candidate
+               \State \textbf{Continue}
+             \ElsIf{$highLeader.VRFProof < leader.VRFProof$}
+               \State highLeader = leader
+             \EndIf
+         \EndFor
+         \If{$highLeader \neq nil$}
+            \State \textbf{return} highLeader
+         \Else
+           \State \textbf{return} roundRobinLeader
+         \EndIf
+       \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+\end{document}
