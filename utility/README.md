@@ -93,15 +93,13 @@
       - [5.1.8.3 Masochistic Mad Man](#5183-masochistic-mad-man)
   - [5.2 Attack Examples](#52-attack-examples)
     - [5.2.1 Fisherman \<\> Servicer Collusion](#521-fisherman--servicer-collusion)
-    - [5.2.2 Fisherman attacking Servicers through TestScores (Collusion passive, Hacker, Mad Man Lazy, Inflation/Deflation)](#522-fisherman-attacking-servicers-through-testscores-collusion-passive-hacker-mad-man-lazy-inflationdeflation)
-    - [5.2.3](#523)
-    - [5.2.X](#52x)
-    - [5.2.X](#52x-1)
-    - [5.2.X](#52x-2)
-    - [5.2.X](#52x-3)
-    - [5.2.X](#52x-4)
+    - [5.2.2 Fisherman Assigning bad Servicer TestScores](#522-fisherman-assigning-bad-servicer-testscores)
+    - [5.2.3 Fishermen falsifying Application Volume Metrics](#523-fishermen-falsifying-application-volume-metrics)
+    - [5.2.4 Fisherman DDoS](#524-fisherman-ddos)
+    - [5.2.5 Incognito Fisherman Identified](#525-incognito-fisherman-identified)
+    - [5.2.6 Fisherman or Servicer register Applications for selfish self-dealing attacks](#526-fisherman-or-servicer-register-applications-for-selfish-self-dealing-attacks)
+    - [5.2.7 Actors intentionally staking in “wrong” GeoZone](#527-actors-intentionally-staking-in-wrong-geozone)
 - [6. Dissenting Opinions (FAQ)](#6-dissenting-opinions-faq)
-- [7. Future Research \& Candidate Features](#7-future-research--candidate-features)
 - [References](#references)
 
 ## 1. Overview
@@ -1241,6 +1239,8 @@ Any attack which, although possible, makes no sense because you could accomplish
 
 ### 5.2 Attack Examples
 
+<!-- TODO(olshansky): Review & Update -->
+
 #### 5.2.1 Fisherman <> Servicer Collusion
 
 **Attack Vectors**: Profit Seeking Passive; Collusion Active; Hacker
@@ -1251,51 +1251,45 @@ This is the “big one”. It is the primary reason that Fishermen are (at this 
 
 The attack is easy to describe, but not easy to perform because a rather large body of work has gone into making sure that it is extremely difficult to perform, a very small payoff, and extremely costly to get caught.
 
-#### 5.2.2 Fisherman attacking Servicers through TestScores (Collusion passive, Hacker, Mad Man Lazy, Inflation/Deflation)
+#### 5.2.2 Fisherman Assigning bad Servicer TestScores
+
+**Attack Vectors**: Collusion passive; Hacker; Mad Man Lazy; Inflation/Deflation
 
 If a Fisherman falsifies certain aspects of a node’s report card, he can lower that node’s proper payment share (direct attack) and increase the relative profit of all non-attacked nodes (indirect benefit if Fisherman is also a Servicer owner)
 
 This attack is a lot of work with very little reward. The “excess” POKT does not get distributed to the non-attacked nodes. It gets burned. Therefore the benefit to non-attacked nodes is only a relative gain in terms of the overall network inflation rate. This is a highly detectable attack and the victims are highly motivated to report it. Bottom line here is: We’re talking about a highly motivated hacker, who is also Mad Man Lazy.
 
-#### 5.2.3
+#### 5.2.3 Fishermen falsifying Application Volume Metrics
 
-**Fisherman false reporting Application volume metrics (Mad Man Lazy)**
+**Attack Vectors**: Mad Man Lazy
 
-There is no financial incentive for a Fisherman to report Application volume higher or lower than actual. Servicers are incentivised to check for under reporting. There is no specific disincentive for over reporting. Other than (of course) losing all of your stake and reputation.
+There is no financial incentive for a Fisherman to report Application volume higher or lower than actual. Servicers are incentivized to check for under reporting. There is no specific disincentive for over reporting. Other than (of course) losing all of your stake and reputation.
 
-#### 5.2.X
+#### 5.2.4 Fisherman DDoS
 
-**Fisherman using AAT to get free Web3 access (Masochistic Mad Man)**
+**Attack Vectors**: Mad Man
 
-WOW.. a Lazy Mad Man with too much money and too much free time. Sorry, I can’t take this attack seriously. It’s like stealing a car so that you can plug in your phone and charge it up for free.
+No one benefits by DDOSing a Fisherman. The relay, dispatch, service and blockchain processes are not dependent on Fishermen. The attack does not change node report cards. It only makes less reduces overall network inflation. The Fisherman loses money, but no one gets the excess.
 
-#### 5.2.X
+#### 5.2.5 Incognito Fisherman Identified
 
-**Fisherman DDOS (Mad Man)**
-
-No one benefits by DDOSing a Fisherman. The relay, dispatch, service and blockchain processes are not dependent on Fishermen. The attack does not change node report cards. It only makes less forof them and less overall network inflation. The Fisherman loses money, but no one gets the excess.
-
-#### 5.2.X
-
-**Fisherman incognito identified (Lazy Mad Man, Hacker)**
+**Attack Vectors**: Lazy Mad Man, Hacker
 
 Fishermen act in “incognito” fashion purely as a deterrent to a particular theoretical publicity seeking attack called Mad Man Blogger. Neither honest, nor dishonest nodes gain any advantage by identifying a particular relay request as belonging to a Fisherman. You can only provide your best service, it’s not possible to provide “better” service to a Fisherman than you already provide. However, the Mad Man Blogger could (if he chose to and if he successfully identified all Fishermen) provide service to only Fishermen and not to applications. We consider this an edge case attack in which the attacker has made a significant investment in POKT and in backend node infrastructure solely for the purpose of “proving” that the system can be gamed. Therefore, the contract with the DAO which Fishermen agree to, requires periodic changing of IP address and reasonable efforts to keep it unknown by other actors in the ecosystem.
 
-#### 5.2.X
+#### 5.2.6 Fisherman or Servicer register Applications for selfish self-dealing attacks
 
-**Fisherman or Servicer will register spam applications for selfish economic benefit (Inflation Attack, Mad Man Lazy)**
+**Attack Vectors**: Inflation Attack, Mad Man Lazy
 
-As to Fishermen spamming via owned app:
+**Re Fishermen spamming via owned app:**
 
 There is no economic benefit to Fishermen from this activity as their payment is independent of application usage. One could argue that the Fisherman will benefit from the increase in supply caused by spamming the network this way. However, any inflation attack which benefits the majority of the network to a greater degree than the person who pays for and performs the attack is non-profit seeking.
 
-As to Servicer spamming via owned app:
+**Re Servicer spamming via owned app:**
 
 This activity is an inflation attack which is not profitable to the attacker.
 
-#### 5.2.X
-
-**Actors intentionally staking in “wrong” geo-zone to gain some advantage/attack.**
+#### 5.2.7 Actors intentionally staking in “wrong” GeoZone
 
 It is economically advantageous for actors to stake within their true GeoZone as Session actor pairings are generated specifically for the GeoZone registered. Specifically, Applications will receive worse QOS and worse fidelity of Fishermen QOS monitoring by proxy as the Servicers are farther away but still within the same GeoZone as the Fishermen. Servicers are the same way, as once a GeoZone is mature the Servicers in other GeoZones are no longer competitive.
 
@@ -1384,50 +1378,6 @@ Newly “recruited” nodes need the freedom to respond to application requests 
 **Memos might be important (open question)**
 
 If people want to keep memos (which are helpful in the case of traceability/auditability), a compromise between the full content of the memos and nothing might be the signature of the text that “would be” on the memo using the private key. Of course, this begs the question of how big is too big, and what’s the average and mean sizes for memos in our current chain.
-
-## 7. Future Research & Candidate Features
-
-<!-- TODO(olshansky): Review & Update -->
-
-1 ) The existence of non-custodial node operations (scheduled for V0.7) may open the possibility for on-chain delegation of stake for node running. It may or may not prove easier to accomplish this goal by securitized lending of tokens via Wrapped POKT. Further investigation is needed.
-
-2.a) Modifying the formula(s) around how MaxRelaysPerSession is calculated such that applications can receive some benefit or credit for unused access. This is already envisioned to some degree by the non-inflationary stage of the network evolution.
-
-2.b) Allowing application excess usage to be paid for by stake reduction. Also something that is envisioned to be needed when the network reaches the non-inflationary stage. But perhaps needed sooner.
-
-2.c) Optimistic Payments (in addition to Optimistic Rewards): Rather than the protocol strictly enforcing rate limits, which requires the protocol to track relays, we treat the app as innocent until proven guilty. We assume that the app will adhere to the allowance they’ve staked for, we don’t strictly enforce rate limits in the protocol, then we burn the app’s stake if other actors (e.g. fishermen) can prove they lied. Due to the session structure, just as we monitor servicers, we could also monitor apps. And if we’re monitoring the volume of work that apps request, these volume proofs can be the input to determining inflation. This model has the added benefit of enabling more flexibility in how apps use their allowance. If an app has spiky traffic (e.g. GoodDollar), they can exceed their permitted throughput temporarily along as they average out within their long-term rate limits.
-
-3 ) Possibility of somehow “overlapping” geo-zones such that a service node with very good latency/performance might be included in nearby zones if it is capable of providing service at an acceptable level.
-
-4 ) Feasibility of “loosening” the parameters around application staking such that an application may access multiple relayChains with a single ATT using a % allocation or aggregation among relayChain usage.
-
-1. Harberger Tax on Servicer Selection: What if apps could choose the nodes they want to receive service from? If multiple apps choose a node, the node gets re-assigned to the highest-staked app (Harberger Tax style), and the losing app gets nodes subbed in according to QoS, where highest-TestScore nodes are priority-assigned to the highest-staked apps. This way we have an on-chain continuous auction mechanism for maximizing the value captured of an app’s willingness-to-pay for high quality service. This also feeds into my other suggestions about not having staking requirements for “trial period” Servicers, because it is another mechanism that ensures the highest-staked apps don’t have quality degraded by trial Servicers.
-
-X ) CastNet: AKA Phase 2
-
-The initial and final goal of V1 was and is: “To build what we would have built from the beginning if we had the time, resources and experience needed”. V0 has been a long, hard and extremely successful balancing act. The distance between V0 and the final goal is simply too large to safely traverse in a single revision. There are too many unknown and unproven steps. Nonetheless, the goal remains in sight and the path to its achievement is visible.
-
-At this time we have two possible versions of CastNet which pass initial logical review, and it’s expected that the final version will contain elements of both.
-
-Candidate #1: The Evolution path
-
-V1 brings off chain data verification checks via time stamped and tamper proof log files, which are checked by Servicers who forward potentially actionable enfractions to the DAO for review and action if needed. The evolution path envisions condensing and hashing those logs and reports into a verifiable “side chain” and automating the review and action process to something that happens without a DAO vote. Although (at least at first) DAO override ability is expected.
-
-- Pro: Step by Step logical conversion of existing processes
-- Pro: Little or no overhead to main-chain.
-- Pro: Easy to revert to prior step(s) if needed.
-- Con: Kinda “Old School Hacky”
-- Con: Leaves an echo, or skeleton of the fisherman behind, but no KYC or oversight needed.
-
-Candidate #2: The Byzantine Revolution
-
-This path sees the direct conversion of Fishermen functionality into a multi member quorum of deterministic non-predictable validator nodes. Log checks and review are not needed in this model, however some degree of logging will likely exist during development and early deployment as a sanity check. In this model the reward for quorum verification process is based on degree of consensus overlap with the other quorum members.
-
-- Pro: Modern On-chain solution
-- Pro: Logically verifiable both on paper and on chain.
-- Con: Increase in on-chain data, and transactions (How much? That’s the 64 POKT question)
-- Con: Single step, consensus breaking change
-- Con: Greater complexity of design.
 
 ## References
 
