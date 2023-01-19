@@ -8,64 +8,211 @@
 \usepackage[dvipsnames]{xcolor}
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage{algorithm}
+\usepackage{geometry}
 \usepackage{algpseudocode}
- \algnewcommand{\Initialize}[1]{%
+\usepackage{amsmath}
+
+\geometry{
+    a4paper,
+    total={210mm,297mm},
+    % paperwidth=220mm,
+    % paperheight=1500pt,
+    left=20mm,
+    right=20mm,
+    top=20mm,
+    bottom=20mm,
+}
+
+\setcounter{totalnumber}{100}
+
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\aggregate}{aggregate}
+
+\algnewcommand{\Initialize}[1]{%
           \State \textbf{Initialize:}
           \Statex \hspace*{\algorithmicindent}\parbox[t]{.8\linewidth}{\raggedright #1}
         }
-\usepackage{geometry}
- \geometry{
- a4paper,
- total={210mm,297mm},
- left=20mm,
- right=20mm,
- top=20mm,
- bottom=20mm,
- }
-\begin{document}
 
+\begin{document}
 \begin{algorithm}
-  \caption{HotPocket Leader Selection}
+\caption{HotPOKT Utilities}
+    \begin{algorithmic}[1]
+      \Function{ProposeMessage}{$step$, $QC$}
+        \State return  {Message}(
+          \State \indent \textbf{Step}: step,
+          \State \indent \textbf{Height}: self.height,
+          \State \indent \textbf{Round}: self.round,
+          \State \indent \textbf{Block}: self.block,
+          \State \indent \textbf{JustifyQC}: QC
+          \State )
+      \EndFunction
+      \vspace {5 mm}
+      \Function{VoteMessage}{$step$, $block$}
+        \State partialSignature = sign(step, self.height, self.round, block)
+        \State message = {Message}(
+          \State \indent \textbf{Step}: step,
+          \State \indent \textbf{Height}: self.height,
+          \State \indent \textbf{Round}: self.round,
+          \State \indent \textbf{Signature}: partialSignature,
+          \State )
+        \State return message
+      \EndFunction
+      \vspace {5 mm}
+      \Function{InterruptRound}{}
+        \State self.round = self.round + 1
+        \State self.step = PREPARE
+        \State self.leader = nil
+        \newline {\color{Red} \hspace{4 mm} // NOTE: Not using TimeoutQC as in Vanilla Hotstuff}
+        \State \textbf{broadcast} ProposeMessage(NEWROUND, self.highPrepareQC) → valSet
+      \EndFunction
+      \vspace {5 mm}
+      \Function{NewHeight}{}
+        \State self.height = height+1
+        \State self.round = 0
+        \State self.step = PREPARE;
+        \State {\color{MidnightBlue} self.highPrepareQC} = nil
+        \State {\color{Orange} self.LockedQC} = nil
+        \State self.leader = nil
+        \State self.valSet = CommitBlock()
+        \newline {\color{Red} \hspace{4 mm} // NOTE: Not using CommitQC as in Vanilla Hotstuff}
+        \State \textbf{broadcast} ProposeMessage(NEWROUND, nil) → valSet
+      \EndFunction
+      \vspace{5 mm}
+      \Function{IsValidProposal}{$prepareMsg$}
+         \If{$IsValidQC(prepareMsg)$}
+            \If{
+                {\color{Orange} $self.lockedQC$}$ == nil$
+                \State $\lor$ {\color{Orange} $self.lockedQC.height$}$ < prepareMsg.JustifyQC.height$
+                \State $\lor$ {\color{Orange} $self.lockedQC.round$}$ < prepareMsg.JustifyQC.round$
+            } {\color{Gray} { // liveness rule}}
+             \State \textbf{return} True
+           \Else
+             \If {$prepareMsg.JustifyQC.block$ extends from {\color{Orange} $self.lockedQC$}$.block$} {\color{Gray} { // safety rule}}
+                \State\textbf{return} True
+             \EndIf
+           \EndIf
+         \EndIf
+         \State \textbf{return} False
+       \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+\begin{algorithm}
+  \caption{HotPOKT}
   \begin{algorithmic}[1]
       \Initialize{
-        \strut$valSet = UniversalSet$ \\
-        \strut$expectedCandidateLeaders=1$ \\
-        \strut$publicKey= OperatorPubkey$\\
-        \strut$sk = VRFSecretKey$\\
-        \strut$votingPower=StakeAmount$\\
-        \strut$totalVotingPower=TotalValSetStake$ \\
-        \strut \\
+        \strut$height=1$ {\color{Gray} // Special case for Genesis (height = 0) omitted} \\
+        \strut$round=0$ \\
+        \strut$step=NEWROUND$ \\
+        \strut$block=nil$ { \color{Gray} // The block being proposed by the leader} \\
+        {\color{MidnightBlue} \strut$highPrepareQC$}$=nil$ \\
+        {\color{Orange} \strut$lockedQC$}$=nil$ \\
+        \strut$leader=nil$ \\
+        \strut$valSet=UniversalValidatorSet$ \\
       }
-      \Function{IsLeaderCandidate}{$height, round, lastNLeaders, roundRobinLeader$} {\color{Bittersweet} \Comment{Candidate Selection}}
-         \State seed = \textbf{append}(height, round, lastNLeaders, publicKey)
-         {\color{OliveGreen}\State VRFOut, VRFProof = sk.Prove(seed)} // deterministic out using secret key
-         {\color{MidnightBlue}\State result = CDF(votingPower, totalVotingPower, expectedCandidateLeaders, VRFOut)} // sortition
-         \If{$result\neq0$} // must be non-zero to be a candidate
-           \State \textbf{return} True, result, VRFOut, VRFProof
-         \ElsIf{$roundRobinLeader.PubKey == publicKey$} // is fallback leader
-           \State \textbf{return} True, nil, nil, nil
-         \Else \quad // not a leader
-         \State \textbf{return} False, nil, nil, nil
-         \EndIf
-       \EndFunction \\
-       \Function{SelectLeader}{$sortitionLeaders, roundRobinLeader$} {\color{Bittersweet} \Comment{Leader Selection}}
-         \State highLeader, highProof = nil, 0
-         \For{leader ← sortitionLeaders}
-             \State seed = \textbf{append}(height, round, lastNLeaders, leader.publicKey)
-             \If{{\color{OliveGreen}$!leader.VRFPub.Verify(seed, leader.VRFOut, leader.VRFProof)$}}
-               \State \textbf{Continue}
-             \ElsIf{{\color{MidnightBlue}$leader.CDFResult==0$}} // must be non-zero to be a candidate
-               \State \textbf{Continue}
-             \ElsIf{$highLeader.VRFProof < leader.VRFProof$}
-               \State highLeader = leader
-             \EndIf
-         \EndFor
-         \If{$highLeader \neq nil$}
-            \State \textbf{return} highLeader
-         \Else
-           \State \textbf{return} roundRobinLeader
-         \EndIf
-       \EndFunction
+      \bigskip
+      \State \emph{ \color{Gray} // New rounds repeated for each height until a ProposalBlock is successfully committed.}
+      \For{round ← true }
+        \vspace {5 mm}
+        \newline ${\color{Bittersweet} {\rhd Leader Election}}$
+        \State leader = SelectLeader(height, round, valSet, ...)
+        \State isLeader = (self.Addr == leader.Addr)
+        \State step = isLeader ? NEWROUND : PREPARE
+        \vspace {5 mm}
+        \newline ${\color{Bittersweet} {\rhd Prepare Phase}}$
+        \If{$IsLeader$}
+            \newline {\color{Red} \hspace{10mm} // IMPORTANT: Need to validate each prevPrepareQC, discard invalid, and check for {+2/3}}
+            \State newRoundMsgs = \textbf{wait} for {+2/3} ProposeMessages\{\textsc{NEWROUND}, height, round, {\color{MidnightBlue} prevPrepareQC}\} ← valSet
+            \State step = PREPARE
+            \State {\color{MidnightBlue} prevHighPrepareQC} = ${\argmax_{m \in newRoundMsgs} \{m.JustifyQC.Height\}.JustifyQC}$ {\color{Gray} { // may be nil}}
+            \If{
+                {\color{MidnightBlue} $prevHighPrepareQC$}$ == nil$
+                \State $\lor$ {\color{MidnightBlue} $prevHighPrepareQC$}$.height < height$
+                \State $\lor$ {\color{MidnightBlue} $prevHighPrepareQC$}$.round < round$
+            }
+                \State block = NewProposalBlock() {\color{Gray} // extends from highPrepareQC.block if not nil}
+            \Else
+                \newline {\color{Red} \hspace{14mm} // IMPORTANT: Need to compare against lockedQC here}
+                \State block = {\color{MidnightBlue} prevHighPrepareQC}.block
+            \EndIf
+            \newline {\color{Red} \hspace{10mm} // NOTE: prevHighPrepareQC may be nil}
+            \State \textbf{broadcast} ProposeMessage(PREPARE, {\color{MidnightBlue} prevHighPrepareQC}) → valSet
+        \Else \quad {\color{Gray} { // IsReplica}}
+            \State prepareMsg = \textbf{wait} for ProposeMessage\{PREPARE, height, round, block, prepareQC\} ← leader
+            \If{$IsValidProposal(prepareMsg)$}
+              \newline {\color{red} \hspace{15 mm} // IMPORTANT: Need to compare against lockedQC here}
+              \State {\color{Orange} lockedQC} = nil
+              \State {\color{MidnightBlue} highPrepareQC} = nil
+              \State step = PRECOMMIT
+              \State \textbf{send} VoteMsg(PREPARE, prepareMsg.block) → leader
+            \Else
+              \State InterruptRound()
+            \EndIf
+          \EndIf
+    \end{algorithmic}
+\end{algorithm}
+\begin{algorithm}
+    \bigskip
+    \newline ${\color{Bittersweet} {\rhd Precommit Phase}}$
+    \caption{HotPOKT - Continued...}
+      \begin{algorithmic}
+        \If{$IsLeader$}
+            \State prepareMsgs = \textbf{wait} for {+2/3} VoteMessage\{\textsc{PREPARE}, height, round, partialSig\} ← valSet
+            \State step = PRECOMMIT
+            \newline {\color{Red} \hspace{4 mm } // IMPORTANT: Validate each partialSig or discard}
+            \State thresholdSig = ${\aggregate_{m \in prepareMsgs} \{m.partialSignature\}}$
+            \State prepareQC = QC{step, height, block, thresholdSig}
+            \State \textbf{broadcast} ProposeMessage(PRECOMMIT, height, round, prepareQC) → valSet
+        \Else \quad {\color{Gray} { // IsReplica}}
+          \State preCommitMsg = \textbf{wait} for ProposeMessage\{PRECOMMIT, height, round, prepareQC\} ← leader
+          \If{$IsValidQC(preCommitMsg.JustifyQC)$}
+            \State {\color{MidnightBlue}highPrepareQC} = preCommitMsg.JustifyQC
+            \State step = COMMIT
+            \State \textbf{send} VoteMessage(PRECOMMIT, preCommitMsg.block) → leader
+          \Else
+            \State InterruptRound()
+          \EndIf
+        \EndIf
+      \vspace {5 mm}
+      \newline ${\color{Bittersweet} {\rhd Commit Phase}}$
+      \If{$IsLeader$}
+          \State preCommitMsgs = \textbf{wait} for {+2/3} VoteMessage\{\textsc{PRECOMMIT}, height, round, partialSig\} ← valSet
+          \State step = COMMIT
+          \newline {\color{Red} \hspace{4 mm } // IMPORTANT: Validate each partialSig or discard}
+          \State thresholdSig = ${\aggregate_{m \in preCommitMsgs} \{m.partialSignature\}}$
+          \State preCommitQC = QC\{step, height, block, thresholdSig\}
+          \State \textbf{broadcast} ProposeMessage(COMMIT, height, round, preCommitQC) → valSet
+        \Else \quad {\color{Gray} { // IsReplica}}
+          \State commitMsg = \textbf{wait} for ProposeMessage\{COMMIT, height, round, preCommitQC\} ← leader
+          \State step = COMMIT
+          \If{$IsValidQC(commitMsg)$}
+            \State {\color{Orange} lockedQC} = commitMsg.precommitQC
+            \State \textbf{send} VoteMessage(COMMIT, commitMsg.block) → leader
+          \Else
+            \State InterruptRound()
+          \EndIf
+        \EndIf
+        \State
+        \newline ${\color{Bittersweet} {\rhd Decide Phase}}$
+        \newline {\color{Red} \hspace{0 mm} // NOTE: Leader also needs to process the message like a replica to commit the block and start new height.}
+        \If{$IsLeader$}
+          \State commitMsgs = \textbf{wait} for {+2/3} VoteMessage\{\textsc{COMMIT}, height, round, partialSig\} ← valSet
+          \State step = DECIDE
+          \State thresholdSig = ${\aggregate_{m \in commitMsgs} \{m.partialSignature\}}$
+          \State commitQC = QC\{step, height, block, thresholdSig\}
+          \State \textbf{broadcast} ProposeMessage(DECIDE, height, round, commitQC) → valSet
+
+        \Else \quad {\color{Gray} { // IsReplica}}
+            \State decideMsg = \textbf{wait} for ProposeMessage\{DECIDE, height, round, commitQC\} ← leader
+            \State step = DECIDE
+            \If{$IsValidQC(decideMsg)$}
+                \newline {\color{red} \hspace{8 mm} // COMMIT BLOCK}
+                \State NewHeight()
+            \Else
+                \State InterruptRound()
+          \EndIf
+        \EndIf
+      \EndFor
+      \State
   \end{algorithmic}
 \end{algorithm}
 \end{document}

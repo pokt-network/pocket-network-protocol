@@ -82,7 +82,7 @@ The VRF seed input is simple: the hash of the most recent N Leaders Addresses (o
 In practice, this means there can be multiple or zero Leaders selected for any round. If multiple Candidate Leaders continue to exist, Validators will choose to participate in core consensus execution with the candidate Leader with the highest VRF Proof. If no VRF Candidate Leaders exist, the algorithm falls back to a simple Weighted Round-Robin algorithm. This secondary execution runs in parallel and always produces exactly one candidate with a VRF proof value of zero.
 
 <p align="center">
-<img src="consensus_leader_selection.png">
+<img src="hotpokt_leader_election.png">
 </p>
 
 ### 3.1.4 Prepare Step
@@ -133,8 +133,9 @@ A round may be interrupted and considered incomplete if any validation checks fa
 The Pacemaker Protocol achieves Round synchronization through exponential StepTimeouts and QuorumCertificate processing. Specifically, if a Validator witnesses a QuorumCertificates Round/Step higher than Round/Step, the Pacemaker advances the Validator to QuorumCertificate.Round/Step. In addition to the automatic round advancing, the Pacemaker increases StepTimeouts exponentially: StepTimeouts = StepTimeout^(Round+1). This mechanism ensures an eventual collision of Rounds among Validators. An aspect of HotPocket that differs from other implementations is that Pocket Network's 1.0 Utility Module much prefers consistent Commit times in order to most accurately uphold the SLA with the network's Applications. The Pacemaker Protocol attempts to satisfy the consistent Commit time requirement with a combination of an awareness of the last successful Commit time and a dynamic balancing of StepTimeouts.
 
 <p align="center">
-<img src="consensus_hotpocket_1.png">
-<img src="consensus_hotpocket_2.png">
+<img src="hotpokt_1.png">
+<img src="hotpokt_2.png">
+<img src="hotpokt_3.png">
 </p>
 
 ## 3.2 Blockchain Protocol Specification
