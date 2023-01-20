@@ -50,7 +50,7 @@ In this section, we will explain the structure that will power Pocket Network V1
 
 ## Introduction 
 
-During our [research](#), we have been able to identify a few good candidate structures/algorithms for our overlay, out of which we thought Gemini (_previous version of spec is available in (add link))_ would be serve us best, however, having ran a few simulations and performed a few projections, we realized that as scalable as Gemini is, we could still face some challenges before we reach a relatively significant network size (_peer count > 10K_)
+During our [research](#), we have been able to identify a few good candidate structures/algorithms for our overlay, out of which we thought Gemini (_previous version of spec is available in (add link))_ would be serve us best; however, having ran a few simulations and performed a few projections, we realized that as scalable as Gemini is, we could still face some challenges before we reach a relatively significant network size (_peer count > 10K_)
 
 
 All of a sudden, the challenge was not scaling to a billion nodes but rather accommodating for cases when the network is still at its infancy and growing, a 1000 and below.
@@ -96,7 +96,7 @@ This approach is a very simple one. No specifically complex classification or ro
 
 You can learn more about how we've come to these conclusions by reading the original presentation document.
 
-In summary, RainTree is a very fast, scalable and highly reliable optionaly redundant gossip algorithm that relies on the fact that a binary search is optimal for most randomly distributed datasets.
+In summary, RainTree is a very fast, scalable, highly reliable, and optionaly redundant gossip algorithm that relies on the fact that a binary search is optimal for most randomly distributed datasets.
 
 To gossip a message M, RainTree uses a distance-based metric to build a binary tree view of the network and propagates information down the tree. This traversal algorithm follows a tree reconstruction algorithm such that the resulting tree is one of three branches and not two.
 
@@ -175,16 +175,12 @@ This message is denoted as a `IGYW` message, and it propagates following this al
 
 a IGYW ( I GOT, YOU WANT?) mechanism is put in use such that a given peer does not fully send a message until the receiving part signals that it did not receive it before.
 
-This is achieved by level 1 nodes, such that once they have received a message, they do the following:
+This is achieved by level 1 nodes, such that once they have received a message, they do the following for both their immediate left and right neighbor:
 
-- Send IGYW to immediate left neighbor:
+- Send IGYW to neighbor:
   - If answer is Yes, send full message and go to step 2
   - If answer is No, go to step 2
   - If no answer, increment left counter and go to step 1
-- Send IGYW to immediate right neighbour:
-  - If answer is Yes, send full message
-  - If answer is No, 
-  - If no answer, increment right counter and go to step 2.
 
 In pseudo-code:
 
@@ -200,14 +196,14 @@ This process is an ACK/ADJUST/RESEND mechanism, for if no ACK was received, an A
 
 As with any DHT-like network, some level of network maintenance (also known as membership maintenance/protocol or churn management) is required to keep the network connected.
 
-RainTree is different in that it's similar to Constant Hop networks, in that its churn management process is minimal to non-existent. RainTree requires every member to have a close-to-full view of the network.
+In contrast, RainTree is more similar to Constant Hop networks in that its churn management process is minimal to non-existent. RainTree requires every member to have a close-to-full view of the network.
 
 
 ##### 5.1 Join/Discovery
 
 Any new peer should be able to join the network and participate in it seamlessly. To ensure that our Join/Discovery process achieves this, we would like to answer the following requirements:
 
-Any given random peer should be able to discover other peers in the network from their given current perspective of the network (either their existing state their seed adresse(s))
+Any given random peer should be able to discover other peers in the network from their given current perspective of the network (either their existing state or their seed adress(es))
 Any given peer can perform basic discovery and can safely fallback to such a procedure in the absence or presence of specialized peers in the network with no problem at all.
 
 To answer these requirements efficiently, we baked the discovery process into the join process.
@@ -220,7 +216,7 @@ When a new peer X joins the network:
 It first contacts an existing bootstrap peer(s) E.
 Peer(s) E will answer with their peer lists.
 Peer X retrieves the lists and performs a raintree propagation of a Join Message with its Address in it denoted as the new joiner.
-ACKs can be enforced to keep peers from being filtered from peer XÕs peer list due to lack of response.
+ACKs can be enforced to keep peers from being filtered from peer X's peer list due to lack of response.
 
 This way, when a peer joins, it is immediately given at least one peer list it can start working with, and can by itself clean it up using ACKs and timeouts.
 
@@ -228,9 +224,9 @@ This way, when a peer joins, it is immediately given at least one peer list it c
 
 A peer that wants to leave the network basically just disconnects and relies on the maintenance routine to "discover" and broadcast its unavailability.
 
-##### Membership Pings
+##### 5.4 Membership Pings
 
-RainTree per design can perform flawlessly without a periodic pings protocol, as the Gossip algorithm comes with enough to inform it about the recipients state, however we are interested in implementing a churn management protocol in separation of raintree that further enhances failure detection.
+RainTree per design can perform flawlessly without a periodic pings protocol, as the Gossip algorithm comes with enough to inform it about the recipients state; however, we are interested in implementing a churn management protocol, separation from raintree that further enhances failure detection.
 
 For the time being, this is a work-in-progress.
 
@@ -262,10 +258,10 @@ Transport logic and security are key elements in the inner working of the p2p ne
 
 ##### 6.1 Connection Lifecycle
 
-A connection is initiated by the peers
-Handshake protocol is initiated and peers exchange secrets to establish a secure encrypted channel.
-Messages are then sent on-demand while the connection is alive.
-The connection uses a default timeout to ensure that if idle for x amount of time resources are freed and no unnecessary allocations happen.
+1. A connection is initiated by the peers.
+1. Handshake protocol is initiated and peers exchange secrets to establish a secure encrypted channel.
+1. Messages are then sent on-demand while the connection is alive.
+1. The connection uses a default timeout to ensure that if idle for x amount of time, resources are freed and no unnecessary allocations happen.
 
 ##### 6.2 Handshake protocol draft
 
@@ -278,10 +274,10 @@ The connection uses a default timeout to ensure that if idle for x amount of tim
 3. Peers convert their ephemeral Ed25519 private keys into Curve25519 private keys,
 4. Peers establish a shared secret by performing ECDH with their private Curve25519 private key and their peers Curve25519 public key.
 5. Peers exchange the produced shared key as follows:
-    1. Peer **A** constructs a message of bytes as follows: `[peer.persistentPubkey..., sharedKey...]`
-    2. Peer **A** signs it with its persistent private key and sends it to **B**
-    3. Peer **B** decrypts and the message and sends back its public key and shared key in the same format: `[peer.persistentPubkey..., sharedKey...]`
-    4. Peer **A** upon receiving the response reconstructs the message with peer **B**'s publickey and the shared secret it produced earlier and verifies it using **B**'s persistent Publickey.
+    1. Peer **A** constructs a message of bytes as follows: `[peerA.persistentPubkey..., sharedKey...]`
+    2. Peer **A** signs it with its persistent private key and sends this signature along with its public key to **B**
+    3. Peer **B** decrypts the message and responds with its public key and signature (produced with the analagous inputs in the same format: `[peerB.persistentPubkey..., sharedKey...]`
+    4. Peer **A**, upon receiving the response, reconstructs the message with peer **B**'s publickey and the shared secret it produced earlier and verifies it using **B**'s persistent Publickey.
 6. Peers use the shared secret as a symmetric key and communicate from then on with messages encrypted/decrypted via AES 256-bit GCM with a randomly generated 12-byte nonce.
 
 ##### 6.3 Connections Pooling
