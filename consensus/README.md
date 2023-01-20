@@ -43,7 +43,7 @@ Conceptually speaking, Pocket Network's Consensus Protocol enables a set of repl
 
 ### 3.1.1 Consensus Protocol
 
-HotPocket is [Basic Hotstuff](https://arxiv.org/abs/1803.05069) with the addition of a defined (3.1.3) VRF leader selection algorithm and a custom (3.1.9) pacemaker mechanism for synchronization during rounds. The HotPocket algorithm is executed once per BlockHeight to Commit a single Block into finality. Each height is logically broken into rounds and each round into multiple steps. In ideal conditions, each height consists of exactly 1 round made of 4 steps. However, in faulty scenarios, multiple rounds may elapse before a Block is decided into finality, and a round will be interrupted before executing all four steps. In order for a block to be successfully decided on, a leader must collect Signatures for +⅔ of Validators in the Prepare, PreCommit, and Commit steps. A representative collection of +⅔ Signatures for any of the three phases is known as a QuorumCertificate. HotPocket is illustrated with the following state machine:
+HotPocket is [Basic Hotstuff](https://arxiv.org/abs/1803.05069) with the addition of a defined (3.1.3) VRF leader selection algorithm and a custom (3.1.9) pacemaker mechanism for synchronization during rounds. The HotPocket algorithm is executed once per BlockHeight to Commit a single Block into finality. Each height is logically broken into rounds and each round into multiple steps. In ideal conditions, each height consists of exactly 1 round made of 4 steps. However, in faulty scenarios, multiple rounds may elapse before a Block is decided into finality, and a round will be interrupted before executing all four steps. In order for a block to be successfully decided on, a leader must collect Signatures for +⅔ of Validators in the Prepare, PreCommit, and Commit steps. A representative collection of +⅔ Signatures for any of the three phases is known as a **QuorumCertificate (QC)**. HotPocket is illustrated with the following state machine:
 
 <p align="center">
 <img src="consensus_state_machine.png">
@@ -77,7 +77,7 @@ Pocket Network 1.0's Leader Selection leverages a Verifiable Random Function to 
 
 A Validator participating in the Leader Selection protocol uses a pre-registered VRF Keypair to calculate a deterministic OutputValue and Proof from seed input. It is important to note that Validator VRF keys expire after a certain number of blocks and require a period key refresh.
 
-The VRF seed input is simple: the hash of the most recent N Leaders Addresses (or seed from genesis), the Validator's Operator Public Key, BlockHeight, and the Round number. The participating Validator then executes a deterministic Cumulative Distribution Function using the VRF OutputValue, StakeAmount, and the global ValidatorTotalStake as input. If the CDF Output is 'success','he Validator is a Candidate Leader and may produce a block.
+The VRF seed input is simple: the hash of the most recent N Leaders Addresses (or seed from genesis), the Validator's Operator Public Key, BlockHeight, and the Round number. The participating Validator then executes a deterministic Cumulative Distribution Function using the VRF OutputValue, StakeAmount, and the global ValidatorTotalStake as input. If the CDF Output is 'success', the Validator is a Candidate Leader and may produce a block.
 
 In practice, this means there can be multiple or zero Leaders selected for any round. If multiple Candidate Leaders continue to exist, Validators will choose to participate in core consensus execution with the candidate Leader with the highest VRF Proof. If no VRF Candidate Leaders exist, the algorithm falls back to a simple Weighted Round-Robin algorithm. This secondary execution runs in parallel and always produces exactly one candidate with a VRF proof value of zero.
 
@@ -89,7 +89,7 @@ In practice, this means there can be multiple or zero Leaders selected for any r
 
 Upon entering the Prepare Phase, the Leader receives NewRoundMessages from +⅔ Validators. NewRoundMessages contain a HighPrepareQC variable representing the highest PrepareQC that any Validator witnessed. The HighPrepareQC formally dictates whether or not a lock could exist for the specified round.
 
-If HighPrepareQC is null or for the previous height for all NewRoundMessages, the Leader reaps the Mempool for a bounded set of valid transactions and forms a novel ProposalBlock. If HighPrepareQC is non-null, and is for the current height, the Leader must use the Block value associated with the HighPrepareQC and attach the HighPrepareQC for justification in case there exist Validators with a LockedQC from a lower round. The Leader then directly broadcasts the Proposal to all of the registered Validators.
+If HighPrepareQC is null for the previous height for all NewRoundMessages, the Leader reaps the Mempool for a bounded set of valid transactions and forms a novel ProposalBlock. If HighPrepareQC is non-null, and is for the current height, the Leader must use the Block value associated with the HighPrepareQC and attach the HighPrepareQC for justification in case there exist Validators with a LockedQC from a lower round. The Leader then directly broadcasts the Proposal to all of the registered Validators.
 
 When a Validator receives the PrepareMsg, it votes with a signature according to the following protocol:
 
@@ -130,7 +130,7 @@ A round may be interrupted and considered incomplete if any validation checks fa
 
 ### 3.1.9 Pacemaker Protocol:
 
-The Pacemaker Protocol achieves Round synchronization through exponential StepTimeouts and QuorumCertificate processing. Specifically, if a Validator witnesses a QuorumCertificates Round/Step higher than Round/Step, the Pacemaker advances the Validator to QuorumCertificate.Round/Step. In addition to the automatic round advancing, the Pacemaker increases StepTimeouts exponentially: StepTimeouts = StepTimeout^(Round+1). This mechanism ensures an eventual collision of Rounds among Validators. An aspect of HotPocket that differs from other implementations is that Pocket Network's 1.0 Utility Module much prefers consistent Commit times in order to most accurately uphold the SLA with the network's Applications. The Pacemaker Protocol attempts to satisfy the consistent Commit time requirement with a combination of an awareness of the last successful Commit time and a dynamic balancing of StepTimeouts.
+The Pacemaker Protocol achieves Round synchronization through exponential StepTimeouts and QuorumCertificate processing. Specifically, if a Validator witnesses a valid QuorumCertificate.Round/Step higher than Round/Step, the Pacemaker advances the Validator to QuorumCertificate.Round/Step. In addition to the automatic round advancing, the Pacemaker increases StepTimeouts exponentially: StepTimeouts = StepTimeout^(Round+1). This mechanism ensures an eventual collision of Rounds among Validators. An aspect of HotPocket that differs from other implementations is that Pocket Network's 1.0 Utility Module much prefers consistent Commit times in order to most accurately uphold the SLA with the network's Applications. The Pacemaker Protocol attempts to satisfy the consistent Commit time requirement with a combination of an awareness of the last successful Commit time and a dynamic balancing of StepTimeouts.
 
 <p align="center">
 <img src="hotpokt_1.png">
@@ -234,7 +234,7 @@ Regardless of type of sync, once fully synced, the syncing process continues at 
 
 ### 4.1 Forking-Attack: Short-Range
 
-Pocket Network 1.0 Utility Module requires all Validators to be bonded during active participation. When a Validator attempts to unbound, they are subject to a freeze period, where the related tokens are still available to be slashed for economic penalty. Additionally, when a Forking-Attack occurs, it is identified through Consensus Evidence (conflicting blocks signed by the same Validator) and a proportional amount of their stake is slashed/burned.
+Pocket Network 1.0 Utility Module requires all Validators to be bonded during active participation. When a Validator attempts to unbond, they are subject to a freeze period, where the related tokens are still available to be slashed for economic penalty. Additionally, when a Forking-Attack occurs, it is identified through Consensus Evidence (conflicting blocks signed by the same Validator) and a proportional amount of their stake is slashed/burned.
 
 ### 4.2 Forking-Attack: Long-Range
 
@@ -246,7 +246,7 @@ Sybil Attacks are mitigated in Pocket Network 1.0 by using StakeAmount as Voting
 
 ### 4.4 Leader DDOS
 
-Given the Pocket Leader Selection and core Consensus Algorithm, Pocket Network 1.0 is reasonably DDOS resistant. An adversary does not know the Leader of any height/round until the maximum network delay bound is exceeded for the LeaderSelection Phase. Once the Pre-Commit Phase is completed, correct replicas will remember a BlockProposal so DDOS for censorship is futile. While the Consensus algorithm is vulnerable to Leader DDOS for between the end of LeaderSelection and the end of Decide Phase, the short window of time between these two phases and the addition of proper Validator deployment practices mitigates a feasible execution.
+Given the Pocket Leader Selection and core Consensus Algorithm, Pocket Network 1.0 is reasonably DDOS resistant. An adversary does not know the Leader of any height/round until the maximum network delay bound is exceeded for the LeaderSelection Phase. Once the Pre-Commit Phase is completed, correct replicas will remember a BlockProposal so DDOS for censorship is futile. While the Consensus algorithm is vulnerable to Leader DDOS for the duration between the end of LeaderSelection and the end of Decide Phase, the short window of time between these two phases and the addition of proper Validator deployment practices mitigates a feasible execution.
 
 ### 4.5 Bribery Attack
 
@@ -282,4 +282,4 @@ See [Ethereum.StackExchange Discussion](https://ethereum.stackexchange.com/quest
 
 **Opinion**: Pocket 1.0 should be using a Nakamoto consensus algorithm and not BFT.
 
-**Response**: Pocket Network's Utility module relies on immediate rather than probabilistic finality. By design, Nakamoto Consensus by design, incurs ephemeral short-term forks, resulting in a split state. A split state in Pocket Network implies a temporary 'non-deterministic state until a certain number of confirmations occur. Considering the security and functional properties of the Utility specification, this is an unacceptable alternative.
+**Response**: Pocket Network's Utility module relies on immediate rather than probabilistic finality. By design, Nakamoto Consensus incurs ephemeral short-term forks, resulting in a split state. A split state in Pocket Network implies a temporary 'non-deterministic' state until a certain number of confirmations occur. Considering the security and functional properties of the Utility specification, this is an unacceptable alternative.
