@@ -16,6 +16,7 @@ The implementation of the protocol is accessible [here](https://github.com/pokt-
 - [Consensus](consensus/README.md)
 - [P2P](p2p/README.md)
 - [Persistence](persistence/README.md)
+- [Cross module integrations](integrations/README.md)
 
 ## Support & Contact
 
