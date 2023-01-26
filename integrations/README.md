@@ -62,7 +62,7 @@ Regardless of the underlying algorithm, `P2P` is a stateful business, there's st
 
 In particular, when it comes `Network Churn` where `Actors` such as `Validators` are involved, joining and leaving the network, P2P has to integrate with Persistence in order to keep track of which actors were part of the network at that point in time (`Height` in Protocol terms).
 
-The running instance of the P2P module in a node, keeps in memory an "Address List" of the peers and that's being updated constantly.
+The running instance of the P2P module in a node, keeps an in memory "Address List" of the peers that's being constantly updated.
 
 Whenever the `Consensus` determines a new `Height`, an event via the `Bus` notifies its listeners (`P2P` included) that the list of the current `Actors` that are part of the network has to be stored in `Persistence`.
 
