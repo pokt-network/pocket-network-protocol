@@ -64,7 +64,7 @@ In particular, when it comes `Network Churn` where `Actors` such as `Validators`
 
 The running instance of the P2P module in a node, keeps an in memory "Address List" of the peers that's being constantly updated.
 
-Whenever the `Consensus` determines a new `Height`, an event via the `Bus` notifies its listeners (`P2P` included) that the list of the current `Actors` that are part of the network has to be stored in `Persistence`.
+Whenever the `Consensus` module determines a new `Height`, an event via the `Bus` notifies its listeners (`P2P` included) that the list of the current `Actors` that are part of the network has to be updated at the `Persistence` layer.
 
 Essentially, in simple terms, we can now call a function that returns the list of the Validators at a certain `Height`.
 
