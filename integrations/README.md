@@ -33,7 +33,7 @@ Without going too much into technical details, its main features for the purpose
 
 Regardless of the underlying algorithm, `P2P` is a stateful business, there's state that has to be stored in memory (RAM) but there's also state that has to be persisted on the blockchain.
 
-In particular, when it comes `Network Churn` where `Actors` such as `Validators` are involved, joining and leaving the network, P2P has to integrate with Persistence in order to keep track of which actors were part of the network at that point in time (`Height` in Protocol terms).
+In particular, when it comes `Network Churn` where `Actors` such as `Validators` are involved, joining and leaving the network, [P2P](https://github.com/pokt-network/pocket-network-protocol/blob/main/p2p/README.md) has to integrate with [Persistence](https://github.com/pokt-network/pocket-network-protocol/blob/main/persistence/README.md) in order to keep track of which actors were part of the network at that point in time (`Height` in Protocol terms).
 
 The running instance of the P2P module in a node, keeps an in memory "Address List" of the peers that's being constantly updated.
 
