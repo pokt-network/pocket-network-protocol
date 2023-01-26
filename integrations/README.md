@@ -3,7 +3,7 @@
 <p align="center">
     @andrewnguyen22 - Andrew Nguyen<br>
     @olshansk - Daniel Olshansky<br>
-    @polyMatto - Alessandro De Blasis<br>
+    @deblasis - Alessandro De Blasis<br>
     Version 1.0.0
 </p>
 
