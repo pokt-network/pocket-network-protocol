@@ -1,38 +1,11 @@
 # Pocket Network 1.0 Cross Module Integrations
 
-<table style="text-align: center;">
-<tr style="text-align: center;">
-  <td style="border-collapse: collapse;">
-    <p align="center">
-        Alessandro De Blasis
-        @deblasis<br>
-    </p>
-  </td>
-
-  <td style="border-width: 0px;">
-    <p align="center">
-        Andrew Nguyen
-        @andrewnguyen22 <br>
-    </p>
-  </td>
-
-  <td style="border-width: 0px;">
-    <p align="center">
-        Daniel Olshansky
-        @olshansky <br>
-    </p>
-  </td>
-
-</tr>
-</table>
-
-<tr>
-<td style="border-width: 0px;">
-    <p align="center">
-        Version 1.0.0<br>
-    </p>
-</td>
-</tr>
+<p align="center">
+    @andrewnguyen22 - Andrew Nguyen<br>
+    @olshansk - Daniel Olshansky<br>
+    @polyMatto - Alessandro De Blasis<br>
+    Version 1.0.0
+</p>
 
 ## Overview
 
