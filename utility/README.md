@@ -118,7 +118,7 @@ Pocket Network aims to solve the RPC Trilemma:
 
 ### 1.2 Protocol Actors
 
-Pocket Network enables a Utilitarian economy that proportionally incentivizes or penalizes the corresponding infrastructure providers based on their quality of the service. It is composed of the following actors:
+Pocket Network enables a Utilitarian economy that proportionally incentivizes or penalizes the corresponding infrastructure providers based on their quality of service. It is composed of the following actors:
 
 - Staked **Applications** that purchase Web3 access over a function of volume and time
 - Staked **Servicers** that earn rewards for providing Web3 access over a function of volume and quality
