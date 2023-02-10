@@ -41,6 +41,7 @@
     - [3.3.8 Pausing](#338-pausing)
     - [3.3.9 Unstaking](#339-unstaking)
     - [3.3.10 DAO Monitoring](#3310-dao-monitoring)
+      - [3.3.10.1 Good Citizens Protocol](#33101-good-citizens-protocol)
   - [3.4 Application Protocol](#34-application-protocol)
     - [3.4.1 Staking](#341-staking)
     - [3.4.2 Parameter Updates](#342-parameter-updates)
@@ -52,7 +53,9 @@
     - [3.5.3 Application w/o Gateway](#353-application-wo-gateway)
     - [3.5.4 Application Delegation](#354-application-delegation)
     - [3.5.5 Application Servicing](#355-application-servicing)
-    - [3.5.6 Registration](#356-registration)
+    - [3.5.6 Gateway Registration](#356-gateway-registration)
+    - [3.5.7 Gateway Unregistration](#357-gateway-unregistration)
+    - [3.5.8 Application Undelegation](#358-application-undelegation)
   - [3.6 Validator Protocol](#36-validator-protocol)
     - [3.6.1 Staking](#361-staking)
     - [3.6.2 Block Rewards](#362-block-rewards)
@@ -276,6 +279,8 @@ func NewSession(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey) Se
 }
 ```
 
+Note that a `timestamp` is explicitly not used to generate a new session because the process of generating a session (i.e. matching an application to servicers in some geozone at some height), must be a deterministic process executable by full nodes, light nodes and actors alike.
+
 #### 3.1.2 RelayChain
 
 A `RelayChain` is an identifier of the specified Web3 data source (i.e. a blockchain) being interacted with for that session.
@@ -289,6 +294,8 @@ A `GeoZone` is a representation of a physical geo-location the actors advertise 
 For example, `GeoZone 0001` could represent `US East`, but alternative coordinate systems such as [Uber's H3](https://h3geo.org) or [PostGIS](https://postgis.net/) could be used as well.
 
 There is no formal requirement or validation (e.g. IP verification) for an actor to be physically located in the GeoZone it registers in. However, crypto-economic incentives drive actors to be registered close to where they are physically located to receive and provide the best service possible.
+
+The number of GeoZones andy actor can stake for is limited to one to incentivize real geographic distribution. To quote @deblasis: "If an actor is everywhere, they're nowhere."
 
 #### 3.1.4 Actor Substitution
 
@@ -364,7 +371,7 @@ This registration message is formally known as the `StakeMsg`, and a Servicer ca
 
 ```go
 type ServicerStakeMsg interface {
-  GetPublicKey()  PublicKey     # The public cryptographic id of the custodial account
+  GetPublicKey() PublicKey     # The public cryptographic id of the custodial account
   GetStakeAmount() BigInt       # The amount of uPOKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL    # The API endpoint where the Web3 service is provided
   GetRelayChains() []RelayChain # The flavor(s) of Web3 hosted by this Servicer
@@ -381,6 +388,8 @@ Servicers are paid proportionally to how well their Relay responses meet the sta
 2. **Latency**: The Round-Trip-Time (RTT) of the the Servicer's response relative to when the request was sent
 3. **Data Accuracy**: The integrity of the Servicer's response
 
+Since the Fisherman may not necessarily be in the same GeoZone as the Application & Servicers, the Latency will onus will be on them to normalize the TestScores The Fisherman
+
 #### 3.2.3 Report Cards & Test Scores
 
 A `TestScore` is a collection of samples by a Fisherman of a Servicer, based on the SLA criteria outlined above, throughout the duration of a Session.
@@ -391,7 +400,7 @@ A `ReportCard` is the logical aggregation of multiple `TestScores` over an Actor
 
 The Application's Web3 usage volume is estimated through probabilistic hash collisions. This enables a concise proof of probabilistic volume, without requiring compute or memory intensive storage and aggregation. Similar to [Bitcoin's Difficulty](https://en.bitcoin.it/wiki/Difficulty), a `RelayVolumeDifficulty` governance parameter will be used to determine the "difficulty", and how relay counts must be estimated.
 
-Each relay can be viewed as an independent Bernoulli Trial that is either a volume applicable relay or not. A geometric distribution can be built of the number of relays that need to be serviced until an applicable relay is made. For example, if a SHA256 hash algorithm is used and `RelayVolumeDifficulty` represents 4 leading zeroes, the hash of each `(SignedRelay, SignedRelayResponse)` pair below `0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` will represent `65536` (16^4) relays.
+Each relay can be viewed as an independent Bernoulli Trial that is either a volume applicable relay or not. A geometric distribution can be built of the number of relays that need to be serviced until an applicable relay is made. For example, if a SHA256 hash algorithm is used and `RelayVolumeDifficulty` represents 3 leading zeroes, the hash of each `concat(SignedRelay, SignedRelayResponse)` above `0x000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` will not be applicable for relay rewards. However, any hash below the target will receive `RelayVolume` rewards proportional to the likelihood of the hash. For example, `0x000FFF...` would be estimate `RelayVolume` relays, `0x0000FF...` would e estimated to 16\*`RelayVolume`, etc...
 
 A the end of each Session, the volume applicable relays are sent to the Fisherman for validation and salary distribution.
 
@@ -512,10 +521,10 @@ PoA and PoS are used to filter madmen adversaries who defy economic incentives i
 
 ```go
 type FishermanStakeMsg interface {
-  GetPublicKey()  PublicKey  # The public cryptographic id of the Fisherman custodial account
+  GetPublicKey() PublicKey  # The public cryptographic id of the Fisherman custodial account
   GetStakeAmount() BigInt    # The amount of uPOKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL # The API endpoint where the Fishermen service is provided
-  GetGeoZone() []GeoZone     # The physical geo-locations identifiers this Fisherman is registered in
+  GetGeoZone() GeoZone     # The physical geo-location identifier this Fisherman is registered in
 }
 ```
 
@@ -687,10 +696,10 @@ A Fisherman can update any of the values in its on-chain attributes by submittin
 
 ```go
 type FishermenStakeMsg interface {
-  GetPublicKey()  PublicKey     # The public cryptographic ID of the Fisherman
+  GetPublicKey() PublicKey     # The public cryptographic ID of the Fisherman
   GetStakeAmount() BigInt       # May be modified to a value greater or equal to the current value
   GetServiceURL() ServiceURL    # May be modified
-  GetGeoZone() []GeoZone        # May be modified
+  GetGeoZone() GeoZone        # May be modified
 }
 ```
 
@@ -714,6 +723,10 @@ Enforcement of Fishermen behaviour and quality is an off-chain endeavor, underta
 
 In practice, the _Good Citizens Protocol_ acts as sanity checks for the network actors, developers, users and community to monitor the Fishermen. It is an opt-in, configurable module, that checks individual interactions against finalized on-chain data. Participants will be able to report suspicious, faulty, or malicious behavior of the Fishermen to off-chain data sites which are analyzed and filtered up to the DAO and public. Individual Fishermen burns and Good Citizen bounties are determined by the DAO and defined in the 1.0 Constitution.
 
+##### 3.3.10.1 Good Citizens Protocol
+
+The _Good Citizens Protocol_ is not a "real" protocol. It is a social committment that is often the result of tools being built and focus being shifted to areas where work is being done and money is being made. Since a permissionless network will be earning rewards based on the, initially, permissioned set of Fisherman, low rewards values are likely be noticed and floated to the surface leading to the uncovering of misbehaviour, sooner or later.
+
 ### 3.4 Application Protocol
 
 An `Application` is a protocol actor that consumes Web3 access from Pocket Network Servicers. Applications are the **demand** side of the Utilitarian Economy, who are pay in the native cryptographic token, POKT, for the utility provided by the decentralized and permissionless network.
@@ -726,7 +739,7 @@ It is important to note that the bond amount is directly proportional to `MaxRel
 
 ```go
 type ApplicationStakeMsg interface {
-  GetPublicKey()  PublicKey     # The public cryptographic id of the Application
+  GetPublicKey() PublicKey     # The public cryptographic id of the Application
   GetStakeAmount() BigInt       # The amount of uPOKT in escrow (i.e. a security deposit)
   GetRelayChains() []RelayChain # The flavor(s) of Web3 hosted by this Application
   GetGeoZone() GeoZone          # The physical geo-location identifier this Application registered in
@@ -740,7 +753,7 @@ An Application can update any of the values in its on-chain attributes by submit
 
 ```go
 type ApplicationStakeMsg interface {
-  GetPublicKey()  PublicKey     # The public cryptographic ID of the Fisherman
+  GetPublicKey() PublicKey     # The public cryptographic ID of the Fisherman
   GetStakeAmount() BigInt       # May be modified to a value greater or equal to the current value
   GetRelayChains() []RelayChain # May be modified
   GetGeoZone() GeoZone          # May be modified
@@ -750,7 +763,7 @@ type ApplicationStakeMsg interface {
 
 #### 3.4.3 Unstaking
 
-An Application is able to submit an `UnstakeMsg` to exit and remove itself from the network. After a successful UnstakeMsg, the Application is no longer eligible to consume Web3 traffic from Servicers. After the `ApplicationUnstakingTime` unbonding time elapses, the remaining is returned to the custodial account.
+An Application is able to submit an `UnstakeMsg` to exit and remove itself from the network. After a successful UnstakeMsg, the Application is no longer eligible to consume Web3 traffic from Servicers. After the `ApplicationUnstakingTime` unbonding time elapses, the remaining stake is returned to the custodial account.
 
 #### 3.4.4 Stake Burning
 
@@ -770,7 +783,7 @@ Pocket Network's Utilitarian Economy incentivizes data redundancy in a multi-cha
 
 Delegation also enables free market off-chain economics where additional features, guarantees or payments can be made. This could, for example, include a contractual agreement between Applications and Gateways to execute [Client Side Validation](https://forum.pokt.network/t/client-side-validation/148) with every Nth request. It could also enable L2 services, such as data indexing, that are outside the scope of the Pocket ecosystem, but are closely related to the utility it provides.
 
-Applications that requires just-in-time full data integrity guarantees may opt out of delegating to Gateways and operate in a completely permissionless manner. This may require them to maintain their own infrastructure (i.e. synching a full/light Pocket Node). Even with delegation, an Application would be able to continue operating permissionlessly as the two are not mutually exclusive.
+Applications that requires just-in-time full data integrity guarantees may opt out of delegating to Gateways and operate in a completely permissionless manner. This may require them to maintain their own infrastructure (i.e. synching a full/light Pocket Node). Even with delegation, an Application would be able to continue operating permissionlessly (via a full or light node) as the two are not mutually exclusive.
 
 #### 3.5.2 OAuth
 
@@ -850,7 +863,7 @@ The following message will need to be signed by the Application's PrivateKey in 
 ```go
 type DelegateMsg interface {
   GetApplicationPublicKey() # The cryptographic ID of the Application
-  GetGatewayPublicKey() # The cryptographic ID of the Application
+  GetGatewayPublicKey() # The cryptographic ID of the Gateway
 }
 ```
 
@@ -858,7 +871,7 @@ Once committed, the Application can be serviced on behalf of the Gateway. Though
 
 #### 3.5.5 Application Servicing
 
-When an Application chooses to start a new session, the Gateway is responsible for dispatching the on-chain `StartSession` request and use an off-chain mechanism (e.g. AccessTokens) to service the Application. Throughout the duration of the session, validation and communication between the Application and Gateway are done using off-chain mechanisms, which are outside the scope of this document.
+When an Application chooses to start a new session, the Gateway is responsible for dispatching the `StartSession` request using on-chain and use an off-chain mechanism (e.g. AccessTokens) to service the Application. Throughout the duration of the session, validation and communication between the Application and Gateway are done using off-chain mechanisms, which are outside the scope of this document.
 
 [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to allow both the Application and the Gateway to sign the Relay.
 
@@ -918,7 +931,7 @@ sequenceDiagram
     end
 ```
 
-#### 3.5.6 Registration
+#### 3.5.6 Gateway Registration
 
 Registration differs from staking in the sense that the pubKey is known but there are no economic benefits/penalties in this stage of the protocol's progression.
 
@@ -928,11 +941,28 @@ When staking, the Gateway must bond a certain amount of POKT to be able to parti
 
 For example, if `StakePerAppDelegation` is 100 POKT and the Gateway has staked 1000 POKT, a transaction by the 11th Application to delegate to it will be rejected until the stake is increased appropriately. However, if `StakePerAppDelegation` is 0 POKT, all Gateways, which are permissionless actors can have an unbounded number of Applications delegate to them.
 
+If `StakePerAppDelegation` changes such that a Gateway cannot support the existing numbers of delegating apps, they are all legacied in to continue operating as normal. However, new applications cannot delegate to the Gateway until the stake is sufficiently increased.
+
 ```go
 type GatewayStakeMsg interface {
-  GetPublicKey()  PublicKey   # The public cryptographic id of the Gateway account
+  GetPublicKey() PublicKey   # The public cryptographic id of the Gateway account
   GetStakeAmount() BigInt     # The amount of uPOKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL  # The API endpoint where the Gateway service is provided
+}
+```
+
+#### 3.5.7 Gateway Unregistration
+
+A Gateway is able to submit an `UnstakeMsg` to exit and remove itself from the network. After a successful UnstakeMsg, the Gateway is no eligible sign relays on behalf of an Application. On-chain delegation from existing Applications will be removed from the world state. After the `GatewayUnstakingTime` unbonding time elapses, the remaining stake is returned to the Gateway's address.
+
+#### 3.5.8 Application Undelegation
+
+If a staked Application wants to stop using a Gateway, and prevent the Gateway from further signing relays on its behalf, it would simply submit an on-chain `UndelegateMsg`. Further relays signed by the Gateway on behalf of the Application would be rejected by the Servicers.
+
+```go
+type UndelegateMsg interface {
+  GetApplicationPublicKey() # The cryptographic ID of the Application
+  GetGatewayPublicKey() # The cryptographic ID of the Gateway
 }
 ```
 
@@ -950,7 +980,7 @@ Upon registration, a Validator must inform the network of how many tokens they a
 
 ```go
 type ValidatorStakeMsg interface {
-  GetPublicKey()  PublicKey       # The public cryptographic id of the custodial account
+  GetPublicKey() PublicKey       # The public cryptographic id of the custodial account
   GetStakeAmount() BigInt         # The amount of uPOKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL      # The API endpoint where the validator service is provided
   GetOperatorPubKey() PublicKey   # OPTIONAL; The non-custodial pubKey operating this node
@@ -1054,7 +1084,7 @@ type Transaction interface {
   GetSignature() Signature  # Digital signature of the transaction
   GetMsg() Message          # The payload of the transaction; Unstake, TestScore, etc.
   GetFee() Big.Int          # The number of tokens (uPOKT) used to incentivize and pay for the execution
-  GetNonce() String         # Entropy used to prevent replay attacks; upper bounded
+  GetNonce() Big.Int        # Entropy used to prevent replay attacks; upper bounded
 }
 ```
 
@@ -1091,6 +1121,7 @@ type ParamChangeMsg interface {
   GetAddress() Address  # Address of sender & signer; must be permissioned through ACL
   GetParamName() String # The name of the parameter being updated
   GetValue() any        # The new value of the parameter being modified
+  GetMemo() *String     # Explanation (or URL) of why the change was made
 }
 ```
 
@@ -1104,6 +1135,7 @@ type DAOTreasuryMsg interface {
   GetDstAddress() *Address # OPTIONAL; the receiver of the funds if applicable
   GetOperation() DAOOp     # The identifier of the operation; burn or send
   GetAmount() Big.Int      # The operation is executed on this amount of tokens
+  GetMemo() *String        # Explanation (or URL) of why the reasoning for the fund transfer
 }
 ```
 
@@ -1117,6 +1149,7 @@ type PolicingMsg interface {
   GetPoliced() Address # Address of the policed actor
   Operation() DAOOp    # Identifier of the operation; burn, pause, remove, etc
   GetAmount() Big.Int  # Amount of tokens (if applicable)
+  GetMemo() *String    # Explanation (or URL) of the issue
 }
 ```
 
@@ -1142,7 +1175,7 @@ Upon the initial launch of Pocket Network v1 MainNet:
 - PNI will need to to register at least one Gateway
 
   - The publicKey of the Gateway will be included in the re-genesis file
-  - `StakePerAppDelegation` will be set to 0
+  - The community and/or DAO will choose the initial value for `StakePerAppDelegation`
   - Other actors can register their own Gateways shortly after launch
 
 - Pocket Network scalability issues will be resolved
@@ -1161,7 +1194,7 @@ Upon the initial launch of Pocket Network v1 MainNet:
 
 ### 4.4 CastNet
 
-- A specification for fully permissionless Fisherman is designed and developed
+- A specification for Fisherman Gateway scores will be designed and developed
 
 ## 5. Attack Vectors
 
@@ -1247,7 +1280,7 @@ Any attack which, although possible, makes no sense because you could accomplish
 
 A Fisherman colluding with one or more Servicers and is in possession of their keys is able to falsify all aspects of that Servicer's report card. Therefore, all of his colluding node partners get A+ report cards and resultantly larger paychecks.
 
-This is the “big one”. It is the primary reason that Fishermen are (at this stage) DAO Approval is required. It is why off chain data logs, good-citizen reporting and DAO oversight exist. It is also the reason that Fishermen require large stake/deposit, as well as increased destaking period and delayed payments (See attached spreadsheet of projected collusion ROI based on such factors as Node Percentage, Risk Rate, etc.)
+This is the “big one”. It is the primary reason that Fisherman (at this stage) require DAO Approval. It is why off chain data logs, good-citizen reporting and DAO oversight exist. It is also the reason that Fishermen require large stake/deposit, as well as increased destaking period and delayed payments (See attached spreadsheet of projected collusion ROI based on such factors as Node Percentage, Risk Rate, etc.)
 
 The attack is easy to describe, but not easy to perform because a rather large body of work has gone into making sure that it is extremely difficult to perform, a very small payoff, and extremely costly to get caught.
 
@@ -1269,7 +1302,7 @@ There is no financial incentive for a Fisherman to report Application volume hig
 
 **Attack Vectors**: Mad Man
 
-No one benefits by DDOSing a Fisherman. The relay, dispatch, service and blockchain processes are not dependent on Fishermen. The attack does not change node report cards. It only makes less reduces overall network inflation. The Fisherman loses money, but no one gets the excess.
+No one benefits by DDOSing a Fisherman. The relay, dispatch, service and blockchain processes are not dependent on Fishermen. The attack does not change node report cards. It only reduces overall network inflation. The Fisherman loses money, but no one gets the excess.
 
 #### 5.2.5 Incognito Fisherman Identified
 
