@@ -209,9 +209,9 @@ flowchart TD
 Readers of this document must keep in mind the following:
 
 1. This living document is subject to change. Ongoing R&D will shape the specification until it is formalized and finished.
-2. This document represents one stage of Pocket Network's evolution. Future iterations will aim to iterate on tokenomic incentives, Fisherman permisionless, Gateway incentives, etc.
+2. This document represents one stage of Pocket Network's evolution. Future iterations will aim to iterate on tokenomic incentives, permissionless Fisherman, Gateway incentives, etc.
 3. This document should not be treated as a complete whitepaper. It is a specification of Utility Module components intended to drive the design and implementation of the technical specifications.
-4. This document is not an academic paper paper. Formal proofs and verifications are absent and knowledge of background concepts is implicitly assumed.
+4. This document is not an academic paper. Formal proofs and verifications are absent and knowledge of background concepts is implicitly assumed.
 5. This document does not outline implementation specific interfaces or details. Any interfaces presented are for illustrative purposes only.
 
 ## 2. Requirements
@@ -274,7 +274,7 @@ For illustrative purposes, an example implementation of `NewSession` could be:
 func NewSession(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey) Session {
   key = hash(concat(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey))
   servicers = getClosestServicers(key, geoZone, numServicers)
-  fishermen = getClosesFishermen(key, geoZone, numFishermen)
+  fishermen = getClosestFishermen(key, geoZone, numFishermen)
   return Session{sessionHeight, geoZone, relayChain, appPubKey, servicers, fishermen}
 }
 ```
@@ -307,7 +307,7 @@ Rate limiting limits the amount of work (i.e. Web3 access) a Servicer can provid
 
 During each Session, the amount of POKT an Application has staked (see [Application Protocol](#34-application-protocol) for more details) is mapped to "Service Tokens" that represent the amount of work a Servicer can provide using the `SessionTokenBucketCoefficient` governance parameter. The [Token Bucket](https://en.wikipedia.org/wiki/Token_bucket) rate limiting algorithm is used to determine the maximum number of requests a Servicer can relay, and be rewarded for, thereby disincentivizing it to process relays for the Application once the cap is reached.
 
-At the beginning of the session, each Servicer initializes: `AppSessionTokens = (AppStakeAmount * SessionTokenBucketCoefficient) / NumServicersPerSession`. When one of the Servicers in the session is out of session tokens, the Application can continue to user other Servicers until every they are all exhausted.
+At the beginning of the session, each Servicer initializes: `AppSessionTokens = (AppStakeAmount * SessionTokenBucketCoefficient) / NumServicersPerSession`. When one of the Servicers in the session is out of session tokens, the Application can continue to use other Servicers until every they are all exhausted.
 
 ```mermaid
 sequenceDiagram
@@ -371,12 +371,12 @@ This registration message is formally known as the `StakeMsg`, and a Servicer ca
 
 ```go
 type ServicerStakeMsg interface {
-  GetPublicKey() PublicKey     # The public cryptographic id of the custodial account
-  GetStakeAmount() BigInt       # The amount of uPOKT in escrow (i.e. a security deposit)
-  GetServiceURL() ServiceURL    # The API endpoint where the Web3 service is provided
-  GetRelayChains() []RelayChain # The flavor(s) of Web3 hosted by this Servicer
-  GetGeoZone() GeoZone          # The physical geo-location identifier this Servicer registered in
-  GetOperatorPubKey() PublicKey # OPTIONAL; The non-custodial pubKey operating this node
+  GetPublicKey() PublicKey       # The public cryptographic id of the custodial account
+  GetStakeAmount() BigInt        # The amount of uPOKT in escrow (i.e. a security deposit)
+  GetServiceURL() ServiceURL     # The API endpoint where the Web3 service is provided
+  GetRelayChains() []RelayChain  # The flavor(s) of Web3 hosted by this Servicer
+  GetGeoZone() GeoZone           # The physical geo-location identifier this Servicer registered in
+  GetOperatorPubKey() *PublicKey # OPTIONAL; The non-custodial pubKey operating this node
 }
 ```
 
@@ -442,12 +442,12 @@ A Servicer must accumulate `MinimumTestScoreThreshold` TestScores before it is e
 
 Salary distribution is accomplished by aggregating the total volume estimated (see above) for a specific `(RelayChain, GeoZone)` pair (i.e. `TotalVolumeUsage`), multiplied by `UsageToRewardCoefficient`, and evenly divided into buckets per Servicer that exceed the minimum threshold (i.e. the `MinimumReportCardThreshold`). Each Servicer's reward is scaled proportionally to both their stake and their ReportCard. Tokens that are not allocated to a servicer are burnt.
 
-For example, a 100% ReportCard results in zero burning of the `maxServicerReward`, while a 80% ReportCard results in 20% burning of the maxServicerReward. The rate of decrease continues linearly until the MinimumReportCardThreshold. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. Unstaking causes the Servicer's ReportCard to be cleared and start from scratch.
+For example, a 100% ReportCard results in zero burning of the `maxServicerReward`, while a 80% ReportCard results in 20% burning of the maxServicerReward. The rate of decrease continues linearly until the `MinimumReportCardThreshold` is reached. Below the MinimumReportCardThreshold no reward is given to prevent cheap Sybil attacks and freeloading nodes. Unstaking causes the Servicer's ReportCard to be cleared and start from scratch.
 
 The following is pseudo-code to illustrate this business logic:
 
 ```go
-# Called for each (relayChain, geoZone) pair every SessionBlockFrequency
+// Called for each (relayChain, geoZone) pair every SessionBlockFrequency
 func DistributeRewards(relayChain, geoZone, height):
   totalVolumeUsage = WorldState.RetrieveTotalVolumeEstimate(relayChain, geoZone, height)
   totalAvailableReward = totalVolumeUsage * GovParams.UsageToRewardCoefficient(height)
@@ -739,11 +739,11 @@ It is important to note that the bond amount is directly proportional to `MaxRel
 
 ```go
 type ApplicationStakeMsg interface {
-  GetPublicKey() PublicKey     # The public cryptographic id of the Application
+  GetPublicKey() PublicKey      # The public cryptographic id of the Application
   GetStakeAmount() BigInt       # The amount of uPOKT in escrow (i.e. a security deposit)
   GetRelayChains() []RelayChain # The flavor(s) of Web3 hosted by this Application
   GetGeoZone() GeoZone          # The physical geo-location identifier this Application registered in
-  GetNumServicers() uint8        # The number of Servicers requested per session
+  GetNumServicers() uint8       # The number of Servicers requested per session
 }
 ```
 
@@ -757,7 +757,7 @@ type ApplicationStakeMsg interface {
   GetStakeAmount() BigInt       # May be modified to a value greater or equal to the current value
   GetRelayChains() []RelayChain # May be modified
   GetGeoZone() GeoZone          # May be modified
-  GetNumServicers() int8        # May be modified
+  GetNumServicers() uint8       # May be modified
 }
 ```
 
@@ -806,6 +806,8 @@ sequenceDiagram
     C ->> +R: Request protected resource
     R -->> -C: Return protected resource
 ```
+
+For the sake of simplicity, we are omitting `refresh_token` related considerations.
 
 Some parallels can be drawn between existing centralized, trusted and permissioned systems relative to Pocket's Utilitarian Economy:
 
@@ -863,7 +865,7 @@ The following message will need to be signed by the Application's PrivateKey in 
 ```go
 type DelegateMsg interface {
   GetApplicationPublicKey() # The cryptographic ID of the Application
-  GetGatewayPublicKey() # The cryptographic ID of the Gateway
+  GetGatewayPublicKey()     # The cryptographic ID of the Gateway
 }
 ```
 
@@ -962,7 +964,7 @@ If a staked Application wants to stop using a Gateway, and prevent the Gateway f
 ```go
 type UndelegateMsg interface {
   GetApplicationPublicKey() # The cryptographic ID of the Application
-  GetGatewayPublicKey() # The cryptographic ID of the Gateway
+  GetGatewayPublicKey()     # The cryptographic ID of the Gateway
 }
 ```
 
@@ -980,10 +982,10 @@ Upon registration, a Validator must inform the network of how many tokens they a
 
 ```go
 type ValidatorStakeMsg interface {
-  GetPublicKey() PublicKey       # The public cryptographic id of the custodial account
+  GetPublicKey() PublicKey        # The public cryptographic id of the custodial account
   GetStakeAmount() BigInt         # The amount of uPOKT in escrow (i.e. a security deposit)
   GetServiceURL() ServiceURL      # The API endpoint where the validator service is provided
-  GetOperatorPubKey() PublicKey   # OPTIONAL; The non-custodial pubKey operating this node
+  GetOperatorPubKey() *PublicKey  # OPTIONAL; The non-custodial pubKey operating this node
 }
 ```
 
