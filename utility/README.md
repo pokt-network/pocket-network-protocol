@@ -295,7 +295,7 @@ For example, `GeoZone 0001` could represent `US East`, but alternative coordinat
 
 There is no formal requirement or validation (e.g. IP verification) for an actor to be physically located in the GeoZone it registers in. However, crypto-economic incentives drive actors to be registered close to where they are physically located to receive and provide the best service possible.
 
-The number of GeoZones andy actor can stake for is limited to one to incentivize real geographic distribution. To quote @deblasis: "If an actor is everywhere, they're nowhere."
+The number of GeoZones an actor can stake for is limited to one to incentivize real geographic distribution. To quote @deblasis: "If an actor is everywhere, they're nowhere."
 
 #### 3.1.4 Actor Substitution
 
