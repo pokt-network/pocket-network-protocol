@@ -47,14 +47,14 @@
     - [3.4.2 Parameter Updates](#342-parameter-updates)
     - [3.4.3 Unstaking](#343-unstaking)
     - [3.4.4 Stake Burning](#344-stake-burning)
-  - [3.5 Gateway Protocol](#35-gateway-protocol)
-    - [3.5.1 Gateway Responsibilities](#351-gateway-responsibilities)
+  - [3.5 Portal Protocol](#35-portal-protocol)
+    - [3.5.1 Portal Responsibilities](#351-portal-responsibilities)
     - [3.5.2 OAuth](#352-oauth)
-    - [3.5.3 Application w/o Gateway](#353-application-wo-gateway)
+    - [3.5.3 Application w/o Portal](#353-application-wo-portal)
     - [3.5.4 Application Delegation](#354-application-delegation)
     - [3.5.5 Application Servicing](#355-application-servicing)
-    - [3.5.6 Gateway Registration](#356-gateway-registration)
-    - [3.5.7 Gateway Unregistration](#357-gateway-unregistration)
+    - [3.5.6 Portal Registration](#356-portal-registration)
+    - [3.5.7 Portal Unregistration](#357-portal-unregistration)
     - [3.5.8 Application Undelegation](#358-application-undelegation)
   - [3.6 Validator Protocol](#36-validator-protocol)
     - [3.6.1 Staking](#361-staking)
@@ -127,7 +127,7 @@ Pocket Network enables a Utilitarian economy that proportionally incentivizes or
 - Staked **Servicers** that earn rewards for providing Web3 access over a function of volume and quality
 - Elected **Fishermen** who grade and enforce the quality of the Web3 access provided by **Servicers**
 - Staked **Validators** responsible for maintaining safety & liveness of the replicated state machine
-- Registered **Gateways** that can be optionally leveraged by **Applications** through delegated trust
+- Registered **Portals** that can be optionally leveraged by **Applications** through delegated trust
 
 ```mermaid
 flowchart TD
@@ -162,10 +162,10 @@ flowchart TD
         AN[Application N]
     end
 
-    subgraph Gateways
+    subgraph Portals
         direction TB
-        G1[Gateway 1]
-        GN[Gateway N]
+        P1[Portal 1]
+        PN[Portal N]
     end
 
     subgraph Fishermen
@@ -178,11 +178,11 @@ flowchart TD
 
     Validators --Validate State<br>Transition--> Blockchain
 
-    Applications <--Delegated RPC--> Gateways
-    Gateways <--App RPC--> Servicers
+    Applications <--Delegated RPC--> Portals
+    Portals <--App RPC--> Servicers
     Applications <--Trustless RPC--> Servicers
 
-    Blockchain --Sync--> Gateways
+    Blockchain --Sync--> Portals
     Blockchain --Sync--> Applications
     Blockchain --Sync--> Servicers
     Blockchain --Sync--> Fishermen
@@ -199,7 +199,7 @@ flowchart TD
     class V1,V,VN blue
     class B1,B,BN brown
     class S1,SN yellow
-    class G1,GN red
+    class P1,PN red
     class F1,FN acqua
     class A1,AN purple
 ```
@@ -209,7 +209,7 @@ flowchart TD
 Readers of this document must keep in mind the following:
 
 1. This living document is subject to change. Ongoing R&D will shape the specification until it is formalized and finished.
-2. This document represents one stage of Pocket Network's evolution. Future iterations will aim to iterate on tokenomic incentives, permissionless Fisherman, Gateway incentives, etc.
+2. This document represents one stage of Pocket Network's evolution. Future iterations will aim to iterate on tokenomic incentives, permissionless Fisherman, Portal incentives, etc.
 3. This document should not be treated as a complete whitepaper. It is a specification of Utility Module components intended to drive the design and implementation of the technical specifications.
 4. This document is not an academic paper. Formal proofs and verifications are absent and knowledge of background concepts is implicitly assumed.
 5. This document does not outline implementation specific interfaces or details. Any interfaces presented are for illustrative purposes only.
@@ -225,7 +225,7 @@ The specification must:
 5. Constrain service capacity through a combination of time, volume and cost
 6. Account for gamification, collusion, and other attack vectors
 7. Enable Applications to gain permissionless Web3 access without maintaining their own infrastructure
-8. Enable Applications to optionally delegate trust to Gateways that ease the use of Web3 access
+8. Enable Applications to optionally delegate trust to Portals that ease the use of Web3 access
 
 The current iteration of the specification must not necessarily:
 
@@ -567,15 +567,15 @@ sequenceDiagram
 
 #### 3.3.4 Incognito Sampling
 
-Servicers may bias to prioritize responding to requests from Fisherman in order to achieve a higher score. [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to prevent identifying who signed the request: Fisherman, Application or Gateway.
+Servicers may bias to prioritize responding to requests from Fisherman in order to achieve a higher score. [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to prevent identifying who signed the request: Fisherman, Application or Portal.
 
 ```mermaid
 flowchart
     subgraph Ring
         Application <--> F1["Fisherman 1"]
         F1 <--> F2["Fisherman N"]
-        F2 <--> Gateway
-        Gateway <--> Application
+        F2 <--> Portal
+        Portal <--> Application
     end
     Ring --Signature--> Servicer
     Servicer--Validate Signature-->Servicer
@@ -628,7 +628,7 @@ pie title Test Scores Distribution
 
 To reduce the amount of on-chain data, Fishermen are only required to prove a single Non-Null sample from their submitted `TestScoreCommitMsg` (i.e. claim) with a `TestScoreProofMsg` (i.e. reveal). This must be done before `MaxTestScoreProofDelay` blocks elapse.
 
-Since the samples need to be normally distributed throughout the session, and the timestamp of each sample is signed by both the requester (i.e. Application/Gateway/Fisherman) and the responder (i.e. Servicer), the time of the sample selected using the seeded data is compared against the number of samples collected and the start time of the session sampling to verify its timestamp is within variance from the expected value.
+Since the samples need to be normally distributed throughout the session, and the timestamp of each sample is signed by both the requester (i.e. Application/Portal/Fisherman) and the responder (i.e. Servicer), the time of the sample selected using the seeded data is compared against the number of samples collected and the start time of the session sampling to verify its timestamp is within variance from the expected value.
 
 ```mermaid
 ---
@@ -773,17 +773,17 @@ Application stake burn is a necessary mechanism to ensure economic equilibrium a
 
 As of updating this document, these governance parameters are expected to be 0 at the time of launching the next version of the network. More detailed tokenomic models will follow in future iterations of the specifications.
 
-### 3.5 Gateway Protocol
+### 3.5 Portal Protocol
 
-A `Gateway` is a permissionless protocol actor to whom the Application can **optionally** delegate on-chain trust in order to perform off-chain operations.
+A `Portal` is a permissionless protocol actor to whom the Application can **optionally** delegate on-chain trust in order to perform off-chain operations.
 
-#### 3.5.1 Gateway Responsibilities
+#### 3.5.1 Portal Responsibilities
 
-Pocket Network's Utilitarian Economy incentivizes data redundancy in a multi-chain ecosystem, with cheap, accessible and highly available multi-chain access. Depending on the level of trust, or lack thereof, an Application can optionally use a Gateway for various Pocket-specific operations such as, but not limited to, session dispatching or request signing.
+Pocket Network's Utilitarian Economy incentivizes data redundancy in a multi-chain ecosystem, with cheap, accessible and highly available multi-chain access. Depending on the level of trust, or lack thereof, an Application can optionally use a Portal for various Pocket-specific operations such as, but not limited to, session dispatching or request signing.
 
-Delegation also enables free market off-chain economics where additional features, guarantees or payments can be made. This could, for example, include a contractual agreement between Applications and Gateways to execute [Client Side Validation](https://forum.pokt.network/t/client-side-validation/148) with every Nth request. It could also enable L2 services, such as data indexing, that are outside the scope of the Pocket ecosystem, but are closely related to the utility it provides.
+Delegation also enables free market off-chain economics where additional features, guarantees or payments can be made. This could, for example, include a contractual agreement between Applications and Portals to execute [Client Side Validation](https://forum.pokt.network/t/client-side-validation/148) with every Nth request. It could also enable L2 services, such as data indexing, that are outside the scope of the Pocket ecosystem, but are closely related to the utility it provides.
 
-Applications that requires just-in-time full data integrity guarantees may opt out of delegating to Gateways and operate in a completely permissionless manner. This may require them to maintain their own infrastructure (i.e. synching a full/light Pocket Node). Even with delegation, an Application would be able to continue operating permissionlessly (via a full or light node) as the two are not mutually exclusive.
+Applications that requires just-in-time full data integrity guarantees may opt out of delegating to Portals and operate in a completely permissionless manner. This may require them to maintain their own infrastructure (i.e. synching a full/light Pocket Node). Even with delegation, an Application would be able to continue operating permissionlessly (via a full or light node) as the two are not mutually exclusive.
 
 #### 3.5.2 OAuth
 
@@ -814,13 +814,13 @@ Some parallels can be drawn between existing centralized, trusted and permission
 - The `Client` remains as the `Client`
 - The `Application` is the `User`
 - The `Application` is a one-time `Authorization Server`
-- The `Gateways` is an ongoing `Authorization Server`
+- The `Portals` is an ongoing `Authorization Server`
 - The `Servicer` is the `Resource Servicer`
 - The `Fisherman` is a separate monitoring party overlooking the `Resource Servicer` most often owned by the `Authorization Server`
 
-#### 3.5.3 Application w/o Gateway
+#### 3.5.3 Application w/o Portal
 
-An Application that chooses to operate without a Gateway is responsible for dispatching sessions and signing RPC requests on its own. To do so, it will need to maintain a Pocket Full Node or a Pocket Light Client.
+An Application that chooses to operate without a Portal is responsible for dispatching sessions and signing RPC requests on its own. To do so, it will need to maintain a Pocket Full Node or a Pocket Light Client.
 
 ```mermaid
 sequenceDiagram
@@ -845,18 +845,18 @@ sequenceDiagram
 
 #### 3.5.4 Application Delegation
 
-An Application that chooses to delegate trust to a Gateway will need to submit a one-time `DelegateMsg` transaction to delegate trust from the Application to the Gateway. It must include the PublicKey of the Gateway and be signed by the Application.
+An Application that chooses to delegate trust to a Portal will need to submit a one-time `DelegateMsg` transaction to delegate trust from the Application to the Portal. It must include the PublicKey of the Portal and be signed by the Application.
 
 ```mermaid
 sequenceDiagram
     actor A as Application
     participant WS as World State
-    actor G as Gateway
+    actor G as Portal
 
     A ->> A: Prepare Delegate Message
     A ->> A: Sign Request
 
-    A ->>+ WS: Delegate(GatewayPubKey)
+    A ->>+ WS: Delegate(PortalPubKey)
     WS ->>- A: ok
 ```
 
@@ -865,44 +865,44 @@ The following message will need to be signed by the Application's PrivateKey in 
 ```go
 type DelegateMsg interface {
   GetApplicationPublicKey() # The cryptographic ID of the Application
-  GetGatewayPublicKey()     # The cryptographic ID of the Gateway
+  GetPortalPublicKey()     # The cryptographic ID of the Portal
 }
 ```
 
-Once committed, the Application can be serviced on behalf of the Gateway. Though an Application can delegate to multiple Gateways simultaneously, the rate limiting for each session still remains at the Servicer level.
+Once committed, the Application can be serviced on behalf of the Portal. Though an Application can delegate to multiple Portals simultaneously, the rate limiting for each session still remains at the Servicer level.
 
 #### 3.5.5 Application Servicing
 
-When an Application chooses to start a new session, the Gateway is responsible for dispatching the `StartSession` request using on-chain and use an off-chain mechanism (e.g. AccessTokens) to service the Application. Throughout the duration of the session, validation and communication between the Application and Gateway are done using off-chain mechanisms, which are outside the scope of this document.
+When an Application chooses to start a new session, the Portal is responsible for dispatching the `StartSession` request using on-chain and use an off-chain mechanism (e.g. AccessTokens) to service the Application. Throughout the duration of the session, validation and communication between the Application and Portal are done using off-chain mechanisms, which are outside the scope of this document.
 
-[Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to allow both the Application and the Gateway to sign the Relay.
+[Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to allow both the Application and the Portal to sign the Relay.
 
 ```mermaid
 flowchart
     subgraph Ring
-        Application <--> G1["Gateway 1"]
-        G1 <--> G2["Gateway 2"]
-        G2 <--> Application
+        Application <--> P1["Portal 1"]
+        P1 <--> P2["Portal 2"]
+        P2 <--> Application
     end
     Ring --Signature--> Servicer
     Servicer--Validate Signature-->Servicer
 ```
 
-Similar to to the [incognito sampling section of the Fisherman Protocol](#334-incognito-sampling) section, Ring Signatures enable the Servicer to validate the signed request. This enables permissioned (w/ a Gateway) and permissionless (w/o a Gateway) operations to co-exist, without being mutually exclusive, and without the Servicer needing knowledge of the Application's current mode of operation.
+Similar to to the [incognito sampling section of the Fisherman Protocol](#334-incognito-sampling) section, Ring Signatures enable the Servicer to validate the signed request. This enables permissioned (w/ a Portal) and permissionless (w/o a Portal) operations to co-exist, without being mutually exclusive, and without the Servicer needing knowledge of the Application's current mode of operation.
 
 ```mermaid
 ---
 title: Signature Validation By Servicer
 ---
 stateDiagram-v2
-    state "Get gateways the App<br>delegated to: [G1, G2]" as getGateways
-    state "Is relay signed by one of:<br>Application, Gateway1, Gateway2?" as sigCheck
+    state "Get gateways the App<br>delegated to: [P1, P2]" as getPortals
+    state "Is relay signed by one of:<br>Application, Portal1, Portal2?" as sigCheck
 
     state "Valid (should service relay)" as Valid
     state "Invalid (do not service relay)" as Invalid
 
-    [*] --> getGateways
-    getGateways --> sigCheck
+    [*] --> getPortals
+    getPortals --> sigCheck
 
     sigCheck --> Valid: Yes
     sigCheck --> Invalid: No
@@ -914,7 +914,7 @@ Servicer's are incentivized to respond to any valid relay since it is applicable
 sequenceDiagram
     actor A as Application
     participant WS as World State
-    actor G as Gateway
+    actor G as Portal
     actor S as Servicer
 
     A ->>+ G: StartSession
@@ -928,43 +928,43 @@ sequenceDiagram
         S ->> S: Validate Signature<br>& Session Limits
         S ->> S: Handle Request<br>& Sign Response
         S ->> -G: SignedResponse
-        G ->> G: ** Gateway specific features ** <br>(altruist, check, challenge, proof, etc...)
+        G ->> G: ** Portal specific features ** <br>(altruist, check, challenge, proof, etc...)
         G ->> -A: Response
     end
 ```
 
-#### 3.5.6 Gateway Registration
+#### 3.5.6 Portal Registration
 
 Registration differs from staking in the sense that the pubKey is known but there are no economic benefits/penalties in this stage of the protocol's progression.
 
-The Gateway must register on-chain in order for the Servicer to accept its signature as part of the ring. Future versions of the protocol may include on-chain rewards or penalties for the Gateway, but the current iteration will incentivize Gateways to provide a high quality, highly trusted service through free market economics.
+The Portal must register on-chain in order for the Servicer to accept its signature as part of the ring. Future versions of the protocol may include on-chain rewards or penalties for the Portal, but the current iteration will incentivize Portals to provide a high quality, highly trusted service through free market economics.
 
-When staking, the Gateway must bond a certain amount of POKT to be able to participate in the network. The governance parameter, `StakePerAppDelegation` limits the number of Applications that can delegate to it, and it is the Gateway's responsibility to increase its stake as the number of Applications that trust it grow.
+When staking, the Portal must bond a certain amount of POKT to be able to participate in the network. The governance parameter, `StakePerAppDelegation` limits the number of Applications that can delegate to it, and it is the Portal's responsibility to increase its stake as the number of Applications that trust it grow.
 
-For example, if `StakePerAppDelegation` is 100 POKT and the Gateway has staked 1000 POKT, a transaction by the 11th Application to delegate to it will be rejected until the stake is increased appropriately. However, if `StakePerAppDelegation` is 0 POKT, all Gateways, which are permissionless actors can have an unbounded number of Applications delegate to them.
+For example, if `StakePerAppDelegation` is 100 POKT and the Portal has staked 1000 POKT, a transaction by the 11th Application to delegate to it will be rejected until the stake is increased appropriately. However, if `StakePerAppDelegation` is 0 POKT, all Portals, which are permissionless actors can have an unbounded number of Applications delegate to them.
 
-If `StakePerAppDelegation` changes such that a Gateway cannot support the existing numbers of delegating apps, they are all legacied in to continue operating as normal. However, new applications cannot delegate to the Gateway until the stake is sufficiently increased.
+If `StakePerAppDelegation` changes such that a Portal cannot support the existing numbers of delegating apps, they are all legacied in to continue operating as normal. However, new applications cannot delegate to the Portal until the stake is sufficiently increased.
 
 ```go
-type GatewayStakeMsg interface {
-  GetPublicKey() PublicKey   # The public cryptographic id of the Gateway account
+type PortalStakeMsg interface {
+  GetPublicKey() PublicKey   # The public cryptographic id of the Portal account
   GetStakeAmount() BigInt     # The amount of uPOKT in escrow (i.e. a security deposit)
-  GetServiceURL() ServiceURL  # The API endpoint where the Gateway service is provided
+  GetServiceURL() ServiceURL  # The API endpoint where the Portal service is provided
 }
 ```
 
-#### 3.5.7 Gateway Unregistration
+#### 3.5.7 Portal Unregistration
 
-A Gateway is able to submit an `UnstakeMsg` to exit and remove itself from the network. After a successful UnstakeMsg, the Gateway is no eligible sign relays on behalf of an Application. On-chain delegation from existing Applications will be removed from the world state. After the `GatewayUnstakingTime` unbonding time elapses, the remaining stake is returned to the Gateway's address.
+A Portal is able to submit an `UnstakeMsg` to exit and remove itself from the network. After a successful UnstakeMsg, the Portal is no eligible sign relays on behalf of an Application. On-chain delegation from existing Applications will be removed from the world state. After the `PortalUnstakingTime` unbonding time elapses, the remaining stake is returned to the Portal's address.
 
 #### 3.5.8 Application Undelegation
 
-If a staked Application wants to stop using a Gateway, and prevent the Gateway from further signing relays on its behalf, it would simply submit an on-chain `UndelegateMsg`. Further relays signed by the Gateway on behalf of the Application would be rejected by the Servicers.
+If a staked Application wants to stop using a Portal, and prevent the Portal from further signing relays on its behalf, it would simply submit an on-chain `UndelegateMsg`. Further relays signed by the Portal on behalf of the Application would be rejected by the Servicers.
 
 ```go
 type UndelegateMsg interface {
   GetApplicationPublicKey() # The cryptographic ID of the Application
-  GetGatewayPublicKey()     # The cryptographic ID of the Gateway
+  GetPortalPublicKey()     # The cryptographic ID of the Portal
 }
 ```
 
@@ -1163,8 +1163,8 @@ In order to fully understand Pocket Network 1.0 and its place in the project's m
 
 During the development & development of a v1 TestNet:
 
-- The Fisherman & Gateway models will be will be prototyped and live-tested
-- Major Servicer node runners of Pocket Network V0 may have the option to participate as Fisherman and/or Gateway actors
+- The Fisherman & Portal models will be will be prototyped and live-tested
+- Major Servicer node runners of Pocket Network V0 may have the option to participate as Fisherman and/or Portal actors
 
 ### 4.2 Castaway
 
@@ -1174,15 +1174,15 @@ Upon the initial launch of Pocket Network v1 MainNet:
 
   - The publicKey of the Fisherman will be included in the re-genesis file
 
-- PNI will need to to register at least one Gateway
+- PNI will need to to register at least one Portal
 
-  - The publicKey of the Gateway will be included in the re-genesis file
+  - The publicKey of the Portal will be included in the re-genesis file
   - The community and/or DAO will choose the initial value for `StakePerAppDelegation`
-  - Other actors can register their own Gateways shortly after launch
+  - Other actors can register their own Portals shortly after launch
 
 - Pocket Network scalability issues will be resolved
 - Permissionless Applications will be enabled
-- The economy will enable Network participants to operate their own Gateways
+- The economy will enable Network participants to operate their own Portals
 - `AppBurnPerSession` and `AppBurnPerRelay` will be set to 0
 
 ### 4.2 Fishermen
@@ -1196,7 +1196,7 @@ Upon the initial launch of Pocket Network v1 MainNet:
 
 ### 4.4 CastNet
 
-- A specification for Fisherman Gateway scores will be designed and developed
+- A specification for Fisherman Portal scores will be designed and developed
 
 ## 5. Attack Vectors
 
