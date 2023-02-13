@@ -895,7 +895,7 @@ Similar to to the [incognito sampling section of the Fisherman Protocol](#334-in
 title: Signature Validation By Servicer
 ---
 stateDiagram-v2
-    state "Get gateways the App<br>delegated to: [P1, P2]" as getPortals
+    state "Get portalss the App<br>delegated to: [P1, P2]" as getPortals
     state "Is relay signed by one of:<br>Application, Portal1, Portal2?" as sigCheck
 
     state "Valid (should service relay)" as Valid
