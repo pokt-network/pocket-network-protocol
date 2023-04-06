@@ -860,7 +860,7 @@ sequenceDiagram
     WS ->>- A: ok
 ```
 
-The following message will need to be signed by the Application's PrivateKey in order for it to be validated committed to the world state.
+The following message will need to be signed by the Application's PrivateKey in order for it to be valid and committed to the world state.
 
 ```go
 type DelegateMsg interface {
