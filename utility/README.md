@@ -729,7 +729,7 @@ The _Good Citizens Protocol_ is not a "real" protocol. It is a social committmen
 
 ### 3.4 Application Protocol
 
-An `Application` is a protocol actor that consumes Web3 access from Pocket Network Servicers. Applications are the **demand** side of the Utilitarian Economy, who are pay in the native cryptographic token, POKT, for the utility provided by the decentralized and permissionless network.
+An `Application` is a protocol actor that consumes Web3 access from Pocket Network Servicers. Applications are the **demand** side of the Utilitarian Economy, who are paying in the native cryptographic token, POKT, for the utility provided by the decentralized and permissionless network.
 
 #### 3.4.1 Staking
 
@@ -860,7 +860,7 @@ sequenceDiagram
     WS ->>- A: ok
 ```
 
-The following message will need to be signed by the Application's PrivateKey in order for it to be validated committed to the world state.
+The following message will need to be signed by the Application's PrivateKey in order for it to be valid and committed to the world state.
 
 ```go
 type DelegateMsg interface {
