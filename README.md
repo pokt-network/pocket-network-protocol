@@ -12,6 +12,7 @@ The implementation of the protocol is accessible [here](https://github.com/pokt-
 
 ## Sections
 
+- [ADRs](ADRs/README.md)
 - [Utility](utility/README.md)
 - [Consensus](consensus/README.md)
 - [P2P](p2p/README.md)
