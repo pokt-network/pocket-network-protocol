@@ -2,7 +2,7 @@
 
 # Adopt Multiaddr for Addressing and Protocol Handling
 
-* Status: draft
+* Status: in review
 * Deciders: Pocket Network team
 * Date: 2023-04-17
 
