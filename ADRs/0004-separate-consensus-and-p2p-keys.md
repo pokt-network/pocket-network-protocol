@@ -1,6 +1,6 @@
 # Separate Consensus and P2P Private Keys
 
-* Status: draft
+* Status: in review
 * Deciders: Pocket Network Team
 * Date: 2023-04-17
 
