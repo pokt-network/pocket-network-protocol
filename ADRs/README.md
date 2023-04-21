@@ -29,6 +29,40 @@ These prompts are included in the ADRs directory which can help automate the pro
 To use the large language models for ADR generation, simply provide the necessary context and problem statement as input to the model, and it will generate a draft ADR based on the given information.
 The generated ADR can then be reviewed and refined by the team members to ensure its accuracy and completeness.
 
+## Workflow
+
+```mermaid
+timeline
+    Previous Sprint(s): Existing ADR(s)
+    Creation: Research and/or design issue started
+            : ADR tracks the decision making separate from other outputs
+            : Other outputs (e.g. docs, code) may cite and/or implement an ADR
+    Observation: As the team surfaces additional, relevant information   (e.g. conversations in discord, GitHub, etc.) over time, ADRs are appended to (format currently unspecified)
+                : Examples include things one might use  `//CONSIDERATION`, `//IMPROVE`, or `//DISCUSS` for in code
+    Cleanup/consolidate (optional): consolidate accumulated additional information by regenerating a new ADR which obsoletes the current
+    Obsoletion: When an ADR conflicts with (a) prior one(s), the prior ADR's status MUST be set to "obsolete" with a reference to the newer ADR
+            : If there are aspects of the prior ADR which the conflicting ADR does not address they MUST be consolidated (regenerated) into an additional (new) ADR which also obsoletes the prior ADR(s). This should all surface during review, if not sooner
+```
+
+## Document status flowchart
+
+```mermaid
+stateDiagram
+    state "In Review" as review
+    state "Changes Needed" as change
+    
+    [*] --> Draft : Author opens a PR
+    Draft --> review : PR is marked 'Ready for Review'
+    review --> change : Reviewer requests changes
+    change --> review : Reviewer approves changes
+    change --> Withdrawn : PR is closed
+    review --> Accepted : PR is merged
+    Accepted --> Superseded : Superseding ADR becomes 'Accepted
+
+    Draft --> Withdrawn : PR is closed
+    review --> Withdrawn: PR is closed
+```
+
 ## Contributing
 
 To contribute a new ADR, please follow these steps:
