@@ -1,6 +1,6 @@
 # ADR-0003: Adopt Libp2p PeerIDs
 
-* Status: draft
+* Status: in review
 * Deciders: Pocket Network team
 * Date: 2023-04-14
 
