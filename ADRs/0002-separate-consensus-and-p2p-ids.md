@@ -1,6 +1,6 @@
 # ADR-0002: Separate consensus and P2P IDs
 
-* Status: draft
+* Status: in review
 * Deciders: Pocket Network team
 * Date: 2023-04-17
 
