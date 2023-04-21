@@ -68,7 +68,7 @@ stateDiagram
 To contribute a new ADR, please follow these steps:
 
 1. Create a new branch for your ADR.
-2. Copy the ADR template from `ADR_TEMPLATE.md` and create a new file with the appropriate number and title (e.g., `ADR0003-adopting-multiaddr.md`).
+2. Copy the ADR template from `ADR_TEMPLATE.md` and create a new file with the next ADR number and title as an [imperative mood verb phrase](https://en.wikipedia.org/wiki/Imperative_mood) (e.g., `0003-adopt-multiaddr.md`).
 3. Fill in the necessary information in the new ADR file, following the template structure.
 4. Use the large language model prompts, if desired, to generate or refine the ADR content.
 5. Submit a pull request to merge your ADR branch into the main branch, including a brief description of the problem and solution.
