@@ -20,6 +20,7 @@ Fishermen is a canonically used term in [blockchain technology](https://wiki.pol
 - Checker
 - Verifier
 - Sampler
+- Watcher
 
 ## Decision Outcome
 
