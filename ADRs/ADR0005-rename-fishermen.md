@@ -1,12 +1,12 @@
 # Rename Fishermen
 
-* Status: Proposed
-* Deciders: Protocol Eng. Team
-* Date: 2023-04-24
+* Status: Draft
+* Deciders: Protocol Network Team
+* Date: 2023-04-25
 
 ## Context and Problem Statement
 
-Fishermen is a canonically used term in blockchain spaces. In POKT Network, Fishermen are actors responsible for monitoring & reporting the behavior of Service nodes. However, the term Fishermen is ambiguous, overloaded, and doesn't describe its responsibilities in the protocol without additional context. None of other POKT actor roles have a maritime or sea based theme, further adding to the confusion. Additionally, pluralization preferences and spelling of `fishermen` is an ongoing issue in the codebase. For example, there are TODO comments about renaming `fisherman` to `fishermen`.
+Fishermen is a canonically used term in [blockchain technology](https://wiki.polkadot.network/docs/learn-availability#fishermen-deprecated). In POKT Network, Fishermen are actors responsible for monitoring & reporting the behavior of Service nodes. However, the term Fishermen is ambiguous, overloaded, and doesn't describe its responsibilities in the protocol without additional context. None of other POKT actor roles have a maritime or sea based theme, further adding to the confusion. Additionally, pluralization preferences and spelling of `fishermen` is an ongoing issue in the codebase. For example, there are TODO comments about renaming `fisherman` to `fishermen`.
 
 ## Decision Drivers
 
@@ -23,7 +23,7 @@ Fishermen is a canonically used term in blockchain spaces. In POKT Network, Fish
 
 ## Decision Outcome
 
-_Decision pending_.
+_Decision pending further discussion & community input_.
 
 ### Positive Consequences 
 
@@ -41,10 +41,14 @@ _Decision pending_.
 
 ### Option 3: Verifier
 
+- Bad, because it's very close to Validator. 
+
 ### Option 4: Sampler
 
 ### Option 5: Watcher
 
+- Good, because there's precedent.
+
 ## Links
 
-[Pokadot Network - Fishermen Deprecated](https://wiki.polkadot.network/docs/learn-availability#fishermen-deprecated)
+- [Pokadot Network - Fishermen Deprecated](https://wiki.polkadot.network/docs/learn-availability#fishermen-deprecated)
