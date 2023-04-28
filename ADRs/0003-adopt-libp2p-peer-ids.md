@@ -6,6 +6,7 @@
 
 **Table of Contents**
 
+- [Summary](#summary-)
 - [Problem Statement](#problem-statement-)
 - [Technical Story](#technical-story-)
 - [Decision Drivers](#decision-drivers-)
@@ -18,9 +19,20 @@
     - [Custom identity scheme](#custom-identity-scheme)
 - [References](#references-)
 
+## Summary <!-- required -->
+
+Facing the need for a unique and verifiable identifier for nodes in the peer-to-peer network, we decided to adopt Libp2p identity/IDs and neglect alternative identity schemes, to achieve a reliable and secure identification system, accepting the additional dependency and integration work, because Libp2p provides a proven solution with robust security features.
+
 ## Problem Statement <!-- required -->
 
-In the context of simplifying and consolidating node identity, facing the need for a unique and verifiable identifier for nodes in the peer-to-peer network, we decided to adopt Libp2p identity/IDs and neglect alternative identity schemes, to achieve a reliable and secure identification system, accepting the additional dependency and integration work, because Libp2p provides a proven solution with robust security features.
+At the time of writing, there is no formal specification for identity with respect to pocket network nodes/participants.
+Each node MUST be uniquely identifiable/addressable so that it may be correctly routed to.
+Identities MUST be provable (e.g. via cryptographic signature).
+
+### Context <!-- optional -->
+
+- We've recently refactored the P2P module to use libp2p for the transport layer. As a result we're already interoperating with libp2p objects and types.
+- We're simultaneously exploring consolidating and simplifying the concept of node identity throughout the codebase wherever reasonable/feasible.
 
 ## Technical Story <!-- optional -->
 
@@ -51,6 +63,7 @@ Chosen option: "Adopting Libp2p identity/IDs", because it provides a unique, ver
 
 - Additional dependency on the Libp2p library
 - Integration work required to adopt Libp2p identity/IDs
+- May not be compatible with other Libp2p components or the refactored P2P module
 
 ## Pros and Cons of the Options <!-- required -->
 
@@ -61,6 +74,7 @@ Pros:
 - Provides unique and verifiable node identifiers
 - Offers a secure and reliable identification system
 - Proven solution in the peer-to-peer ecosystem
+- Aligns with the refactored P2P module, which already uses libp2p for the transport layer
 
 Cons:
 
