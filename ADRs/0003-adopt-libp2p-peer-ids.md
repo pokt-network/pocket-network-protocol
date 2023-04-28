@@ -63,7 +63,6 @@ Chosen option: "Adopting Libp2p identity/IDs", because it provides a unique, ver
 
 - Additional dependency on the Libp2p library
 - Integration work required to adopt Libp2p identity/IDs
-- May not be compatible with other Libp2p components or the refactored P2P module
 
 ## Pros and Cons of the Options <!-- required -->
 
@@ -91,7 +90,7 @@ Cons:
 
 - May lead to a less secure and reliable solution
 - Requires development and maintenance efforts
-- May not be compatible with other Libp2p components
+- May not be compatible with other Libp2p components or the refactored P2P module
 
 ## References <!-- optional -->
 
