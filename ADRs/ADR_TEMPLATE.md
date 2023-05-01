@@ -1,6 +1,6 @@
 # [short title of solved problem and solution] <!-- omit in toc -->
 
-- Status: [proposed | in review | rejected | accepted | deprecated | … | superseded by [ADR-0005](0005-example.md)]
+- Status: [draft | in review | changes needed | withdrawn | accepted | superseded by [ADR-XXXX](0002-example.md)]
 - Deciders: [list everyone involved in the decision | Pocket Network Protocol Team | Pocket Network Community | Pocket Network Foundation]
 - Date: [YYYY-MM-DD when the decision was last updated]
 
