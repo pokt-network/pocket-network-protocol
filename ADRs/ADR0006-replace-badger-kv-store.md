@@ -2,7 +2,9 @@
 
 *tl;dr - Replace the key-value store backing the Sparse Merkle Tree (SMT) from BadgerDB to Postgres.*
 
-* Status: Proposed
+> _Alternative Title: Ensuring atomic commits from the KVStore._
+
+* Status: Draft 
 * Deciders: Protocol Network Team
 * Date: 2023-04-25
 
@@ -21,7 +23,11 @@ The decision drivers are simplifying transaction handling for savepoints and rol
 
 ## Context and Problem Statement
 
-When applying blocks, Postgres validates the block structure. However, Badger stores key/value pairs that make up the SMT representation of transactions for each block during block application. When a block fails validation and thus application, i.e. Postgres declares the data invalid, a rollback is initiated in Postgres, but the key/value pairs of that failed transaction are still left in Badger. The goal is synchronizing the atomic application or reversal of block data between both Postgres and Badger such that we are not left with orphaned keys.
+When applying blocks, Postgres validates the block contents. However, Badger stores key/value pairs that make up the SMT representation of transactions for each block during block application. When a block fails validation and thus application, i.e. Postgres declares the data invalid, a rollback is initiated in Postgres, but the key/value pairs of that failed transaction are still left in Badger. The problem lies in the KVStore interface. The KVStore interface does not currently expose commit handling but acts as a subordinate component of an atomic persistent context. This means that its wrapper, the persistence context, can't itself provide specific atomic guarantees.
+
+## Design Goals
+
+The goal is synchronizing the atomic application or reversal of block data between both Postgres and Badger such that we are not left with orphaned keys or rows in the KVStore or the Postgres database.
 
 ## Decision Drivers
 
@@ -62,13 +68,7 @@ func initializeDatabase(conn *pgxpool.Conn) error {
 }
 ```
 
-- Badger is highly performant and the KV store in place currently is very efficient. Changing this part of the system could mean changing back in the future in the face of performance issues. 
-
-#### Remediation
-
-In the future case where PostgreSQL becomes legitimately too slow to optimize around, the `TxIndexer` test suite should provide strong enough guarantees around hash consistency that a swap back to Badger should not be a consensus-breaking change. In the case where that becomes necessary, we can execute on one of our currently explored strategies to atomically and safely apply or rollback blocks between PostgreSQL and BadgerDB. 
-
-The BadgerDB in-memory store adapter will likely also continue to be used for testing and possible light-client development, further ensuring that we maintain Badger compatability out of convenience.
+- Badger is highly performant and the KV store in place currently is very efficient. Changing this part of the system could mean changing back in the future in the face of performance issues.
 
 ## Pros and Cons of the Options
 
@@ -142,25 +142,25 @@ Option 3 would dump everything into typical TEXT types in a standard table named
 - Good, because it handles prefix queries.
 - Bad, because it lacks similar performance capabilities compared to Badger.
 
-### [Option 2] - Make KV Store Handle Atomic Guarantees
+### [Option 2.1] - Make KV Store Handle Atomic Guarantees
 
-Option 2 would involve extending the Savepoint & Rollback interface to the `TxIndexer` so that both persistence layers could be atomically controlled by the caller.
+Option 2 would involve extending the `TxIndexer` interface so that it can be atomically controlled by the caller. Either by having it directly extend the Rollback & Savepoint interface, as demonstrated below, or by having it manage its own rollbacks. 
 
 ```go
 func (indexer *txIndexer) Rollback([]byte) error {
 	return fmt.Errorf("not impl")
 }
-
 func (indexer *txIndexer) Savepoint() ([]byte, error) {
 	return nil, fmt.Errorf("not impl")
 }
 ```
 
-This option is similar to [PR #657 - KV POC](https://github.com/pokt-network/pocket/pull/657).
+This option is similar to [PR #657 - KV POC](https://github.com/pokt-network/pocket/pull/657) but different in a key way: it addresses the core design misalignment between the `PersistenceRWContext` and the `KVStore` causing the dissonance in the first place. 
 
 - Good, because it avoids migrations.
-- Good, because it makes future KVStores handle their own rollbacks and savepoints.
-- Bad, because it might be more complicated than the blanket transaction guarantees offered by the pure Postgres solution. 
+- Good, because it clears up KVStore's responsiblity boundary as a component in this system.
+- Good, because it takes advantage of existing Badger features.
+- Bad, because it could be more complex than just passing it off to Postgres.
 
 ### [Option 3] - Manually Cleanup Leftover Keys
 
@@ -171,14 +171,13 @@ Good, because it requires smaller and fewer changes to implement.
 
 ### [Option 4] - Do Nothing 
 
-One should always consider the option of doing nothing. 
+One should always consider the option of doing nothing. In this case, doing nothing results in orphaned keys being left in the Badger KV store.
 
-Doing nothing results in orphaned keys being left in the Badger KV store.
-
-- Good, because it is easy to continue in the same pattern.
+- Good, because it is always easy to continue in the same pattern.
 - Good, because it fully leverages the performance of Badger.
 - Good, because it avoids a new table in the Postgres database, which avoids a migration.
 - Bad, because it doesn't allow us to easily synchronize an atomic backup or sync and leads to continued orphaned keys in the database.
+- Bad, beacuse it currently leaves orphaned keys in the database.
 
 ## Links
 
