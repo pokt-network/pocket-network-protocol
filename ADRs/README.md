@@ -72,8 +72,10 @@ To contribute a new ADR, please follow these steps:
 3. Fill in the necessary information in the new ADR file, following the template structure.
 4. Use the large language model prompts, if desired, to generate or refine the ADR content.
 5. Submit a pull request to merge your ADR branch into the main branch, including a brief description of the problem and solution.
-6. Request a review from the team members, and address any feedback or suggestions provided.
-7. Once approved, merge the pull request to update the repository with the new ADR.
+6. Add a reference to the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) for your pull request with appropriate status.
+7. Request a review from the team members, and address any feedback or suggestions provided.
+8. Once approved, merge the pull request to update the repository with the new ADR.
+9. If rejected or withdrawn, update the document's status as withdrawn, close the pull request, and update the status of the ADR in the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4).
 
 ## Links
 
