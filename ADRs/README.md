@@ -61,6 +61,7 @@ stateDiagram
 
     Draft --> Withdrawn : PR is closed
     review --> Withdrawn: PR is closed
+    review --> Unsuitable: PR is closed
 ```
 
 ## Contributing
@@ -75,7 +76,7 @@ To contribute a new ADR, please follow these steps:
 6. Add a reference to the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) for your pull request with appropriate status.
 7. Request a review from the team members, and address any feedback or suggestions provided.
 8. Once approved, merge the pull request to update the repository with the new ADR.
-9. If rejected or withdrawn, update the document's status as withdrawn, close the pull request, and update the status of the ADR in the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4).
+9. If unsuitable or withdrawn, update the document's status as appropriate, close the pull request, and update the status of the ADR in the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) to match.
 
 ## Links
 
