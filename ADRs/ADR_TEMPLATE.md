@@ -19,9 +19,15 @@
   - [\[option 3\]](#option-3)
 - [References ](#references-)
 
-## Problem Statement <!-- required -->
+## Summary <!-- required -->
 
 In the context of [use case | user story u], facing [concern c], we decided for [option o] and neglected [other options], to achieve [system qualities | desired consequences], accepting [downside d | undesired consequences], because [additional rationale].
+
+[ optional additional high-level information ]
+
+## Problem Statement <!-- required -->
+
+[ description of problem ]
 
 ## [Background | Origin Document | Technical Story] <!-- optional -->
 
