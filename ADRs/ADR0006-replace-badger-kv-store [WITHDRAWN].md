@@ -1,4 +1,4 @@
-# Replace Badger KV Store with PostgreSQL
+# Replace Badger KV Store with PostgreSQL [WITHDRAWN]
 
 *tl;dr - Replace the key-value store backing the Sparse Merkle Tree (SMT) from BadgerDB to Postgres.*
 
@@ -16,7 +16,7 @@ Technical Story:
 
 ## Summary
 
-This ADR explores replacing the Badger KV store with Postgres for the Sparse Merkle Tree (SMT) representation of transactions in the Pocket Network protocol. The main issue is that Badger stores key/value pairs, which are not synchronized with Postgres during atomic rollbacks, causing potential inconsistencies between Badger and Postgres, including orphaned keys in the Badger KV store. 
+This ADR explores replacing the Badger KV store with Postgres for the Sparse Merkle Tree (SMT) representation of transactions in the Pocket Network protocol. The main issue is that Badger stores key/value pairs, which are not synchronized with Postgres during atomic rollbacks, causing potential inconsistencies between Badger and Postgres, including orphaned keys in the Badger KV store.
 
 The decision drivers are simplifying transaction handling for savepoints and rollbacks and elimination of a dependency on Badger, which decreases maintenance and complexity costs. The considered options include using PostgreSQL's HSTORE, JSONB, or a plain key-value table, with the outcome still to be determined. The documentation outlines the pros and cons of each option, including atomic transactions, index capabilities, performance, and Postgres-specific behavior. The do-nothing option is also discussed but ultimately is not the preferred choice as it does not allow for synchronization of atomic backups or sync.
 
@@ -179,10 +179,14 @@ One should always consider the option of doing nothing. In this case, doing noth
 * Bad, because it doesn't allow us to easily synchronize an atomic backup or sync and leads to continued orphaned keys in the database.
 * Bad, because it currently leaves orphaned keys in the database.
 
+## Decision
+
+The decision to replace BadgerDB with PostgreSQL was ultimately abandoned because it would not solve the core problem of atomic handling for each constituent part. Instead, a refactor is the only way to truly handle the atomic behavior necessary for confidently applying a unit of work to the persistence layer. If in the future this simplification is again desired, it would still need to be refactored such that the component allowed the caller to handle rollback scenarios.
+
 ## Next Steps
 
 * Begin refactoring the KVStore to handle atomic all-or-nothing commits.
-* Refactor the sub-stores under a StoreManager interface that is attached to the PostgresContext.
+* Refactor the sub-stores attached to the PersistenceContext to expose fine-grained commit controls.A
 
 ## Links
 
