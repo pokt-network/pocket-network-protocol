@@ -68,15 +68,18 @@ stateDiagram
 
 To contribute a new ADR, please follow these steps:
 
-1. Create a new branch for your ADR.
-2. Copy the ADR template from `ADR_TEMPLATE.md` and create a new file with the next ADR number and title as an [imperative mood verb phrase](https://en.wikipedia.org/wiki/Imperative_mood) (e.g., `0003-adopt-multiaddr.md`).
-3. Fill in the necessary information in the new ADR file, following the template structure.
-4. Use the large language model prompts, if desired, to generate or refine the ADR content.
-5. Submit a pull request to merge your ADR branch into the main branch, including a brief description of the problem and solution.
-6. Add a reference to the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) for your pull request with appropriate status.
-7. Request a review from the team members, and address any feedback or suggestions provided.
-8. Once approved, merge the pull request to update the repository with the new ADR.
-9. If unsuitable or withdrawn, update the document's status as appropriate, close the pull request, and update the status of the ADR in the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) to match.
+1. Author: Create a new branch for your ADR.
+2. Author: Copy the ADR template from `ADR_TEMPLATE.md` and create a new file with the next ADR number and title as an [imperative mood verb phrase](https://en.wikipedia.org/wiki/Imperative_mood) (e.g., `0003-adopt-multiaddr.md`) and save the copy in the `/ADRs` directory.
+3. Author: Fill in the necessary information in the new ADR file, following the template structure and removing placeholders.
+4. Author: Use the large language model prompts, if desired, to generate or refine the ADR content.
+5. Author: Submit a pull request to merge your ADR branch into the main branch, including a brief description of the problem and solution.
+6. Author: Add a reference to the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) for your pull request with appropriate status.
+7. Author/Reviewer: Request a review from the team members, and address any feedback or suggestions provided.
+8. Author: Once approved, merge the pull request to update the repository with the new ADR.
+9. Author/Reviewer: (optional) Reviewer/Author: If unsuitable or withdrawn...
+   1. Update the document's status as appropriate
+   2. Append the `[WITHDRAWN]` suffix to the ADR's filename.
+   3. Update the status of the ADR in the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) to match.
 
 ## Links
 
