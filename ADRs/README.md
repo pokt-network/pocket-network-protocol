@@ -29,17 +29,57 @@ These prompts are included in the ADRs directory which can help automate the pro
 To use the large language models for ADR generation, simply provide the necessary context and problem statement as input to the model, and it will generate a draft ADR based on the given information.
 The generated ADR can then be reviewed and refined by the team members to ensure its accuracy and completeness.
 
+## Workflow
+
+```mermaid
+timeline
+    Previous Sprint(s): Existing ADR(s)
+    Creation: Research and/or design issue started
+            : ADR tracks the decision making separate from other outputs
+            : Other outputs (e.g. docs, code) may cite and/or implement an ADR
+    Observation: As the team surfaces additional, relevant information   (e.g. conversations in discord, GitHub, etc.) over time, ADRs are appended to (format currently unspecified)
+                : Examples include things one might use  `//CONSIDERATION`, `//IMPROVE`, or `//DISCUSS` for in code
+    Cleanup/consolidate (optional): consolidate accumulated additional information by regenerating a new ADR which obsoletes the current
+    Obsoletion: When an ADR conflicts with (a) prior one(s), the prior ADR's status MUST be set to "obsolete" with a reference to the newer ADR
+            : If there are aspects of the prior ADR which the conflicting ADR does not address they MUST be consolidated (regenerated) into an additional (new) ADR which also obsoletes the prior ADR(s). This should all surface during review, if not sooner
+```
+
+## Document status flowchart
+
+```mermaid
+stateDiagram
+    state "In Review" as review
+    state "Changes Needed" as change
+    
+    [*] --> Draft : Author opens a PR
+    Draft --> review : PR is marked 'Ready for Review'
+    review --> change : Reviewer requests changes
+    change --> review : Reviewer approves changes
+    change --> Withdrawn : PR is closed
+    review --> Accepted : PR is merged
+    Accepted --> Superseded : Superseding ADR becomes 'Accepted
+
+    Draft --> Withdrawn : PR is closed
+    review --> Withdrawn: PR is closed
+    review --> Unsuitable: PR is closed
+```
+
 ## Contributing
 
 To contribute a new ADR, please follow these steps:
 
-1. Create a new branch for your ADR.
-2. Copy the ADR template from `ADR_TEMPLATE.md` and create a new file with the appropriate number and title (e.g., `ADR0003-adopting-multiaddr.md`).
-3. Fill in the necessary information in the new ADR file, following the template structure.
-4. Use the large language model prompts, if desired, to generate or refine the ADR content.
-5. Submit a pull request to merge your ADR branch into the main branch, including a brief description of the problem and solution.
-6. Request a review from the team members, and address any feedback or suggestions provided.
-7. Once approved, merge the pull request to update the repository with the new ADR.
+1. **Author**: Create a new branch for your ADR.
+2. **Author**: Copy the ADR template from `ADR_TEMPLATE.md` and create a new file with the next ADR number and title as an [imperative mood verb phrase](https://en.wikipedia.org/wiki/Imperative_mood) (e.g., `0003-adopt-multiaddr.md`) and save the copy in the `/ADRs` directory.
+3. **Author**: Fill in the necessary information in the new ADR file, following the template structure and removing placeholders.
+4. **Author**: Use the large language model prompts, if desired, to generate or refine the ADR content.
+5. **Author**: Submit a pull request to merge your ADR branch into the main branch, including a brief description of the problem and solution.
+6. **Author**: Add a reference to the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) for your pull request with appropriate status.
+7. **Author**/**Reviewer**: Request a review from the team members, and address any feedback or suggestions provided.
+8. **Author**/**Reviewer**: Once approved, merge the pull request to update the repository with the new ADR.
+9. **Author**/**Reviewer**: If ADR is marked unsuitable or withdrawn...
+   1. Update the document's status field as appropriate
+   2. Append the `[WITHDRAWN]` suffix to the ADR's filename.
+   3. Update the status of the ADR in the [ADR Index](https://www.notion.so/pocketnetwork/1a5893d2183b470b93610d2d9ce84d36?v=91b83d5b44d34ba6abf36f9070c2f3a8&pvs=4) to match.
 
 ## Links
 
