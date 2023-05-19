@@ -8,7 +8,7 @@
 
 - [Summary](#summary-)
 - [Problem Statement](#problem-statement-)
-- [Technical Story](#technical-story-)
+- [Background](#background-)
 - [Decision Drivers](#decision-drivers-)
 - [Considered Options](#considered-options-)
 - [Decision Outcome](#decision-outcome-)
@@ -34,7 +34,7 @@ Identities MUST be provable (e.g. via cryptographic signature).
 - We've recently refactored the P2P module to use libp2p for the transport layer. As a result we're already interoperating with libp2p objects and types.
 - We're simultaneously exploring consolidating and simplifying the concept of node identity throughout the codebase wherever reasonable/feasible.
 
-## Technical Story <!-- optional -->
+## Background
 
 [Consolidate and Refactor Node Identity - #348](https://github.com/pokt-network/pocket/issue/348)
 
