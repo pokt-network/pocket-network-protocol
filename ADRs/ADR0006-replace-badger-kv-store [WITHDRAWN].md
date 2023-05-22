@@ -1,5 +1,30 @@
 # Replace Badger KV Store with PostgreSQL [WITHDRAWN]
 
+<!-- TOC -->
+
+- [Replace Badger KV Store with PostgreSQL \[WITHDRAWN\]](#replace-badger-kv-store-with-postgresql-withdrawn)
+  - [Summary](#summary)
+  - [Context and Problem Statement](#context-and-problem-statement)
+  - [Design Goals](#design-goals)
+  - [Decision Drivers](#decision-drivers)
+  - [Considered Options](#considered-options)
+  - [Decision Outcome](#decision-outcome)
+    - [Positive Consequences](#positive-consequences)
+    - [Negative Consequences](#negative-consequences)
+  - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
+    - [\[Option 1\] - Use Postgres](#option-1---use-postgres)
+    - [\[Option 1.1\] - Store Keys In HSTORE](#option-11---store-keys-in-hstore)
+    - [\[Option 1.2\] - Store Keys In JSONB](#option-12---store-keys-in-jsonb)
+    - [\[Option 1.3\] - Store Keys In KV Table](#option-13---store-keys-in-kv-table)
+    - [\[Option 2.1\] - Make KV Store Handle Atomic Guarantees](#option-21---make-kv-store-handle-atomic-guarantees)
+    - [\[Option 3\] - Manually Cleanup Leftover Keys](#option-3---manually-cleanup-leftover-keys)
+    - [\[Option 4\] - Do Nothing](#option-4---do-nothing)
+  - [Decision](#decision)
+  - [Next Steps](#next-steps)
+  - [Links](#links)
+
+<!-- /TOC -->
+
 *tl;dr - Replace the key-value store backing the Sparse Merkle Tree (SMT) from BadgerDB to Postgres.*
 
 * Status: Withdrawn
