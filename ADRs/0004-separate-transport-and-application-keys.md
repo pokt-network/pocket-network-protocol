@@ -34,14 +34,14 @@ We need to decide whether to use separate private keys for P2P and other functio
 ## Decision Drivers
 
 - Security: Minimizing the risks associated with key compromise
-- Simplification: Reducing complexity in identity management
-- Flexibility: Allowing different key management strategies for different modules
+- Simplification: Reducing complexity in identity management and node configuration
+- **Flexibility/Modularity**: Allowing different key management strategies for different modules
 - Isolation: Minimizing the impact of compromise on other system components
 - Optionality: Enabling future changes and extensions to the protocol
 
 ## Considered Options
 
-1. Use a single private key for both P2P and other functionalities
+1. Use a single private key for both P2P and other functionalities (i.e. consensus, utility, etc...)
 2. Use separate private keys for P2P and other functionalities
 
 ## Decision Outcome
