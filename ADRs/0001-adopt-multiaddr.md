@@ -38,6 +38,7 @@ A GitHub discussion was initiated to decide on the direction of the address conv
 - Demand for supporting arbitrary protocol values, i.e., extensibility
 - Confirming and following the newest & best standards in the industry
 - Maintenance by the core team
+- Backwards compatibility or parity with V0
 
 ## Considered Options
 
@@ -72,13 +73,14 @@ Pros:
 Cons:
 
 - Brings in an additional dependency
-- Demands learning a new abstraction
+- Demands learning a new abstraction by the core team and community
 
 ### Custom address convention
 
 Pros:
 
 - Avoids the need for an additional dependency
+- Lack of need to educate and inform the community of changes
 
 Cons:
 
