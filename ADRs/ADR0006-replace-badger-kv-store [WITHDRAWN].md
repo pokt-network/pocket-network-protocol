@@ -1,5 +1,12 @@
-<!-- TOC -->
+# Replace Badger KVStore <!-- omit from toc -->
 
+*tl;dr - Replace the key-value store backing the Sparse Merkle Tree (SMT) from BadgerDB to Postgres.*
+
+* Status: *Withdrawn*
+* Deciders: Protocol Network Team
+* Date: 2023-04-25
+
+<!-- TOC -->
 - [Summary](#summary)
 - [Context and Problem Statement](#context-and-problem-statement)
 - [Design Goals](#design-goals)
@@ -19,14 +26,7 @@
 - [Decision](#decision)
 - [Next Steps](#next-steps)
 - [Links](#links)
-
-<!-- /TOC -->
-
-*tl;dr - Replace the key-value store backing the Sparse Merkle Tree (SMT) from BadgerDB to Postgres.*
-
-* Status: Withdrawn
-* Deciders: Protocol Network Team
-* Date: 2023-04-25
+<!-- TOC -->
 
 Technical Story:
 
