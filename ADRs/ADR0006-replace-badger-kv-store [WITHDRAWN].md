@@ -2,11 +2,14 @@
 
 *tl;dr - Replace the key-value store backing the Sparse Merkle Tree (SMT) from BadgerDB to Postgres.*
 
-* Status: *Withdrawn*
+* Status: _Withdrawn_
 * Deciders: Protocol Network Team
 * Date: 2023-04-25
 
+## Table of Contents <!-- omit from toc -->
 <!-- TOC -->
+
+- [Technical Story](#technical-story)
 - [Summary](#summary)
 - [Context and Problem Statement](#context-and-problem-statement)
 - [Design Goals](#design-goals)
@@ -28,7 +31,7 @@
 - [Links](#links)
 <!-- TOC -->
 
-Technical Story:
+## Technical Story
 
 * [Pocket Network 1.0 Persistence Module Specification](https://github.com/pokt-network/pocket-network-protocol/blob/main/persistence/README.md#1-why-not-just-store-the-state-in-a-tree-like-every-other-blockchain)
 * [Issue #327 - Implement KISS Savepoints & Rollbacks](https://github.com/pokt-network/pocket/issues/327)
