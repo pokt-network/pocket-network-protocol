@@ -60,12 +60,12 @@ The goal is synchronizing the atomic application or reversal of block data betwe
 
 ## Considered Options
 
-* Use Postgres for atomic guarantees
-  * Store in HSTORE
-  * Store in JSONB
-  * Store in Plain Table
-* Handle atomic guarantees at the KVStore
-* Manually cleaning up orphaned keys
+1. Use Postgres for atomic guarantees
+  1.1. Store in HSTORE
+  1.2. Store in JSONB
+  1.3. Store in Plain Table
+2. Handle atomic guarantees at the KVStore
+3. Manually cleaning up orphaned keys
 
 ## Decision Outcome
 
@@ -78,6 +78,7 @@ This ADR is withdrawn. The decision has been made to focus on refactoring the KV
 
 ### Negative Consequences
 
+* Badger is highly performant and the KV store in place currently is very efficient. Changing this part of the system could mean changing back in the future in the face of performance issues.
 * Any of the three Postgres KV store implementations outlined below requires a migration to complete.
 
 ```go
@@ -91,8 +92,6 @@ func initializeDatabase(conn *pgxpool.Conn) error {
   return nil
 }
 ```
-
-* Badger is highly performant and the KV store in place currently is very efficient. Changing this part of the system could mean changing back in the future in the face of performance issues.
 
 ## Pros and Cons of the Options
 
@@ -139,6 +138,7 @@ WHERE key LIKE 'prefix%';
 * Bad, because it's an extension, not a native feature, which adds complexity and maintenance of its own.
 * Bad, because it uses a novel syntax.
 * Bad, because it might not have the same performance capabilities as Badger.
+* Bad, because it requires a migration.
 
 ### [Option 1.2] - Store Keys In JSONB
 
@@ -157,6 +157,7 @@ WHERE key LIKE 'prefix%';
 * Bad, because we want strict hash comparisons to continue working and JSONB interpretation could have unforeseen consequences.
 * Bad, because it might not have the same performance capabilities as Badger.
 * Bad, because it's Postgres specific which could impose limitations on us in the future or be a source of *unknown unknowns*.
+* Bad, because it requires a migration.
 
 ### [Option 1.3] - Store Keys In KV Table
 
@@ -166,6 +167,7 @@ Option 3 would dump everything into typical TEXT types in a standard table named
 * Good, because it stays within standard SQL features, and doesn't utilize Postgres specific behavior.
 * Good, because it handles prefix queries.
 * Bad, because it lacks similar performance capabilities compared to Badger.
+* Bad, because it requires a migration.
 
 ### [Option 2.1] - Make KV Store Handle Atomic Guarantees
 
@@ -203,6 +205,7 @@ One should always consider the option of doing nothing. In this case, doing noth
 * Good, because it avoids a new table in the Postgres database, which avoids a migration.
 * Bad, because it doesn't allow us to easily synchronize an atomic backup or sync and leads to continued orphaned keys in the database.
 * Bad, because it currently leaves orphaned keys in the database.
+* Bad, because it could cause issues in block validation and normal downstream node operations after an error occurred.
 
 ## Decision
 
