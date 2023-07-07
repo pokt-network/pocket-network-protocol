@@ -67,6 +67,20 @@ Leveraging some of the features gained by the recent switch to using [Pocket's S
 
 It turns the three step persistence application process into a two step process, and ensures that the primary source of truth is the `TreeStore` and that the `Postgres` store reflects the committed view of the underlying `TreeStore` and not the other way around.
 
+```mermaid
+classDiagram
+    PersistenceModule <|-- TreeStore
+    PersistenceModule <|-- BlockStore
+     class TreeStore{        
+        kvstore.KVStore
+        IndexTransaction()
+    }
+    class BlockStore{
+        kvstore.KVStore
+        StoreBlock()
+    }
+```
+
 * Good, because it removes a submodule, thus decreasing the surface area and making the TreeStore a [deep module](https://csruiliu.github.io/blog/20201218-a-philosophy-of-software-design-II/).
 * Good, because it simplifies the handling of atomic applications by making it clear that rollbacks are the caller's responsibility
 
@@ -163,4 +177,3 @@ func (u *utilityModule) HandleTransaction(txProtoBytes []byte) error {
         return u.mempool.AddTx(txProtoBytes)
 }
 ```
-
