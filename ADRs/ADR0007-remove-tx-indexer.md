@@ -14,7 +14,26 @@ Part of this work concerns the ongoing savepoints and rollbacks work in that tra
 
 ## Context and Problem Statement
 
-There is an impedance mismatch between the various submodules of the persistence module and its callers. The unit of work package wants to use an atomic interface, but the current interface presented by the `TreeStore`, `BlockStore`, and `TxIndexer` are not exposed as atomic. Instead, the block application process should be atomic from the perspective of the unit of work. The unit of work should be responsible for calling the `PersistenceRWContext` methods correctly.
+There is an impedance mismatch between the various submodules of the persistence module and its callers. The unit of work package wants to use an atomic interface, but the current interface presented by the `TreeStore`, `BlockStore`, and `TxIndexer` are not exposed as atomic. Instead, the block application process should be atomic from the perspective of the unit of work. The unit of work should be responsible for calling the `PersistenceRWContext` methods correctly. The `TreeStore` should be the source o truth for the `BlockStore`, the `TxIndexer`, and the `PersistenceRWContext`
+
+```mermaid
+classDiagram
+    PersistenceModule <|-- TreeStore
+    PersistenceModule <|-- BlockStore
+    PersistenceModule <|-- TxIndexer
+     class TreeStore{        
+        kvstore.KVStore
+        Update(...)
+    }
+    class BlockStore{
+        kvstore.KVStore
+        StoreBlock(...)
+    }
+    class TxIndexer{
+        kvstore.KVStore
+        IndexTransaction(...)
+    }
+```
 
 ## Decision Drivers
 
