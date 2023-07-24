@@ -8,7 +8,7 @@
 
 In the course of determining how to handle invalid transactions, it became clear the `TxIndexer` was an equal counterpart to the `TreeStore`, which contradicts prior statements about the `TreeStore` as being the "source of truth" for the peristence layer.
 
-Instead, the `TxIndexer` mirror the Postgres database by its reliance on SQL queries to update its trees, allowin invalid entries between the two is possible in both directions. Invalid transactions can be peristed in Postgres and invalid Postgres data can be persisted in transactions. Part of the savepionts and rollbacks work was to address this discrepancy, and to a large degree it has, but we could eliminate additional possible issues if we simplified the design.
+Instead, the `TxIndexer` mirror the Postgres database by its reliance on SQL queries to update its trees, allowin invalid entries between the two is possible in both directions. Invalid transactions can be persisted in Postgres, and invalid Postgres data can be persisted in transactions. Part of the savepionts and rollbacks work was to address this discrepancy, and to a large degree it has, but we could eliminate additional possible issues if we simplified the design.
 
 Part of this work concerns the ongoing savepoints and rollbacks work in that transactions must be inserted first into Postgres and are then _read out_ by the `TreeStore`, meaning that in reality the `TreeStore` is not the source of truth, the PostgreSQL database is by nature of it being possible for data to exist in the database but not in the `KVStores` and vice versa. It should be noted the savepoints and rollbacks work can be completed without this refactor, as detailed in option 2.
 
@@ -16,7 +16,7 @@ Part of this work concerns the ongoing savepoints and rollbacks work in that tra
 
 There is an impedance mismatch between the various submodules of the persistence module and its callers. The unit of work package wants to use an atomic interface, but the current interface presented by the `TreeStore`, `BlockStore`, and `TxIndexer` are not exposed as atomic. Instead, the block application process should be atomic from the perspective of the unit of work. The unit of work should be responsible for calling the `PersistenceRWContext` methods correctly.
 
-Whatever the design, the `TreeStore` should be the source of truth for the `BlockStore`, the `TxIndexer`, and ultimately the `PersistenceRWContext`.
+### Persistence Submodule Interfaces
 
 ```mermaid
 classDiagram
@@ -37,15 +37,72 @@ classDiagram
     }
 ```
 
+The persistence submodules act like and are treated as peers, but the TreeStore is described as the source of truth.
+
+### Proposal Block Creation & Application
+
+Current block application process looks like this:
+
+```mermaid
+flowchart TD
+    A[TreeStore] --> |Proposal Block| C
+    PG[Postgres] --> txi
+    HandleTransaction --> |Insert Transactions| PG
+    txi --> |Slice of Transactions|A
+    A --> |Get transactions| txi
+    txi[TxIndexer]
+    C{ComputeStatehash}
+    C -->|Success| D[State Hash]
+    C -->|Error| E[Rollback]
+```
+
+With the creation of an atomic `Apply` function, it could instead be made such that any writes to the persistence layer happen in unison or not at all.
+
+
+```mermaid
+flowchart TD
+    subgraph Two Phase Application
+        ProposedUOW(Unit of Work) --> |reap mempool| TxsList[Transaction list]
+        TxsList --> CreateProposalBlock[Create Proposal Block]
+        CreateProposalBlock --> application
+        application{Apply} --> Success
+    
+        subgraph application
+            treeStore --> postgres
+            postgres --> blockStore
+        end
+        application --> Error
+    end
+```
+
 ## Decision Drivers
 
-*To be determined.*
+**Big decision**: direction of data flow
+
+**Mid decision**: architecture of components
+
+**Small decision**: implementation details
+
+Postgres 💾 ← 👀 →  Trees 🌲
+
+The cases where PostgreSQL is decoupled from the TreeStore are as follows.
+
+1. Postgres is ahead of tree during block validation / application (ephemeral) 🟢 *By design*
+   1. Intentionally done by design
+   2. Postgres validates epehermal block → tree store → consensus → commit
+2. Faults & rollbacks with a lack of atomicity 🟢 *Solved*
+3. Every validator manually modifies their postgres DB 🟡 *Pending*
+   1. Something invalid (based on trees) is validated everyone
+   2. Postgres approved → trees rejected → consensus achieved → ❓❓❓❓
+
+The flow of data is non-linear in the persistence layer. There is a substantial and asynchronous indirection between the PostgreSQL layer, the TxIndexer, and the BlockStore. During creation of the next proposal block, the transactions are pulled from the TxIndexer.
+As noted above, the third case is the last case where there is uncertain handling. In the worst case, a transaction rejected by the trees but accepted by Postgres could potentially make it into the chain. The third case presents a situation where a popular validator shares a PostgreSQL database that has a corrupt transaction that does not exist in the TreeStore. This creates situations where account values could be updated without an associated transaction.
 
 ## Considered Options
 
-* Option 1: Remove the TxIndexer entirely and build it as part of the TreeStore
-* Option 2: Update the TxIndexer to be atomically applied like the other data stores.
-* Option 3: Do nothing
+* Option 1: Remove the TxIndexer submodule entirely and nest it as part of the TreeStore.
+* Option 2: Update only the HandleTransaction functionality.
+* Option 3: Do nothing.
 
 ## Decision Outcome
 
@@ -81,7 +138,7 @@ classDiagram
     }
 ```
 
-* Good, because it removes a submodule, thus decreasing the surface area and making the TreeStore a [deep module](https://csruiliu.github.io/blog/20201218-a-philosophy-of-software-design-II/).
+* Good, because it removes a submodule, decreasing the surface area and thus complexity by making the TreeStore a [deeper module](https://csruiliu.github.io/blog/20201218-a-philosophy-of-software-design-II/).
 * Good, because it simplifies the handling of atomic applications by making it clear that rollbacks are the caller's responsibility
 
 ### Option 2: Update Only HandleTransaction Behavior
@@ -93,7 +150,7 @@ In this option, the `TreeStore` would expose a new proving function that the `Ha
 
 ### Option 3: Do Nothing
 
-Doing nothing and continuing business as usual is always an option. In this case, we would move on right now, considering this not worth the time to properly refactor because we already have baked-in atomic transaction handling that is _Good Enough_ ©️ as it curerntly stands with savepoints and rollbacks with the TreeStore.
+Continuing with the current approach without making any changes is another option. This means moving forward without investing additional time into a comprehensive refactor. It's worth considering this option as the current implementation already includes atomic transaction handling through savepoints and rollbacks with the TreeStore.
 
 * Good, because we get on to the next thing.
 * Bad, because it means more confusing transaction handling.
@@ -123,6 +180,8 @@ func (p *PostgresContext) ComputeStateHash() (string, error) {
 
 ### Fig. 2 - HandleTransaction Updates
 
+From @h5law's spike on what the handle transaction updates would require: 
+
 ```go
 // HandleTransaction implements the exposed functionality of the shared utilityModule interface.
 func (u *utilityModule) HandleTransaction(txProtoBytes []byte) error {
@@ -132,36 +191,36 @@ func (u *utilityModule) HandleTransaction(txProtoBytes []byte) error {
     if u.mempool.Contains(txHash) {
         return coreTypes.ErrDuplicateTransaction()
     }
--       // Is the tx already committed & indexed (on disk)?
--       if txExists, err := u.GetBus().GetPersistenceModule().TransactionExists(txHash); err != nil {
--               return err
--       } else if txExists {
--               return coreTypes.ErrTransactionAlreadyCommitted()
--       }
-+       // Is the tx included in the Transactions state tree?
-+       root, nodeStore := u.GetBus().GetTreeStore().GetTree(trees.TransactionTreeName)
-+       lazy := smt.ImportSparseMerkleTree(nodeStore, sha256.New(), root)
-+        proof, err := lazy.Prove(txHash)
-+        if err != nil {
-+                return err
-+        }
-+        txHashBz, err := hex.DecodeString(txHash)
-+        if err != nil {
-+                return err
-+        }
-+        if valid := smt.VerifyProof(proof, root, txHashBz, txProtoBytes, lazy.Spec()); valid {
-+                return coreTypes.ErrTransactionAlreadyCommitted()
-+        }
-+        // Validate the Transactions tree was used to calculate the root hash
-+        stateHash, nodeStore := u.GetBus().GetTreeStore().GetTree(trees.RootTreeName)
-+       lazy := smt.ImportSparseMerkleTree(nodeStore, sha256.New(), root)
-+        proof, err := lazy.Prove([]byte(trees.TransactionsTreeName))
-+        if err != nil {
-+                return err
-+        }
-+        if valid := smt.VerifyProof(proof, stateHash, []byte(trees.TransactionsTreeName), root, lazy.Spec()); valid {
-+                return errors.New("malicious transactions tree provided - not part of previous state hash")
-+        }
+-   // Is the tx already committed & indexed (on disk)?
+-   if txExists, err := u.GetBus().GetPersistenceModule().TransactionExists(txHash); err != nil {
+-           return err
+-   } else if txExists {
+-           return coreTypes.ErrTransactionAlreadyCommitted()
+-   }
++   // Is the tx included in the Transactions state tree?
++   root, nodeStore := u.GetBus().GetTreeStore().GetTree(trees.TransactionTreeName)
++   lazy := smt.ImportSparseMerkleTree(nodeStore, sha256.New(), root)
++   proof, err := lazy.Prove(txHash)
++   if err != nil {
++           return err
++   }
++   txHashBz, err := hex.DecodeString(txHash)
++   if err != nil {
++           return err
++   }
++   if valid := smt.VerifyProof(proof, root, txHashBz, txProtoBytes, lazy.Spec()); valid {
++           return coreTypes.ErrTransactionAlreadyCommitted()
++   }
++   // Validate the Transactions tree was used to calculate the root hash
++   stateHash, nodeStore := u.GetBus().GetTreeStore().GetTree(trees.RootTreeName)
++   lazy := smt.ImportSparseMerkleTree(nodeStore, sha256.New(), root)
++   proof, err := lazy.Prove([]byte(trees.TransactionsTreeName))
++   if err != nil {
++           return err
++   }
++   if valid := smt.VerifyProof(proof, stateHash, []byte(trees.TransactionsTreeName), root, lazy.Spec()); valid {
++           return errors.New("malicious transactions tree provided - not part of previous state hash")
++   }
 
         // Can the tx be decoded?
         tx := &coreTypes.Transaction{}
