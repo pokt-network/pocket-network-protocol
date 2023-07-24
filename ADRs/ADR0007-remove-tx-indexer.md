@@ -58,7 +58,6 @@ flowchart TD
 
 With the creation of an atomic `Apply` function, it could instead be made such that any writes to the persistence layer happen in unison or not at all.
 
-
 ```mermaid
 flowchart TD
     subgraph Two Phase Application
@@ -74,6 +73,8 @@ flowchart TD
         application --> Error
     end
 ```
+
+Removal of the TxIndexer would simplify this process, and could lead to a simpler understanding of how transactions are processed in both leader and replica perspectives.
 
 ## Decision Drivers
 
@@ -120,9 +121,9 @@ As noted above, the third case is the last case where there is uncertain handlin
 
 ### Option 1: Remove TxIndexer Submodule
 
-Leveraging some of the features gained by the recent switch to using [Pocket's SMT fork](https://pkg.go.dev/github.com/pokt-network/smt), the `TreeStore` can present an efficient interface for membership proofs, exclusion proofs, and can fulfill the transaction indexing functionality while reducing the complexity necessary to manage updates to the trees in the `TreeStore`.
+Leveraging some of the features gained by the recent switch to using [Pocket's SMT fork](https://pkg.go.dev/github.com/pokt-network/smt), the `TreeStore` can present an efficient interface for membership proofs, exclusion proofs, and can fulfill the transaction indexing functionality while reducing the complexity necessary to manage updates to the trees in the `TreeStore`. This is a more involved solution than Option 2, but represents one possible conclusion to the decision made in Option 2: Providing a HandleTransaction function that would update the trees and index the transaction, allowing for savepoints and rollbacks to be managed by the `TreeStore` and essentially nesting the current `TxIndexer` under the TreeStore's responsibility. This reduces the number of submodules but at the cost of increasing the amount of complexity that the `TreeStore` handles.
 
-It turns the three step persistence application process into a two step process, and ensures that the primary source of truth is the `TreeStore` and that the `Postgres` store reflects the committed view of the underlying `TreeStore` and not the other way around.
+It reduces the number of components in the block application process, and ensures that the primary source of truth is the `TreeStore`. `Postgres` reflects only the committed view of the `TreeStore` and not the other way around.
 
 ```mermaid
 classDiagram
@@ -138,49 +139,20 @@ classDiagram
     }
 ```
 
+The `rpc`, `ibc`, `trees` packages currently rely on the TxIndexer. This would remove the `trees` dependency on the transaction indexer and assuming the responsibility of maintaining transaction indices. The `rpc` and `ibc` packages would then reference the `TreeStore` when querying for transactions.
+
 * Good, because it removes a submodule, decreasing the surface area and thus complexity by making the TreeStore a [deeper module](https://csruiliu.github.io/blog/20201218-a-philosophy-of-software-design-II/).
-* Good, because it simplifies the handling of atomic applications by making it clear that rollbacks are the caller's responsibility
+* Good, because it simplifies the handling of atomic applications by making it clear that rollbacks are the caller's responsibility.
+* Bad, because it increases the complexity of the TreeStore.
+* Bad, because it is more effort than other options.
 
 ### Option 2: Update Only HandleTransaction Behavior
 
-In this option, the `TreeStore` would expose a new proving function that the `HandleTransaction` function would call before.
+In this option, the `TreeStore` would expose a new proving function that the `HandleTransaction` function would call.
 
-* Good, because it's the fastest way to introduce a simple change that would result in a marked improvement in transaction handling and persistence safety.
-* Bad, because it's addressing the symptom not the design problem.
+#### HandleTransaction Updates
 
-### Option 3: Do Nothing
-
-Continuing with the current approach without making any changes is another option. This means moving forward without investing additional time into a comprehensive refactor. It's worth considering this option as the current implementation already includes atomic transaction handling through savepoints and rollbacks with the TreeStore.
-
-* Good, because we get on to the next thing.
-* Bad, because it means more confusing transaction handling.
-
-## Links & References
-
-* [Notes on A Philosophy of Software Design - Deep Modules](https://csruiliu.github.io/blog/20201218-a-philosophy-of-software-design-II/)
-* [Pocket's SMT fork](https://pkg.go.dev/github.com/pokt-network/smt)
-* [Address the discrepancy between the state trees and txIndexer #875](https://github.com/pokt-network/pocket/issues/875)
-
-## Appendix
-
-### Fig. 1  - ComputeStateHash
-
-Below is the current state of the function that updates the TreeStore. It passes the tree store a TxIndexer and updates the TreeStore for the given height. The problem is this function isn't clear about how the transactions get loaded into the state trees, and it clearly highlights the dependency on the Postgres transaction `p.tx` in order to carry out these updates.
-
-```go
-func (p *PostgresContext) ComputeStateHash() (string, error) {
-    stateHash, err := p.stateTrees.Update(p.tx, uint64(p.Height))
-        if err != nil {
-            return "", err
-        }
-    p.stateHash = stateHash
-    return p.stateHash, nil
-}
-```
-
-### Fig. 2 - HandleTransaction Updates
-
-From @h5law's spike on what the handle transaction updates would require: 
+From @h5law's spike on what the handle transaction updates would require:
 
 ```go
 // HandleTransaction implements the exposed functionality of the shared utilityModule interface.
@@ -236,3 +208,23 @@ func (u *utilityModule) HandleTransaction(txProtoBytes []byte) error {
         return u.mempool.AddTx(txProtoBytes)
 }
 ```
+
+* Good, because it's the fastest way to introduce a simple change that would result in a marked improvement in transaction handling and persistence safety.
+* Bad, because it's addressing the symptom not the design problem.
+
+### Option 3: Do Nothing
+
+Continuing with the current approach without making any changes is another option. This means moving forward without investing additional time into a comprehensive refactor. It's worth considering this option as the current implementation already includes atomic transaction handling through savepoints and rollbacks with the TreeStore.
+
+* Good, because we get on to the next thing.
+* Bad, because it means more confusing transaction handling.
+
+## Links & References
+
+* [Notes on A Philosophy of Software Design - Deep Modules](https://csruiliu.github.io/blog/20201218-a-philosophy-of-software-design-II/)
+* [Pocket's SMT fork](https://pkg.go.dev/github.com/pokt-network/smt)
+* [Address the discrepancy between the state trees and txIndexer #875](https://github.com/pokt-network/pocket/issues/875)
+
+## Appendix
+
+### Fig. 1  - ComputeStateHash
