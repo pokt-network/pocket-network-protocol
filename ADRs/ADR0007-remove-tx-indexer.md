@@ -10,7 +10,7 @@ In the course of determining how to handle invalid transactions, it became clear
 
 Instead, the `TxIndexer` mirror the Postgres database by its reliance on SQL queries to update its trees, allowin invalid entries between the two is possible in both directions. Invalid transactions can be persisted in Postgres, and invalid Postgres data can be persisted in transactions. Part of the savepionts and rollbacks work was to address this discrepancy, and to a large degree it has, but we could eliminate additional possible issues if we simplified the design.
 
-Part of this work concerns the ongoing savepoints and rollbacks work in that transactions must be inserted first into Postgres and are then _read out_ by the `TreeStore`, meaning that in reality the `TreeStore` is not the source of truth, the PostgreSQL database is by nature of it being possible for data to exist in the database but not in the `KVStores` and vice versa. It should be noted the savepoints and rollbacks work can be completed without this refactor, as detailed in option 2.
+Part of this work concerns the ongoing savepoints and rollbacks work in that transactions must be inserted first into Postgres and are then _read out_ by the `TreeStore`, meaning that in reality the `TreeStore` is not the source of truth, the PostgreSQL database is by nature of it being possible for data to exist in the database but not in the `KVStores` and vice versa. It should be noted the savepoints and rollbacks work can be completed without this refactor, as detailed in Option 2.
 
 ## Context and Problem Statement
 
@@ -56,33 +56,52 @@ flowchart TD
     C -->|Error| E[Rollback]
 ```
 
-With the creation of an atomic `Apply` function, it could instead be made such that any writes to the persistence layer happen in unison or not at all.
+Block application happens from either the leader perspective or replica perspective. The block application process is similar for both of them, mainly differing in how the proposal block is set. The TxIndexer is key in the leader's block proposal flow, being called indirectly during the HandleTransaction process.
 
 ```mermaid
 flowchart TD
-    subgraph Two Phase Application
-        ProposedUOW(Unit of Work) --> |reap mempool| TxsList[Transaction list]
-        TxsList --> CreateProposalBlock[Create Proposal Block]
-        CreateProposalBlock --> application
-        application{Apply} --> Success
-    
-        subgraph application
+    subgraph Two Phase Application - Leader Perspective
+        consensus(HotStuff Leader) -->   CreateProposalBlock
+        CreateProposalBlock(CreateProposalBlock) --> |reap mempool for transactions| SetProposalBlock
+        SetProposalBlock(SetProposalBlock) --> ApplyBlock
+        ApplyBlock(ApplyBlock) --> 2PC 
+        subgraph 2PC[Block Application]
             treeStore --> postgres
             postgres --> blockStore
         end
-        application --> Error
+        2PC --> Success --> Broadcast[Broadcast New Block] 
+        2PC --> Retry[Retry Logic? Pass leadership?]
     end
 ```
 
-Removal of the TxIndexer would simplify this process, and could lead to a simpler understanding of how transactions are processed in both leader and replica perspectives.
+```mermaid
+flowchart TD
+    subgraph Two Phase Application - Replica Perspective
+        Replica(HotStuff Replica) -->|prepareBlock| SetProposalBlock 
+        SetProposalBlock(SetProposalBlock) --> ApplyBlock[Apply Block]
+        ApplyBlock(ApplyBlock) --> 2PC 
+        subgraph 2PC[Block Application]
+            treeStore --> postgres
+            postgres --> blockStore
+        end
+        2PC --> Success(Success)
+        2PC --> Error(Error)
+    end
+```
 
 ## Decision Drivers
 
 **Big decision**: direction of data flow
 
+The flow of data is currently non-linear in the persistence layer. There is a substantial and asynchronous indirection between the PostgreSQL layer, the TxIndexer, and the BlockStore. During creation of the next proposal block, the transactions are pulled from the TxIndexer, but then at a later time, in a different place, they are queried from the indexer to update the Merkle trees.
+
 **Mid decision**: architecture of components
 
+The TxIndexer is currently used by the `ipc`, `rpc`, and `trees` packages.
+
 **Small decision**: implementation details
+
+### The Direction of Data Flow
 
 Postgres 💾 ← 👀 →  Trees 🌲
 
@@ -96,7 +115,6 @@ The cases where PostgreSQL is decoupled from the TreeStore are as follows.
    1. Something invalid (based on trees) is validated everyone
    2. Postgres approved → trees rejected → consensus achieved → ❓❓❓❓
 
-The flow of data is non-linear in the persistence layer. There is a substantial and asynchronous indirection between the PostgreSQL layer, the TxIndexer, and the BlockStore. During creation of the next proposal block, the transactions are pulled from the TxIndexer.
 As noted above, the third case is the last case where there is uncertain handling. In the worst case, a transaction rejected by the trees but accepted by Postgres could potentially make it into the chain. The third case presents a situation where a popular validator shares a PostgreSQL database that has a corrupt transaction that does not exist in the TreeStore. This creates situations where account values could be updated without an associated transaction.
 
 ## Considered Options
@@ -224,7 +242,3 @@ Continuing with the current approach without making any changes is another optio
 * [Notes on A Philosophy of Software Design - Deep Modules](https://csruiliu.github.io/blog/20201218-a-philosophy-of-software-design-II/)
 * [Pocket's SMT fork](https://pkg.go.dev/github.com/pokt-network/smt)
 * [Address the discrepancy between the state trees and txIndexer #875](https://github.com/pokt-network/pocket/issues/875)
-
-## Appendix
-
-### Fig. 1  - ComputeStateHash
