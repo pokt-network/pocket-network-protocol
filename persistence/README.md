@@ -170,7 +170,7 @@ type DBConfiguration interface {
 
 On the database engine, the following configurations needs to be specified:
 
-1. **User role**: 1 of **Servicer**, **Validator**, **Fisherman**, **Archival** or **Full Node**.
+1. **User role**: 1 of **Servicer**, **Validator**, **Watcher**, **Archival** or **Full Node**.
 2. **Schemas**: 1 or more of **Consensus**, **State**, **Block** **Mempool** and **Local**.
 
 These configurations will be referenced throughout this specification to satisfy requirements and complement other mechanisms at different module layers.
@@ -568,7 +568,7 @@ For those implementing the specification, below is a checklist that can be used 
 
 - 3.2.1 Configuration
   - [ ] DB connection: host, username, password, etc..
-  - [ ] User role: validator, servicer, fisherman, archival, full node
+  - [ ] User role: validator, servicer, watcher, archival, full node
   - [ ] Schema definition: consensus, state, mempool, local
 - 3.3.1 Database Engine Error Handling
   - [ ] Configuration errors: handle & propagate

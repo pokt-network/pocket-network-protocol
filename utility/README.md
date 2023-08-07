@@ -30,7 +30,7 @@
     - [3.2.6 Parameter Updates](#326-parameter-updates)
     - [3.2.7 Stake Burning](#327-stake-burning)
     - [3.2.8 Unstaking](#328-unstaking)
-  - [3.3 Fisherman Protocol](#33-fisherman-protocol)
+  - [3.3 Watcher Protocol](#33-watcher-protocol)
     - [3.3.1 Election](#331-election)
     - [3.3.2 Staking](#332-staking)
     - [3.3.3 Sampling Protocol](#333-sampling-protocol)
@@ -78,7 +78,7 @@
 - [4. Launch Sequence](#4-launch-sequence)
   - [4.1 ProtoGateFish](#41-protogatefish)
   - [4.2 Castaway](#42-castaway)
-  - [4.2 Fishermen](#42-fishermen)
+  - [4.2 Watchers](#42-watchers)
   - [4.3 Feeder Fish](#43-feeder-fish)
   - [4.4 CastNet](#44-castnet)
 - [5. Attack Vectors](#5-attack-vectors)
@@ -95,12 +95,12 @@
       - [5.1.8.2 Mad Man Hacker](#5182-mad-man-hacker)
       - [5.1.8.3 Masochistic Mad Man](#5183-masochistic-mad-man)
   - [5.2 Attack Examples](#52-attack-examples)
-    - [5.2.1 Fisherman \<\> Servicer Collusion](#521-fisherman--servicer-collusion)
-    - [5.2.2 Fisherman Assigning bad Servicer TestScores](#522-fisherman-assigning-bad-servicer-testscores)
-    - [5.2.3 Fishermen falsifying Application Volume Metrics](#523-fishermen-falsifying-application-volume-metrics)
-    - [5.2.4 Fisherman DDoS](#524-fisherman-ddos)
-    - [5.2.5 Incognito Fisherman Identified](#525-incognito-fisherman-identified)
-    - [5.2.6 Fisherman or Servicer register Applications for selfish self-dealing attacks](#526-fisherman-or-servicer-register-applications-for-selfish-self-dealing-attacks)
+    - [5.2.1 Watcher \<\> Servicer Collusion](#521-watcher--servicer-collusion)
+    - [5.2.2 Watcher Assigning bad Servicer TestScores](#522-watcher-assigning-bad-servicer-testscores)
+    - [5.2.3 Watchers falsifying Application Volume Metrics](#523-watchers-falsifying-application-volume-metrics)
+    - [5.2.4 Watcher DDoS](#524-watcher-ddos)
+    - [5.2.5 Incognito Watcher Identified](#525-incognito-watcher-identified)
+    - [5.2.6 Watcher or Servicer register Applications for selfish self-dealing attacks](#526-watcher-or-servicer-register-applications-for-selfish-self-dealing-attacks)
     - [5.2.7 Actors intentionally staking in “wrong” GeoZone](#527-actors-intentionally-staking-in-wrong-geozone)
 - [6. Dissenting Opinions (FAQ)](#6-dissenting-opinions-faq)
 - [References](#references)
@@ -125,7 +125,7 @@ Pocket Network enables a Utilitarian economy that proportionally incentivizes or
 
 - Staked **Applications** that purchase Web3 access over a function of volume and time
 - Staked **Servicers** that earn rewards for providing Web3 access over a function of volume and quality
-- Elected **Fishermen** who grade and enforce the quality of the Web3 access provided by **Servicers**
+- Elected **Watchers** who grade and enforce the quality of the Web3 access provided by **Servicers**
 - Staked **Validators** responsible for maintaining safety & liveness of the replicated state machine
 - Registered **Portals** that can be optionally leveraged by **Applications** through delegated trust
 
@@ -168,10 +168,10 @@ flowchart TD
         PN[Portal N]
     end
 
-    subgraph Fishermen
+    subgraph Watchers
         direction TB
-        F1[Fisherman 1]
-        FN[Fisherman N]
+        F1[Watcher 1]
+        FN[Watcher N]
     end
 
     Transactions --> Validators
@@ -185,9 +185,9 @@ flowchart TD
     Blockchain --Sync--> Portals
     Blockchain --Sync--> Applications
     Blockchain --Sync--> Servicers
-    Blockchain --Sync--> Fishermen
+    Blockchain --Sync--> Watchers
 
-    Fishermen --Monitor--> Servicers
+    Watchers --Monitor--> Servicers
 
     classDef blue fill:#0000FF
     classDef brown fill:#A52A2A
@@ -209,7 +209,7 @@ flowchart TD
 Readers of this document must keep in mind the following:
 
 1. This living document is subject to change. Ongoing R&D will shape the specification until it is formalized and finished.
-2. This document represents one stage of Pocket Network's evolution. Future iterations will aim to iterate on tokenomic incentives, permissionless Fisherman, Portal incentives, etc.
+2. This document represents one stage of Pocket Network's evolution. Future iterations will aim to iterate on tokenomic incentives, permissionless Watcher, Portal incentives, etc.
 3. This document should not be treated as a complete whitepaper. It is a specification of Utility Module components intended to drive the design and implementation of the technical specifications.
 4. This document is not an academic paper. Formal proofs and verifications are absent and knowledge of background concepts is implicitly assumed.
 5. This document does not outline implementation specific interfaces or details. Any interfaces presented are for illustrative purposes only.
@@ -230,7 +230,7 @@ The specification must:
 The current iteration of the specification must not necessarily:
 
 1. Replace the safety guarantees of Applications maintaining their own infrastructure or using light clients
-2. Enable permissionless registration of Fisherman actors on initial launch
+2. Enable permissionless registration of Watcher actors on initial launch
 3. Does not quantifiably model the underlying tokenomics of the system
 
 ## 3 Specification
@@ -258,14 +258,14 @@ sequenceDiagram
     participant N as Full Node
     participant S as Session Interface
 
-    Q->>N: Who are the Servicers &<br>Fisherman for this (new) Session?
+    Q->>N: Who are the Servicers &<br>Watcher for this (new) Session?
     N->>S: seedData = (height, blockHash, geoZone, relayChain, app)
     S->>S: sessionKey = hash(transform(seedData))
     N->>S: servicerList = Ordered [publicKeys]
     S->>S: sessionServicers = pseudoRandomSelect(sessionKey, servicerList, maxSessionServicers)
-    N->>S: fishermenList = Ordered [publicKeys]
-    S->>S: sessionFishermen = pseudoRandomSelect(sessionKey, fishermenList, maxSessionFisherman)
-    S->>Q: ([sessionServicers], [sessionFishermen])
+    N->>S: watchersList = Ordered [publicKeys]
+    S->>S: sessionWatchers = pseudoRandomSelect(sessionKey, watchersList, maxSessionWatcher)
+    S->>Q: ([sessionServicers], [sessionWatchers])
 ```
 
 For illustrative purposes, an example implementation of `NewSession` could be:
@@ -274,8 +274,8 @@ For illustrative purposes, an example implementation of `NewSession` could be:
 func NewSession(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey) Session {
   key = hash(concat(sessionHeight, lastBlockHash, geoZone, relayChain, appPubKey))
   servicers = getClosestServicers(key, geoZone, numServicers)
-  fishermen = getClosestFishermen(key, geoZone, numFishermen)
-  return Session{sessionHeight, geoZone, relayChain, appPubKey, servicers, fishermen}
+  watchers = getClosestWatchers(key, geoZone, numWatchers)
+  return Session{sessionHeight, geoZone, relayChain, appPubKey, servicers, watchers}
 }
 ```
 
@@ -353,7 +353,7 @@ type Session interface {
   GetGeoZone() GeoZone         # The physical geo-location where all the actors are registered
   GetSessionHeight() uint64    # The block height when the session started
   GetServicers() []Servicer    # The Servicers providing Web3 access
-  GetFishermen() []Fisherman   # The Fisherman monitoring Web3 service
+  GetWatchers() []Watcher   # The Watcher monitoring Web3 service
 }
 ```
 
@@ -388,11 +388,11 @@ Servicers are paid proportionally to how well their Relay responses meet the sta
 2. **Latency**: The Round-Trip-Time (RTT) of the the Servicer's response relative to when the request was sent
 3. **Data Accuracy**: The integrity of the Servicer's response
 
-Since the Fisherman may not necessarily be in the same GeoZone as the Application & Servicers, the Latency will onus will be on them to normalize the TestScores The Fisherman
+Since the Watcher may not necessarily be in the same GeoZone as the Application & Servicers, the Latency will onus will be on them to normalize the TestScores The Watcher
 
 #### 3.2.3 Report Cards & Test Scores
 
-A `TestScore` is a collection of samples by a Fisherman of a Servicer, based on the SLA criteria outlined above, throughout the duration of a Session.
+A `TestScore` is a collection of samples by a Watcher of a Servicer, based on the SLA criteria outlined above, throughout the duration of a Session.
 
 A `ReportCard` is the logical aggregation of multiple `TestScores` over an Actor's registration lifetime.
 
@@ -402,7 +402,7 @@ The Application's Web3 usage volume is estimated through probabilistic hash coll
 
 Each relay can be viewed as an independent Bernoulli Trial that is either a volume applicable relay or not. A geometric distribution can be built of the number of relays that need to be serviced until an applicable relay is made. For example, if a SHA256 hash algorithm is used and `RelayVolumeDifficulty` represents 3 leading zeroes, the hash of each `concat(SignedRelay, SignedRelayResponse)` above `0x000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` will not be applicable for relay rewards. However, any hash below the target will receive `RelayVolume` rewards proportional to the likelihood of the hash. For example, `0x000FFF...` would be estimate `RelayVolume` relays, `0x0000FF...` would e estimated to 16\*`RelayVolume`, etc...
 
-A the end of each Session, the volume applicable relays are sent to the Fisherman for validation and salary distribution.
+A the end of each Session, the volume applicable relays are sent to the Watcher for validation and salary distribution.
 
 ```mermaid
 sequenceDiagram
@@ -429,8 +429,8 @@ sequenceDiagram
       IS ->> -Servicer: HashCollision = SecretKey(govParams)
       Servicer ->> +ISS: RelaysThatEndWith(HashCollision)
       ISS ->> -Servicer: VolumeApplicableRelays
-      Servicer ->> Fisherman: Send(VolumeApplicableRelays)
-      Fisherman ->> Fisherman: Validate Relay & RelayResponse
+      Servicer ->> Watcher: Send(VolumeApplicableRelays)
+      Watcher ->> Watcher: Validate Relay & RelayResponse
     end
 ```
 
@@ -471,7 +471,7 @@ func DistributeRewards(relayChain, geoZone, height):
 
 #### 3.2.5 Pausing
 
-Servicers are able to gracefully pause their service (e.g. for maintenance reasons) without the need to unstake or face downtime penalization. In addition to an Operator initiated `PauseMsg`, Fishermen are also able to temporarily pause a Servicer if a faulty or malicious process is detected during sampling (see the [Fisherman Protocol](#33-fisherman-protocol) for more details). When a Servicer is paused, they are able resume service by submitting an `UnpauseMsg` after the `MinPauseTime` has elapsed. After a `UnpauseMsg` is validated and the World State is updated, the Servicer is eligible to continue providing Web3 service to Applications, and receive rewards.
+Servicers are able to gracefully pause their service (e.g. for maintenance reasons) without the need to unstake or face downtime penalization. In addition to an Operator initiated `PauseMsg`, Watchers are also able to temporarily pause a Servicer if a faulty or malicious process is detected during sampling (see the [Watcher Protocol](#33-watcher-protocol) for more details). When a Servicer is paused, they are able resume service by submitting an `UnpauseMsg` after the `MinPauseTime` has elapsed. After a `UnpauseMsg` is validated and the World State is updated, the Servicer is eligible to continue providing Web3 service to Applications, and receive rewards.
 
 #### 3.2.6 Parameter Updates
 
@@ -482,29 +482,29 @@ A Servicer can update any of the values in its on-chain attributes by submitting
 A Servicer's stake can be burnt in two situations:
 
 1. A Servicer receives a `TestScore` below the `TestScoreBurnThreshold`
-2. A Fisherman initiates a `PauseMsg` with the required evidence
+2. A Watcher initiates a `PauseMsg` with the required evidence
 
 #### 3.2.8 Unstaking
 
-A Servicer is able to submit an `UnstakeMsg` to exit the network and remove itself from service. After a successful UnstakeMsg, the Servicer is no longer eligible to receive Web3 traffic from Applications or Fisherman. The original stake (i.e. deposit) is returned to the Servicer's custodial account after `ServicerUnbondingPeriod` has elapsed.
+A Servicer is able to submit an `UnstakeMsg` to exit the network and remove itself from service. After a successful UnstakeMsg, the Servicer is no longer eligible to receive Web3 traffic from Applications or Watcher. The original stake (i.e. deposit) is returned to the Servicer's custodial account after `ServicerUnbondingPeriod` has elapsed.
 
 If a Servicer's stake ever falls below the `MinimumServicerStake` stake, the protocol automatically executes an UnstakeMsg on behalf of the custodial or operator accounts, subjecting the Servicer to the unstaking process described above.
 
-### 3.3 Fisherman Protocol
+### 3.3 Watcher Protocol
 
-A `Fisherman` is a protocol actor whose responsibility is to monitor and report the behavior and quality of Servicers' work. Their fundamental unit of work is to periodically sample the Servicers’s Web3 service, record the quality in a `TestScore`, and succinctly report the TestScore to the network in a `ReportCard`.
+A `Watcher` is a protocol actor whose responsibility is to monitor and report the behavior and quality of Servicers' work. Their fundamental unit of work is to periodically sample the Servicers’s Web3 service, record the quality in a `TestScore`, and succinctly report the TestScore to the network in a `ReportCard`.
 
 #### 3.3.1 Election
 
-In the current version of the specification, Fishermen are not permissionless actors. The DAO must vote in each participant in order for the Fishermen to register themselves with the network on-chain. This requires Fisherman to advertise their identity and use their reputation as collateral against faulty and malicious behavior.
+In the current version of the specification, Watchers are not permissionless actors. The DAO must vote in each participant in order for the Watchers to register themselves with the network on-chain. This requires Watcher to advertise their identity and use their reputation as collateral against faulty and malicious behavior.
 
-The Fishermen are bound by a DAO defined SLA to conduct incognito sampling services of the Servicers. Detailed requirements and conditions must be defined in the Fisherman SLA document to create an acceptable level of secrecy from the sampling server to ensure sample accuracy collection. It is important to note that the Fisherman `StakeMsg` message differs from other permissionless actors in Pocket Network because it is only valid if publicKey is permissioned through the DAO Access Control List (ACL) a prior.
+The Watchers are bound by a DAO defined SLA to conduct incognito sampling services of the Servicers. Detailed requirements and conditions must be defined in the Watcher SLA document to create an acceptable level of secrecy from the sampling server to ensure sample accuracy collection. It is important to note that the Watcher `StakeMsg` message differs from other permissionless actors in Pocket Network because it is only valid if publicKey is permissioned through the DAO Access Control List (ACL) a prior.
 
 ```mermaid
 stateDiagram-v2
     direction LR
-    proposal: Propose Fisherman
-    registration: Register Fisherman
+    proposal: Propose Watcher
+    registration: Register Watcher
 
     [*] --> proposal
     proposal --> proposal: Await DAO Acceptance
@@ -515,24 +515,24 @@ stateDiagram-v2
 
 #### 3.3.2 Staking
 
-In addition to the Proof of Authority (PoA) process described above, Fisherman are also required to participate in a Proof of Stake (PoS) process by bonding (i.e. staking) a certain amount of POKT in escrow, on-chain, while they are providing the Fishermen services.
+In addition to the Proof of Authority (PoA) process described above, Watcher are also required to participate in a Proof of Stake (PoS) process by bonding (i.e. staking) a certain amount of POKT in escrow, on-chain, while they are providing the Watchers services.
 
-PoA and PoS are used to filter madmen adversaries who defy economic incentives in order to attack the network. Upon registration, a Fishermen must provide the necessary information to interact with the protocol, as illustrated in the interface below.
+PoA and PoS are used to filter madmen adversaries who defy economic incentives in order to attack the network. Upon registration, a Watchers must provide the necessary information to interact with the protocol, as illustrated in the interface below.
 
 ```go
-type FishermanStakeMsg interface {
-  GetPublicKey() PublicKey  # The public cryptographic id of the Fisherman custodial account
+type WatcherStakeMsg interface {
+  GetPublicKey() PublicKey  # The public cryptographic id of the Watcher custodial account
   GetStakeAmount() BigInt    # The amount of uPOKT in escrow (i.e. a security deposit)
-  GetServiceURL() ServiceURL # The API endpoint where the Fishermen service is provided
-  GetGeoZone() GeoZone     # The physical geo-location identifier this Fisherman is registered in
+  GetServiceURL() ServiceURL # The API endpoint where the Watchers service is provided
+  GetGeoZone() GeoZone     # The physical geo-location identifier this Watcher is registered in
 }
 ```
 
 #### 3.3.3 Sampling Protocol
 
-The Sampling Protocol is required to grade how each Servicer adheres to the network SLA criteria defined in the [Servicer Protocol](#32-servicer-protocol). Registered Fishermen are responsible for monitoring and periodically sampling Servicers during active Sessions.
+The Sampling Protocol is required to grade how each Servicer adheres to the network SLA criteria defined in the [Servicer Protocol](#32-servicer-protocol). Registered Watchers are responsible for monitoring and periodically sampling Servicers during active Sessions.
 
-`NumSamplesPerSession`, a governance parameter, defines how many samples a Fisherman is required to make to each Servicer during the duration of a sessions. To ensure a fair assessment across all Servicers in the session, the same request must be sent to all the Servicers at the same time during the time of evaluation. The frequency at which the samples are sent, as long as the `NumSamplesPerSession` quota is satisfied, should aim to be evenly distributed throughout the session. The performance of the Servicer will smooth out to the expected value over time through [The Law of Large Numbers](https://en.wikipedia.org/wiki/Law_of_large_numbers).
+`NumSamplesPerSession`, a governance parameter, defines how many samples a Watcher is required to make to each Servicer during the duration of a sessions. To ensure a fair assessment across all Servicers in the session, the same request must be sent to all the Servicers at the same time during the time of evaluation. The frequency at which the samples are sent, as long as the `NumSamplesPerSession` quota is satisfied, should aim to be evenly distributed throughout the session. The performance of the Servicer will smooth out to the expected value over time through [The Law of Large Numbers](https://en.wikipedia.org/wiki/Law_of_large_numbers).
 
 The data collected is:
 
@@ -545,35 +545,35 @@ sequenceDiagram
     autonumber
 
     actor App
-    actor Fisherman
+    actor Watcher
     actor Servicers
 
     loop Repeats During Session
         App ->> +Servicers: RPC Request
         Servicers ->> -App: RPC Response
-        Fisherman ->> +Servicers: Incognito Sampling (RPC) Request
-        Servicers ->> -Fisherman: RPC Response
+        Watcher ->> +Servicers: Incognito Sampling (RPC) Request
+        Servicers ->> -Watcher: RPC Response
     end
 
-    Servicers ->> Fisherman: Reward Applicable Relay Proofs
-    Fisherman ->> Fisherman: Sample Aggregation
-    Fisherman ->> +World State: TestScore Txn
+    Servicers ->> Watcher: Reward Applicable Relay Proofs
+    Watcher ->> Watcher: Sample Aggregation
+    Watcher ->> +World State: TestScore Txn
     World State ->> -World State: ReportCard Update
 
-    Note over Fisherman, World State: Salary Distribution
+    Note over Watcher, World State: Salary Distribution
     World State ->> Servicers: Reward For Service<br>(Based on ReportCard & Stake)
-    World State ->> Fisherman: Reward For Sampling<br>(Based on Nullable Samples & Stake)
+    World State ->> Watcher: Reward For Sampling<br>(Based on Nullable Samples & Stake)
 ```
 
 #### 3.3.4 Incognito Sampling
 
-Servicers may bias to prioritize responding to requests from Fisherman in order to achieve a higher score. [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to prevent identifying who signed the request: Fisherman, Application or Portal.
+Servicers may bias to prioritize responding to requests from Watcher in order to achieve a higher score. [Ring Signatures](https://en.wikipedia.org/wiki/Ring_signature) will be used in order to prevent identifying who signed the request: Watcher, Application or Portal.
 
 ```mermaid
 flowchart
     subgraph Ring
-        Application <--> F1["Fisherman 1"]
-        F1 <--> F2["Fisherman N"]
+        Application <--> F1["Watcher 1"]
+        F1 <--> F2["Watcher N"]
         F2 <--> Portal
         Portal <--> Application
     end
@@ -581,27 +581,27 @@ flowchart
     Servicer--Validate Signature-->Servicer
 ```
 
-Servicers may still be able to identify actors by aggregating and inspecting IP analytics, so other protocols (e.g. Tor, NYM, HOPR) or networking mechanism (IP rotations, VPNs, etc..) may be necessary to obfuscate the Fisherman as well.
+Servicers may still be able to identify actors by aggregating and inspecting IP analytics, so other protocols (e.g. Tor, NYM, HOPR) or networking mechanism (IP rotations, VPNs, etc..) may be necessary to obfuscate the Watcher as well.
 
 #### 3.3.5 Salary Distribution
 
-Fisherman salaries are dependant on the quantity and completeness of the `TestScoreMsg`s they send, but are agnostic to their contents with regard to the Servicers' Quality of Service.
+Watcher salaries are dependant on the quantity and completeness of the `TestScoreMsg`s they send, but are agnostic to their contents with regard to the Servicers' Quality of Service.
 
-**Report completeness** is based on the number of Nullable samples that have a value collected by the Fisherman. `NumSamplesPerSession` are expected to be performed by each Fisherman on each Servicer throughout a session.
+**Report completeness** is based on the number of Nullable samples that have a value collected by the Watcher. `NumSamplesPerSession` are expected to be performed by each Watcher on each Servicer throughout a session.
 
-Similar to the salary distribution algorithm described in the [Servicer Protocol](#32-servicer-protocol), Fisherman salaries are proportional to the estimated Application volume usage. However, Fishermen salary distribution is only based on the TestScoreMsg quantity and its consistence (i.e. # of non Null samples), as opposed to the actual test scores of the samples.
+Similar to the salary distribution algorithm described in the [Servicer Protocol](#32-servicer-protocol), Watcher salaries are proportional to the estimated Application volume usage. However, Watchers salary distribution is only based on the TestScoreMsg quantity and its consistence (i.e. # of non Null samples), as opposed to the actual test scores of the samples.
 
-During each session, the Fisherman is expected to make `NumSamplesPerSession` of each active Servicer. The time at which they are made should be normally distributed throughout a session with some variance to avoid predictability. Servicers will timestamp and sign the requests to avoid forgery by the Fishermen.
+During each session, the Watcher is expected to make `NumSamplesPerSession` of each active Servicer. The time at which they are made should be normally distributed throughout a session with some variance to avoid predictability. Servicers will timestamp and sign the requests to avoid forgery by the Watchers.
 
-If a Servicer does not respond, the sample is marked as a Null. Since Fisherman salaries are based off of Nullable samples with a value, they are incentivized to exhaust sampling attempts to retrieve the Servicer's score, up to a maximum of `NumSamplesPerSession`. If a Servicer exceeds `MaxNullableSamples` in a single Session, the Fishermen will opt to submit a PauseMsg of the unavailable Servicer (which partially burns the Servicer's stake), enabling the protocol to introduce a new Servicer into the Session with the following block. The PauseMsg action is limited up to `MaxFishermenPauses` per Session to prevent faulty Fishermen behavior and incentivizing Fisherman to keep the Session access as healthy as possible.
+If a Servicer does not respond, the sample is marked as a Null. Since Watcher salaries are based off of Nullable samples with a value, they are incentivized to exhaust sampling attempts to retrieve the Servicer's score, up to a maximum of `NumSamplesPerSession`. If a Servicer exceeds `MaxNullableSamples` in a single Session, the Watchers will opt to submit a PauseMsg of the unavailable Servicer (which partially burns the Servicer's stake), enabling the protocol to introduce a new Servicer into the Session with the following block. The PauseMsg action is limited up to `MaxWatchersPauses` per Session to prevent faulty Watchers behavior and incentivizing Watcher to keep the Session access as healthy as possible.
 
-Individual Fishermen salaries are then calculated through a combination of Application volume usage in a certain `(RelayChain, GeoZone)` pair as well as the quantity of non-Null samples.
+Individual Watchers salaries are then calculated through a combination of Application volume usage in a certain `(RelayChain, GeoZone)` pair as well as the quantity of non-Null samples.
 
 The following graph summarizes some of the high-level interactions described above.
 
 ```mermaid
 graph LR
-    F(Fisherman)
+    F(Watcher)
     B[Blockchain]
     RC((Report Card))
     S(Servicer)
@@ -617,7 +617,7 @@ graph LR
 
 On-chain test score submission follows an optimistic **Commit & Reveal** methodology to avoid excessive chain state bloat while maintaining sampling security. It is similar to the [Claim & Proof lifecycle](https://github.com/pokt-network/pocket-core/blob/staging/doc/specs/reward_protocol.md) designed in Pocket Network V0.
 
-Fisherman `TestScoreMsg`s have a `TestScoreSubmissionProbability` requirement of being submitted, and `TestScoreProofProbability` requirement of needing to be proven. In practice, this means that while all Sessions are monitored, and all samples are made, only some are submitted on-chain, and a subset of those are formally proven. Similar to Session generation, this selection is done under the [Random Oracle](https://en.wikipedia.org/wiki/Random_oracle) model, so the Fishermen cannot predict which TestScores will be sampled, which need a commitment, and which need to be proven on-chain. Deterministic but non-predictable on-chain parameters (e.g. BlockHash at CurrentHeight+N) will be used to seed the selection.
+Watcher `TestScoreMsg`s have a `TestScoreSubmissionProbability` requirement of being submitted, and `TestScoreProofProbability` requirement of needing to be proven. In practice, this means that while all Sessions are monitored, and all samples are made, only some are submitted on-chain, and a subset of those are formally proven. Similar to Session generation, this selection is done under the [Random Oracle](https://en.wikipedia.org/wiki/Random_oracle) model, so the Watchers cannot predict which TestScores will be sampled, which need a commitment, and which need to be proven on-chain. Deterministic but non-predictable on-chain parameters (e.g. BlockHash at CurrentHeight+N) will be used to seed the selection.
 
 ```mermaid
 pie title Test Scores Distribution
@@ -626,9 +626,9 @@ pie title Test Scores Distribution
     "Off-Chain" : 75
 ```
 
-To reduce the amount of on-chain data, Fishermen are only required to prove a single Non-Null sample from their submitted `TestScoreCommitMsg` (i.e. claim) with a `TestScoreProofMsg` (i.e. reveal). This must be done before `MaxTestScoreProofDelay` blocks elapse.
+To reduce the amount of on-chain data, Watchers are only required to prove a single Non-Null sample from their submitted `TestScoreCommitMsg` (i.e. claim) with a `TestScoreProofMsg` (i.e. reveal). This must be done before `MaxTestScoreProofDelay` blocks elapse.
 
-Since the samples need to be normally distributed throughout the session, and the timestamp of each sample is signed by both the requester (i.e. Application/Portal/Fisherman) and the responder (i.e. Servicer), the time of the sample selected using the seeded data is compared against the number of samples collected and the start time of the session sampling to verify its timestamp is within variance from the expected value.
+Since the samples need to be normally distributed throughout the session, and the timestamp of each sample is signed by both the requester (i.e. Application/Portal/Watcher) and the responder (i.e. Servicer), the time of the sample selected using the seeded data is compared against the number of samples collected and the start time of the session sampling to verify its timestamp is within variance from the expected value.
 
 ```mermaid
 ---
@@ -637,7 +637,7 @@ title: Test Score Submission
 classDiagram
     direction LR
 
-    note for TestScoreCommitMsg "Used for rewarding & evaluating<br> Fisherman & Servicers"
+    note for TestScoreCommitMsg "Used for rewarding & evaluating<br> Watcher & Servicers"
     class TestScoreCommitMsg{
         Header: SessionData
         Height: 9001
@@ -651,11 +651,11 @@ classDiagram
         Commit: SamplesRoot
     }
 
-    note for TestScoreProofMsg "Used for optimistically<br>validating Fishermen work"
+    note for TestScoreProofMsg "Used for optimistically<br>validating Watchers work"
     class TestScoreProofMsg{
         Header: SessionData
         Sample: Sample2
-        SignatureRequest: FishermanSig
+        SignatureRequest: WatcherSig
         SignatureResponse: ServicerSig
         Proof: SampleProof
     }
@@ -692,11 +692,11 @@ classDiagram
 
 #### 3.3.7 Parameter Updates
 
-A Fisherman can update any of the values in its on-chain attributes by submitting another `FishermenStakeMsg` while it is already staked. Parameter changes must be permissioned through the DAO ACL and the `StakeAmount` must be equal to or greater than its current value.
+A Watcher can update any of the values in its on-chain attributes by submitting another `WatchersStakeMsg` while it is already staked. Parameter changes must be permissioned through the DAO ACL and the `StakeAmount` must be equal to or greater than its current value.
 
 ```go
-type FishermenStakeMsg interface {
-  GetPublicKey() PublicKey     # The public cryptographic ID of the Fisherman
+type WatchersStakeMsg interface {
+  GetPublicKey() PublicKey     # The public cryptographic ID of the Watcher
   GetStakeAmount() BigInt       # May be modified to a value greater or equal to the current value
   GetServiceURL() ServiceURL    # May be modified
   GetGeoZone() GeoZone        # May be modified
@@ -705,27 +705,27 @@ type FishermenStakeMsg interface {
 
 #### 3.3.8 Pausing
 
-A Fisherman can submit a `PauseMsg` to gracefully, and temporarily, remove themselves from service (e.g. for maintenance reasons).
+A Watcher can submit a `PauseMsg` to gracefully, and temporarily, remove themselves from service (e.g. for maintenance reasons).
 
-Since Fishermen are DAO permissioned, a minimum of `MinActiveFisherman` must be registered and active at any point in time for a Fisherman to be able to pause or unstake. Downtime or inability to meet the DAO defined SLA may result in burning of the Fisherman's stake.
+Since Watchers are DAO permissioned, a minimum of `MinActiveWatcher` must be registered and active at any point in time for a Watcher to be able to pause or unstake. Downtime or inability to meet the DAO defined SLA may result in burning of the Watcher's stake.
 
-Similar to how Fishermen can send a `PauseMsg` on behalf of faulty Servicers, the DAO is able to pause faulty or malicious Fishermen as defined in [Pocket Network's Constitution](https://github.com/pokt-foundation/governance/blob/master/constitution/constitution.md).
+Similar to how Watchers can send a `PauseMsg` on behalf of faulty Servicers, the DAO is able to pause faulty or malicious Watchers as defined in [Pocket Network's Constitution](https://github.com/pokt-foundation/governance/blob/master/constitution/constitution.md).
 
-A Fisherman can submit an `UnpauseMsg` after `MinPauseTime` has elapsed to resume monitoring services.
+A Watcher can submit an `UnpauseMsg` after `MinPauseTime` has elapsed to resume monitoring services.
 
 #### 3.3.9 Unstaking
 
-Similar to unpausing, a Fisherman can permanently remove themselves from service when `MinActiveFisherman` are still active and registered. The stake will only be returned after `FishermenUnstakingTime` has elapsed and permissioned through the DAO to permanently end its services.
+Similar to unpausing, a Watcher can permanently remove themselves from service when `MinActiveWatcher` are still active and registered. The stake will only be returned after `WatchersUnstakingTime` has elapsed and permissioned through the DAO to permanently end its services.
 
 #### 3.3.10 DAO Monitoring
 
-Enforcement of Fishermen behaviour and quality is an off-chain endeavor, undertaken by the DAO and crowd-sourced through the _Good Citizens Protocol_ of each protocol actor or community member. DAO monitoring consists of public Fishermen audits, statistical analysis, and incognito network actors that police interactions of Fishermen. The details, conditions, and limitations of DAO monitoring are defined further in the 1.0 Constitution.
+Enforcement of Watchers behaviour and quality is an off-chain endeavor, undertaken by the DAO and crowd-sourced through the _Good Citizens Protocol_ of each protocol actor or community member. DAO monitoring consists of public Watchers audits, statistical analysis, and incognito network actors that police interactions of Watchers. The details, conditions, and limitations of DAO monitoring are defined further in the 1.0 Constitution.
 
-In practice, the _Good Citizens Protocol_ acts as sanity checks for the network actors, developers, users and community to monitor the Fishermen. It is an opt-in, configurable module, that checks individual interactions against finalized on-chain data. Participants will be able to report suspicious, faulty, or malicious behavior of the Fishermen to off-chain data sites which are analyzed and filtered up to the DAO and public. Individual Fishermen burns and Good Citizen bounties are determined by the DAO and defined in the 1.0 Constitution.
+In practice, the _Good Citizens Protocol_ acts as sanity checks for the network actors, developers, users and community to monitor the Watchers. It is an opt-in, configurable module, that checks individual interactions against finalized on-chain data. Participants will be able to report suspicious, faulty, or malicious behavior of the Watchers to off-chain data sites which are analyzed and filtered up to the DAO and public. Individual Watchers burns and Good Citizen bounties are determined by the DAO and defined in the 1.0 Constitution.
 
 ##### 3.3.10.1 Good Citizens Protocol
 
-The _Good Citizens Protocol_ is not a "real" protocol. It is a social committment that is often the result of tools being built and focus being shifted to areas where work is being done and money is being made. Since a permissionless network will be earning rewards based on the, initially, permissioned set of Fisherman, low rewards values are likely be noticed and floated to the surface leading to the uncovering of misbehaviour, sooner or later.
+The _Good Citizens Protocol_ is not a "real" protocol. It is a social committment that is often the result of tools being built and focus being shifted to areas where work is being done and money is being made. Since a permissionless network will be earning rewards based on the, initially, permissioned set of Watcher, low rewards values are likely be noticed and floated to the surface leading to the uncovering of misbehaviour, sooner or later.
 
 ### 3.4 Application Protocol
 
@@ -753,7 +753,7 @@ An Application can update any of the values in its on-chain attributes by submit
 
 ```go
 type ApplicationStakeMsg interface {
-  GetPublicKey() PublicKey     # The public cryptographic ID of the Fisherman
+  GetPublicKey() PublicKey     # The public cryptographic ID of the Watcher
   GetStakeAmount() BigInt       # May be modified to a value greater or equal to the current value
   GetRelayChains() []RelayChain # May be modified
   GetGeoZone() GeoZone          # May be modified
@@ -816,7 +816,7 @@ Some parallels can be drawn between existing centralized, trusted and permission
 - The `Application` is a one-time `Authorization Server`
 - The `Portals` is an ongoing `Authorization Server`
 - The `Servicer` is the `Resource Servicer`
-- The `Fisherman` is a separate monitoring party overlooking the `Resource Servicer` most often owned by the `Authorization Server`
+- The `Watcher` is a separate monitoring party overlooking the `Resource Servicer` most often owned by the `Authorization Server`
 
 #### 3.5.3 Application w/o Portal
 
@@ -888,7 +888,7 @@ flowchart
     Servicer--Validate Signature-->Servicer
 ```
 
-Similar to to the [incognito sampling section of the Fisherman Protocol](#334-incognito-sampling) section, Ring Signatures enable the Servicer to validate the signed request. This enables permissioned (w/ a Portal) and permissionless (w/o a Portal) operations to co-exist, without being mutually exclusive, and without the Servicer needing knowledge of the Application's current mode of operation.
+Similar to to the [incognito sampling section of the Watcher Protocol](#334-incognito-sampling) section, Ring Signatures enable the Servicer to validate the signed request. This enables permissioned (w/ a Portal) and permissionless (w/o a Portal) operations to co-exist, without being mutually exclusive, and without the Servicer needing knowledge of the Application's current mode of operation.
 
 ```mermaid
 ---
@@ -1094,7 +1094,7 @@ type Transaction interface {
 
 Evidence is similar to Transactions in creation, structure and handling, but its production and affects are limited based on the actor's role.
 
-For example, only `Validators` are eligible to submit and are affected by `DoubleSign` evidence. Only `Servicers` are effected by the results of a `ClientSideChallenge` evidence. Only `Fishermen` are effected by the results of evidence that may challenge by the results of its TestScores (e.g. `RegradeServicer`)`.
+For example, only `Validators` are eligible to submit and are affected by `DoubleSign` evidence. Only `Servicers` are effected by the results of a `ClientSideChallenge` evidence. Only `Watchers` are effected by the results of evidence that may challenge by the results of its TestScores (e.g. `RegradeServicer`)`.
 
 Evidence is a protection mechanism against faulty or malicious consensus participants, but may extend to other protocol actors as well. The full list of types of Evidence will be defined over time, but will often result in the burning of the actor's stake if proven true.
 
@@ -1143,7 +1143,7 @@ type DAOTreasuryMsg interface {
 
 #### 3.9.3 Policing
 
-As the only permissioned actors in the network, Fishermen are subject to individual burns, pauses, or removals initiated by the DAO. Usages of this message type are a result of the off-chain monitoring mechanisms described in the Fisherman Protocol section of the document. The specifics and limitations of usage of this message type is detailed in the DAO 1.0 Constitution.
+As the only permissioned actors in the network, Watchers are subject to individual burns, pauses, or removals initiated by the DAO. Usages of this message type are a result of the off-chain monitoring mechanisms described in the Watcher Protocol section of the document. The specifics and limitations of usage of this message type is detailed in the DAO 1.0 Constitution.
 
 ```go
 type PolicingMsg interface {
@@ -1163,16 +1163,16 @@ In order to fully understand Pocket Network 1.0 and its place in the project's m
 
 During the development & development of a v1 TestNet:
 
-- The Fisherman & Portal models will be will be prototyped and live-tested
-- Major Servicer node runners of Pocket Network V0 may have the option to participate as Fisherman and/or Portal actors
+- The Watcher & Portal models will be will be prototyped and live-tested
+- Major Servicer node runners of Pocket Network V0 may have the option to participate as Watcher and/or Portal actors
 
 ### 4.2 Castaway
 
 Upon the initial launch of Pocket Network v1 MainNet:
 
-- The DAO will need to approve at least one PNI owned Fisherman
+- The DAO will need to approve at least one PNI owned Watcher
 
-  - The publicKey of the Fisherman will be included in the re-genesis file
+  - The publicKey of the Watcher will be included in the re-genesis file
 
 - PNI will need to to register at least one Portal
 
@@ -1185,10 +1185,10 @@ Upon the initial launch of Pocket Network v1 MainNet:
 - The economy will enable Network participants to operate their own Portals
 - `AppBurnPerSession` and `AppBurnPerRelay` will be set to 0
 
-### 4.2 Fishermen
+### 4.2 Watchers
 
-- Fisherman governance parameters will be tuned
-- Additional Fisherman will be approved by the DAO
+- Watcher governance parameters will be tuned
+- Additional Watcher will be approved by the DAO
 
 ### 4.3 Feeder Fish
 
@@ -1196,7 +1196,7 @@ Upon the initial launch of Pocket Network v1 MainNet:
 
 ### 4.4 CastNet
 
-- A specification for Fisherman Portal scores will be designed and developed
+- A specification for Watcher Portal scores will be designed and developed
 
 ## 5. Attack Vectors
 
@@ -1276,49 +1276,49 @@ Any attack which, although possible, makes no sense because you could accomplish
 
 <!-- TODO(olshansky): Review & Update -->
 
-#### 5.2.1 Fisherman <> Servicer Collusion
+#### 5.2.1 Watcher <> Servicer Collusion
 
 **Attack Vectors**: Profit Seeking Passive; Collusion Active; Hacker
 
-A Fisherman colluding with one or more Servicers and is in possession of their keys is able to falsify all aspects of that Servicer's report card. Therefore, all of his colluding node partners get A+ report cards and resultantly larger paychecks.
+A Watcher colluding with one or more Servicers and is in possession of their keys is able to falsify all aspects of that Servicer's report card. Therefore, all of his colluding node partners get A+ report cards and resultantly larger paychecks.
 
-This is the “big one”. It is the primary reason that Fisherman (at this stage) require DAO Approval. It is why off chain data logs, good-citizen reporting and DAO oversight exist. It is also the reason that Fishermen require large stake/deposit, as well as increased destaking period and delayed payments (See attached spreadsheet of projected collusion ROI based on such factors as Node Percentage, Risk Rate, etc.)
+This is the “big one”. It is the primary reason that Watcher (at this stage) require DAO Approval. It is why off chain data logs, good-citizen reporting and DAO oversight exist. It is also the reason that Watchers require large stake/deposit, as well as increased destaking period and delayed payments (See attached spreadsheet of projected collusion ROI based on such factors as Node Percentage, Risk Rate, etc.)
 
 The attack is easy to describe, but not easy to perform because a rather large body of work has gone into making sure that it is extremely difficult to perform, a very small payoff, and extremely costly to get caught.
 
-#### 5.2.2 Fisherman Assigning bad Servicer TestScores
+#### 5.2.2 Watcher Assigning bad Servicer TestScores
 
 **Attack Vectors**: Collusion passive; Hacker; Mad Man Lazy; Inflation/Deflation
 
-If a Fisherman falsifies certain aspects of a node’s report card, he can lower that node’s proper payment share (direct attack) and increase the relative profit of all non-attacked nodes (indirect benefit if Fisherman is also a Servicer owner)
+If a Watcher falsifies certain aspects of a node’s report card, he can lower that node’s proper payment share (direct attack) and increase the relative profit of all non-attacked nodes (indirect benefit if Watcher is also a Servicer owner)
 
 This attack is a lot of work with very little reward. The “excess” POKT does not get distributed to the non-attacked nodes. It gets burned. Therefore the benefit to non-attacked nodes is only a relative gain in terms of the overall network inflation rate. This is a highly detectable attack and the victims are highly motivated to report it. Bottom line here is: We’re talking about a highly motivated hacker, who is also Mad Man Lazy.
 
-#### 5.2.3 Fishermen falsifying Application Volume Metrics
+#### 5.2.3 Watchers falsifying Application Volume Metrics
 
 **Attack Vectors**: Mad Man Lazy
 
-There is no financial incentive for a Fisherman to report Application volume higher or lower than actual. Servicers are incentivized to check for under reporting. There is no specific disincentive for over reporting. Other than (of course) losing all of your stake and reputation.
+There is no financial incentive for a Watcher to report Application volume higher or lower than actual. Servicers are incentivized to check for under reporting. There is no specific disincentive for over reporting. Other than (of course) losing all of your stake and reputation.
 
-#### 5.2.4 Fisherman DDoS
+#### 5.2.4 Watcher DDoS
 
 **Attack Vectors**: Mad Man
 
-No one benefits by DDOSing a Fisherman. The relay, dispatch, service and blockchain processes are not dependent on Fishermen. The attack does not change node report cards. It only reduces overall network inflation. The Fisherman loses money, but no one gets the excess.
+No one benefits by DDOSing a Watcher. The relay, dispatch, service and blockchain processes are not dependent on Watchers. The attack does not change node report cards. It only reduces overall network inflation. The Watcher loses money, but no one gets the excess.
 
-#### 5.2.5 Incognito Fisherman Identified
+#### 5.2.5 Incognito Watcher Identified
 
 **Attack Vectors**: Lazy Mad Man, Hacker
 
-Fishermen act in “incognito” fashion purely as a deterrent to a particular theoretical publicity seeking attack called Mad Man Blogger. Neither honest, nor dishonest nodes gain any advantage by identifying a particular relay request as belonging to a Fisherman. You can only provide your best service, it’s not possible to provide “better” service to a Fisherman than you already provide. However, the Mad Man Blogger could (if he chose to and if he successfully identified all Fishermen) provide service to only Fishermen and not to applications. We consider this an edge case attack in which the attacker has made a significant investment in POKT and in backend node infrastructure solely for the purpose of “proving” that the system can be gamed. Therefore, the contract with the DAO which Fishermen agree to, requires periodic changing of IP address and reasonable efforts to keep it unknown by other actors in the ecosystem.
+Watchers act in “incognito” fashion purely as a deterrent to a particular theoretical publicity seeking attack called Mad Man Blogger. Neither honest, nor dishonest nodes gain any advantage by identifying a particular relay request as belonging to a Watcher. You can only provide your best service, it’s not possible to provide “better” service to a Watcher than you already provide. However, the Mad Man Blogger could (if he chose to and if he successfully identified all Watchers) provide service to only Watchers and not to applications. We consider this an edge case attack in which the attacker has made a significant investment in POKT and in backend node infrastructure solely for the purpose of “proving” that the system can be gamed. Therefore, the contract with the DAO which Watchers agree to, requires periodic changing of IP address and reasonable efforts to keep it unknown by other actors in the ecosystem.
 
-#### 5.2.6 Fisherman or Servicer register Applications for selfish self-dealing attacks
+#### 5.2.6 Watcher or Servicer register Applications for selfish self-dealing attacks
 
 **Attack Vectors**: Inflation Attack, Mad Man Lazy
 
-**Re Fishermen spamming via owned app:**
+**Re Watchers spamming via owned app:**
 
-There is no economic benefit to Fishermen from this activity as their payment is independent of application usage. One could argue that the Fisherman will benefit from the increase in supply caused by spamming the network this way. However, any inflation attack which benefits the majority of the network to a greater degree than the person who pays for and performs the attack is non-profit seeking.
+There is no economic benefit to Watchers from this activity as their payment is independent of application usage. One could argue that the Watcher will benefit from the increase in supply caused by spamming the network this way. However, any inflation attack which benefits the majority of the network to a greater degree than the person who pays for and performs the attack is non-profit seeking.
 
 **Re Servicer spamming via owned app:**
 
@@ -1326,15 +1326,15 @@ This activity is an inflation attack which is not profitable to the attacker.
 
 #### 5.2.7 Actors intentionally staking in “wrong” GeoZone
 
-It is economically advantageous for actors to stake within their true GeoZone as Session actor pairings are generated specifically for the GeoZone registered. Specifically, Applications will receive worse QOS and worse fidelity of Fishermen QOS monitoring by proxy as the Servicers are farther away but still within the same GeoZone as the Fishermen. Servicers are the same way, as once a GeoZone is mature the Servicers in other GeoZones are no longer competitive.
+It is economically advantageous for actors to stake within their true GeoZone as Session actor pairings are generated specifically for the GeoZone registered. Specifically, Applications will receive worse QOS and worse fidelity of Watchers QOS monitoring by proxy as the Servicers are farther away but still within the same GeoZone as the Watchers. Servicers are the same way, as once a GeoZone is mature the Servicers in other GeoZones are no longer competitive.
 
 ## 6. Dissenting Opinions (FAQ)
 
 <!-- TODO(olshansky): Review & Update -->
 
-**Public facing Fisherman is a vulnerability for censorship and defeats the purpose of decentralized infra.**
+**Public facing Watcher is a vulnerability for censorship and defeats the purpose of decentralized infra.**
 
-Public facing Fishermen are no more subject to censorship than the DAO is. Just like the DAO voters, the more Fishermen participating in the network, the safer the mechanism they control is. The true difference between the DAO voters and Fishermen is the Fishermen’s scope of control is limited only to the quality of service enforcement and the DAO’s control spans the entirety of the system. If the DAO were to ever be compromised by an adversary, the Validators are able to fork the chain and install a new governing body through a social consensus of the ACL. In a parallel situation, if the Fishermen were ever compromised, the DAO would be able to modify the actors without forking the chain and halting service. The architectural separation of powers between Validators, Servicers, Fishermen, and the DAO is what truly ensures the safety of Pocket Network.
+Public facing Watchers are no more subject to censorship than the DAO is. Just like the DAO voters, the more Watchers participating in the network, the safer the mechanism they control is. The true difference between the DAO voters and Watchers is the Watchers’s scope of control is limited only to the quality of service enforcement and the DAO’s control spans the entirety of the system. If the DAO were to ever be compromised by an adversary, the Validators are able to fork the chain and install a new governing body through a social consensus of the ACL. In a parallel situation, if the Watchers were ever compromised, the DAO would be able to modify the actors without forking the chain and halting service. The architectural separation of powers between Validators, Servicers, Watchers, and the DAO is what truly ensures the safety of Pocket Network.
 
 **Quality of Service is a second order metric thus it is not a good criteria for salaries of Servicers.**
 
@@ -1342,31 +1342,31 @@ Quality of Service is harder to measure than Quantity of Service, but it is not 
 
 **The DAO is not a silver bullet, it’s not trustless, it’s a potential attack vector.**
 
-A powerful government might be able to temporarily stop quality of service metrics but the chain continues. There's no realism in thinking that an overtaking of the DAO isn't a catastrophic event for any version of Pocket Network. As long as there are params like 'MaxValidators' or 'RewardForRelays' the DAO may stop Pocket Network until a social fork happens. Fishermen are the same way. Stop the Fishermen, the DAO will instill new ones. Stop the DAO, the Validators will add a new DAO.
+A powerful government might be able to temporarily stop quality of service metrics but the chain continues. There's no realism in thinking that an overtaking of the DAO isn't a catastrophic event for any version of Pocket Network. As long as there are params like 'MaxValidators' or 'RewardForRelays' the DAO may stop Pocket Network until a social fork happens. Watchers are the same way. Stop the Watchers, the DAO will instill new ones. Stop the DAO, the Validators will add a new DAO.
 
-**Publicly identifying fishermen puts them at risk of attacks in the real world.**
+**Publicly identifying watchers puts them at risk of attacks in the real world.**
 
 Sure, this is a concern that all people in public office deal with.
 
-**Fishermen are not truly Applications, rather a proxy, so the accuracy of their TestScores is questionable and not a valid criteria for salaries of Servicers.**
+**Watchers are not truly Applications, rather a proxy, so the accuracy of their TestScores is questionable and not a valid criteria for salaries of Servicers.**
 
-From a Servicer’s perspective, Fishermen are indistinguishable from applications and therefore are not only valid criteria, but - in fact - preferable sources of information because they are financially incentivised to collect honest and complete reports. Experience with V0 has shown that although applications have the ability to enforce some aspects of Servicer quality, they do not avail themselves of this opportunity.
+From a Servicer’s perspective, Watchers are indistinguishable from applications and therefore are not only valid criteria, but - in fact - preferable sources of information because they are financially incentivised to collect honest and complete reports. Experience with V0 has shown that although applications have the ability to enforce some aspects of Servicer quality, they do not avail themselves of this opportunity.
 
-**The requirements of Fishermen actors are too high. The incentives are oriented properly so POA/POS is overkill.**
+**The requirements of Watchers actors are too high. The incentives are oriented properly so POA/POS is overkill.**
 
 If the requirements are too high, the DAO can choose to lower them. Better to start high and lower the bar than to start low and risk flooding the initial system with actors who have little to lose.
 
-**The off-chain monitoring of Fishermen is not secure enough for the duties they are responsible for.**
+**The off-chain monitoring of Watchers is not secure enough for the duties they are responsible for.**
 
-Off-chain data monitoring and reporting for some aspects of Fishermen activities serves three purposes:
+Off-chain data monitoring and reporting for some aspects of Watchers activities serves three purposes:
 
 1. It reduces blockchain bloat which is one of the key goals of V1 and an absolute necessity if Pocket network is to grow successfully.
-2. It provides a method by which “mad man” actors and Fisherman/Servicer collusion can be detected and punished.
+2. It provides a method by which “mad man” actors and Watcher/Servicer collusion can be detected and punished.
 3. Very importantly, it creates a testable, modifiable, tunable environment where large portions of the action and incentive system can be studied without risk of chain state errors. This tested and tuned incentive system is considered a prerequisite for the eventual codification of the system and translation into a fully self-enforced, decentralized solution (Phase II, AKA CastNet)
 
 Keep in mind that good actors by definition do not need to be incentivized to maintain the rules of the system. +2/3 of the network is assumed to want the network to run. Examples of this is how there's no incentive for Validators to propagate Byzantine Evidence in Tendermint and no incentive for Validators to destroy their ephemeral private keys in Algorand's BA. Or even in Hotstuff, there's no incentive for Validators to uphold the integrity of their 'LockedQC' values.
 
-In this case, the people monitoring the Fishermen are the DAO who's largely invested in Network security and integrity and the other network actors who are interacting with the fishermen and are highly incentivized to keep them in-check, like Apps and Servicers. Apps rely on fishermen to enforce the network's decentralized Service Level Agreement. Servicers rely on fishermen to accurately shape their report cards against their peers.
+In this case, the people monitoring the Watchers are the DAO who's largely invested in Network security and integrity and the other network actors who are interacting with the watchers and are highly incentivized to keep them in-check, like Apps and Servicers. Apps rely on watchers to enforce the network's decentralized Service Level Agreement. Servicers rely on watchers to accurately shape their report cards against their peers.
 
 Vitalik on Social Coordination argument:
 
@@ -1374,21 +1374,21 @@ _'This security assumption, the idea of “getting a block hash from a friend”
 
 _However, this logic ignores why consensus algorithms exist in the first place. Consensus is a social process, and human beings are fairly good at engaging in consensus on our own without any help from algorithms; perhaps the best example is the Rai stones, where a tribe in Yap essentially maintained a blockchain recording changes to the ownership of stones (used as a Bitcoin-like zero-intrinsic-value asset) as part of its collective memory. The reason why consensus algorithms are needed is, quite simply, because humans do not have infinite computational power, and prefer to rely on software agents to maintain consensus for us. Software agents are very smart, in the sense that they can maintain consensus on extremely large states with extremely complex rulesets with perfect precision, but they are also very ignorant, in the sense that they have very little social information, and the challenge of consensus algorithms is that of creating an algorithm that requires as little input of social information as possible.'_
 
-**Applications handshaking with Fishermen is more burdensome than V0’s requirements for Applications.**
+**Applications handshaking with Watchers is more burdensome than V0’s requirements for Applications.**
 
-The only additional requirement of V1 for Applications is to provide the Fisherman a limited AAT/Key combination. V1 also removes the difficult decision of Applications configuring for Quality or Throughput. V1 comes with QOS out of the box so the burden of challenging Servicers is completely eliminated.
+The only additional requirement of V1 for Applications is to provide the Watcher a limited AAT/Key combination. V1 also removes the difficult decision of Applications configuring for Quality or Throughput. V1 comes with QOS out of the box so the burden of challenging Servicers is completely eliminated.
 
-**Applications granting an AAT to a Fishermen is completely insecure as they are providing the Fishermen access to their authenticator.**
+**Applications granting an AAT to a Watchers is completely insecure as they are providing the Watchers access to their authenticator.**
 
-The Fisherman receives a one-time, one-session token which allows the Fisherman to do only one thing: request relays. The Fishermen have no incentive to overuse that ability. Even a mad-man Fisherman is limited in its ability to cause harm if it wished to.
+The Watcher receives a one-time, one-session token which allows the Watcher to do only one thing: request relays. The Watchers have no incentive to overuse that ability. Even a mad-man Watcher is limited in its ability to cause harm if it wished to.
 
 **By ‘unburdening’ Applications from monitoring QOS you have effectively removed their ability to challenge their servicers. This is a downgrade from V0.**
 
 Applications are and will remain free to report bad service. Unfortunately, even with automated assistance and easy to use SDKs, it is deemed highly likely that applications will continue to act in the future as they have in the past. IE: They don’t spend time and energy fixing our product for us. They just walk away. Self-monitored and Self-enforced QOS is seen as the most viable path forward.
 
-**Only requiring Fishermen to prove they executed the (availability) sampling and not produce on-chain evidence of their data accuracy, latency, and volume claims is an exploitable vulnerability which Fishermen can/will take advantage of.**
+**Only requiring Watchers to prove they executed the (availability) sampling and not produce on-chain evidence of their data accuracy, latency, and volume claims is an exploitable vulnerability which Watchers can/will take advantage of.**
 
-Each and every metric which is sampled is collected and verifiable on the off-chain systems. Storing that data on- chain is one of the current V0 problems that V1 seeks to solve. As to the exploitability of this particular aspect… (see.. Madman and Collusion in the attack vectors section) the incentive structure of V1 Fisherman rewards is such that there is no economic gain from this activity and the potential loss is quite significant.
+Each and every metric which is sampled is collected and verifiable on the off-chain systems. Storing that data on- chain is one of the current V0 problems that V1 seeks to solve. As to the exploitability of this particular aspect… (see.. Madman and Collusion in the attack vectors section) the incentive structure of V1 Watcher rewards is such that there is no economic gain from this activity and the potential loss is quite significant.
 
 **The optimistic submission of TestScore and Proof transactions degrade the overall security and quality of the network.**
 
@@ -1402,13 +1402,13 @@ Although the first statement (probabilistic=inaccurate) is true, the conclusion 
 
 We do see (and are working to mitigate) potential “bad luck” sessions where an application might receive less than an appropriate minimum relay amount. This is not seen as a hard problem to overcome. “Good Luck” sessions will also happen on occasion. This is not seen as a problem at all.
 
-**The name of the actor ‘Fishermen’ has other meanings for other projects and should be changed.**
+**The name of the actor ‘Watchers’ has other meanings for other projects and should be changed.**
 
-Traditionally, Fishermen are monitoring actors in other Web3 projects. They allow minimum on-chain information by providing off-chain double-checks on the participants who make ‘claims’. Similar to Validators, though our flavor of Fishermen is different and unique, the core functionality of the actor remains the same.
+Traditionally, Watchers are monitoring actors in other Web3 projects. They allow minimum on-chain information by providing off-chain double-checks on the participants who make ‘claims’. Similar to Validators, though our flavor of Watchers is different and unique, the core functionality of the actor remains the same.
 
-**Ability of Fishermen to replace servicers mid session makes it necessary that the size of the dispatch list for any given session cannot be fixed.** (Open question)
+**Ability of Watchers to replace servicers mid session makes it necessary that the size of the dispatch list for any given session cannot be fixed.** (Open question)
 
-Newly “recruited” nodes need the freedom to respond to application requests even though they are outside of the calculated list for that session. We may be able to limit dispatch list growth to 2 X the computed size however since the Fisherman cannot replace more than the entire original list. This opens a door for applications to double their effective dispatch list but does not allow abuse of relay usage.
+Newly “recruited” nodes need the freedom to respond to application requests even though they are outside of the calculated list for that session. We may be able to limit dispatch list growth to 2 X the computed size however since the Watcher cannot replace more than the entire original list. This opens a door for applications to double their effective dispatch list but does not allow abuse of relay usage.
 
 **Memos might be important (open question)**
 
