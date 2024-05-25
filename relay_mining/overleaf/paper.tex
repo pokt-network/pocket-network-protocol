@@ -28,24 +28,26 @@
 
 \begin{document}
 
-\title{Relay Mining: Verifiable Multi-Tenant Distributed Rate Limiting}
+\title{Relay Mining: Incentivizing Full Non-Validating Nodes Servicing All RPC Types}
 \titlerunning{Relay Mining}
 
 \author{Olshansky, Daniel\inst{1}%\orcidID{0000-1111-2222-3333} 
-\and Rodr\'iguez Colmeiro, Ramiro\inst{2}%\orcidID{0000-0001-9279-5717}
+\and  Rodr\'iguez Colmeiro, Ramiro\inst{2}%\orcidID{0000-0001-9279-5717}
 }
 
 \authorrunning{D. Olshansky, R. Rodr\'iguez Colmeiro}
 \institute{
-    Pocket Network Inc.; \url{www.pokt.network}
+    Grove Inc.;  \url{grove.city}
     \and
-    Pocket Scan Technologies LLC; \url{www.poktscan.com}
+    Pocket Scan Technologies LLC; \url{poktscan.com}
 }
 
 \maketitle % typeset the header of the contribution
 
 \begin{abstract}
-Relay Mining presents a scalable solution employing probabilistic mechanisms and crypto-economic incentives to estimate RPC volume usage, facilitating decentralized multi-tenant rate limiting. Network traffic from individual applications can be concurrently serviced by multiple RPC service providers, with costs, rewards, and rate limiting governed by a native cryptocurrency on a distributed ledger. Building upon established research in token bucket algorithms and distributed rate-limiting penalty models, our approach harnesses a feedback loop control mechanism to adjust the difficulty of mining relay rewards, dynamically scaling with network usage growth. By leveraging crypto-economic incentives, we reduce coordination overhead costs and introduce a mechanism for providing RPC services that are both geopolitically and geographically distributed.
+
+Relay Mining presents a scalable solution employing probabilistic mechanisms, crypto-economic incentives, and new cryptographic primitives to estimate and prove the volume of Remote Procedure Calls (RPCs) made from a client to a server. Distributed ledgers are designed to secure permissionless state transitions (writes), highlighting a gap for incentivizing full non-validating nodes to service non-transactional (read) RPCs. This leads applications to have a dependency on altruistic or centralized off-chain Node RPC Providers. We present a solution that enables multiple RPC providers to service requests from independent applications on a permissionless network. We leverage digital signatures, commit-and-reveal schemes, and Sparse Merkle Sum Tries (SMSTs) to prove the amount of work done. This is enabled through the introduction of a novel ClosestMerkleProof proof-of-inclusion scheme. A native cryptocurrency on a distributed ledger is used to rate limit applications and disincentivize over-usage. Building upon established research in token bucket algorithms and distributed rate-limiting penalty models, our approach harnesses a feedback loop control mechanism to adjust the difficulty of mining relay rewards, dynamically scaling with network usage growth. By leveraging crypto-economic incentives, we reduce coordination overhead costs and introduce a mechanism for providing RPC services that are both geopolitically and geographically distributed. We use common formulations from rate limiting research to demonstrate how this solution in the Web3 ecosystem translates to distributed verifiable multi-tenant rate limiting in Web2.
+
 
 \keywords{
 remote procedure call 
@@ -67,31 +69,24 @@ remote procedure call
 
 \section{Introduction}
 
-The emergence of Software as a Service (SaaS) businesses has led to the widespread adoption of subscription-based services that developers interact with using Remote Procedure Calls (RPCs). Various frameworks and architectural patterns of RPCs, such as JSON-RPC, gRPC, REST APIs, and GraphQL, have been designed and developed to accommodate application needs. Typically, the development team, responsible for maintaining and financing the application's usage, is charged based on their usage or the capacity of the tier to which they have subscribed \cite{salesforceWhatSaaS}.
+The rise of Software as a Service (SaaS) has popularized subscription-based models, facilitated through Remote Procedure Calls (RPCs) like JSON-RPC, gRPC, REST APIs, and GraphQL to meet diverse application requirements. These models typically bill development teams based on usage or subscription tiers \cite{salesforceWhatSaaS}. 
 
-Decentralized Applications (dApps) often require access to blockchain data, which can be obtained and verified by running a full node \cite{alchemyProsCons}. The complexity of maintaining and synchronizing a full node has rendered it impractical for most developers to manage themselves, and the resource requirements make it unsuitable for client devices such as smartphones or browsers. For instance, it is recommended to have at least 16GB of RAM, a 2TB SSD, and a 25Mbps download speed to run a go-ethereum client \cite{ethereumHardwareRequirements}. While light clients, initially introduced as Simple Payment Verification in the Bitcoin whitepaper, are under active development, numerous companies now specialize in providing and maintaining infrastructure to run full nodes, known as Node RPC providers \cite{nakamoto2008bitcoin}.
+In the Web3 space, decentralized applications (dApps) often rely on blockchain data, traditionally accessed by operating a full node \cite{alchemyProsCons}. However, the high resource demands — such as the need for at least 16GB of RAM, a 2TB SSD, and a 25Mbps download speed for running a geth client \cite{ethereumHardwareRequirements} — make self-managing full nodes impractical for most developers, particularly on client devices. Light clients, a concept originating from Bitcoin's Simple Payment Verification, are evolving but still depend on Node RPC providers that supply necessary proofs and headers \cite{nakamoto2008bitcoin}.
 
-Although this has enabled dApp development, it has also led to further centralization and trust delegation of data verification to a small number of large infrastructure providers, as discussed in various forums \cite{moxie2022}. While efforts continue to make light clients efficient and readily available, there will still be a future need for block headers and proofs to be easily accessible via RPC services. It is important to note that while this paper focuses primarily on access to data nodes in the Web3 landscape, the ideas presented around Relay Mining can extend to any services exposed through an RPC interface.
+The dependence on these providers accelerates dApp development but also pushes towards further centralization and reliance on a few large infrastructure entities \cite{moxie2022}. While light clients aim to minimize this reliance, they still require RPC services to function effectively.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.7\textwidth]{light_full_node.png}
-    \caption{Communication between a dApp with permissionless and untrusted full nodes (left) versus trusted and centralized full nodes (right).} \label{fig:light-full-node}
-\end{figure}
+For sustainability, RPC service operators implement rate-limiting and Denial-of-Service (DoS) protection strategies. Despite advancements in distributed ledger technology for permissionless transaction verification (\textbf{writes}), a corresponding solution for data reads (\textbf{reads}) remains undeveloped. Relay Mining addresses this by exploring rate-limiting mechanisms within a live network, applicable to any RPC interface.
 
-\subsection{Blockchain Throughput}
+\subsection{Blockchain Writes - Validators, Builders, Proposers et al}
 
-The Blockchain Scalability Trilemma is a prevalent formulation employed to assess the trade-offs between a blockchain's scalability, decentralization and security \cite{vitalikShardingGreat}. When evaluating the scalability of a Layer 1 (L1) chain, the most commonly used metrics are Transactions-Per-Second (TPS) and Time-to-Finality (TTF). These metrics offer a direct insight into the maximum number of \textbf{writes} occurring on the underlying distributed ledger, presenting a clear picture of the network's capacity and usage as shown in Table ~\ref{l1-throughput}.
+Distributed ledgers (blockchains) are often reduced to the problem of Byzantine Fault Tolerant (BFT) State Machine Replication (SMR) \cite{buchman2019latest}. Discussions about scalability typically focus on increasing throughput — the capacity to write more data to the ledger without compromising \textbf{safety} and \textbf{liveness}. This challenge led to the formulation of the Blockchain Scalability Trilemma, which assesses the trade-offs between scalability, decentralization, and security of a blockchain \cite{Halpin_2020}.
 
-\subsection{Data Availability \& MEV}
+When evaluating the scalability of a Layer 1 (L1) blockchain, key metrics include Transactions-Per-Second (TPS) and Time-to-Finality (TTF), which provide direct insights into the network's capacity and usage, as illustrated in Table ~\ref{l1-throughput}.
 
-Two key concepts that directly influence and result from a blockchain's throughput are Data Availability and Maximal Extractable Value (MEV). The Data Availability Problem addresses the issue of ensuring that data published in a new block is accessible throughout the network \cite{coinmarketcapWhatData}, which is one of many factors affecting blockchain throughput and scalability. MEV refers to the maximum value that can be extracted from block production through transaction reordering in excess of fees and is closely related to these metrics \cite{ethereumMaximalExtractable}. Although this paper does not delve into these two concepts, it is essential to note that RPC Node Providers enhance Data Availability guarantees by increasing Data Redundancy of full nodes, while also having the potential to participate in MEV from transactions initiated by dApps.
-
+The constraints of limited write capacity lead to on-chain auctions, often analyzed through the lens of Maximal Extractable Value (MEV). The need for efficient transaction ordering has introduced additional roles like Proposers and Builders, enhancing the ecosystem's focus on scaling data throughput rather than data consumption \cite{kulkarni2023theory} \cite{heimbach2023ethereums}.
 
 \begin{table}
     \centering    
-    \caption{L1 write throughput comparison measured in December 2022; Aptos data is more recent \cite{internetcomputerComparisonInternet} \cite{aptoslabsAptosExplorer}.}    
-    \label{l1-throughput}    
     \begin{tabular}{|l|P{1.5cm}|P{1.2cm}|P{1.2cm}|P{1.1cm}|P{1cm}|}
         \hline & Ethereum & Solana & Dfinity & Aptos & Near \\
         \hline
@@ -100,16 +95,25 @@ Two key concepts that directly influence and result from a blockchain's throughp
             Number of Nodes &  6562 & 1872 &  823 & 107 & 798 \\
         \hline
     \end{tabular}
+    \caption{L1 write throughput comparison measured in December 2022; Aptos data is more recent \cite{internetcomputerComparisonInternet} \cite{aptoslabsAptosExplorer}.}
+    \label{l1-throughput}
 \end{table}
 
-\subsection{RPC Node Providers}
+\subsection{Blockchain Reads - RPC Node Providers}
 
-While the Scalability Trilemma addresses the problems of scaling writes to an L1 blockchain in a decentralized and verifiable manner, the majority of requests serviced by node providers involve \textbf{reads} on a much larger scale. This necessitates provisioning and maintaining highly scalable and decentralized infrastructure. Table.~\ref{rpc-node-usage} displays the traffic handled by some of the largest node providers in 2023. Managing billions of daily requests, most of which are reads, poses distinct challenges which have primarily been addressed via a Web2 SaaS approach as shown in Fig.~\ref{fig:light-full-node}.
+Despite advancements in addressing the Scalability Trilemma to manage, verify, and incentivize writes, the predominant type of requests made by application developers are \textbf{reads}. Table.~\ref{rpc-node-usage} highlights the substantial traffic managed by major node providers in 2023, emphasizing the billions of daily requests, mostly reads, which present challenges not addressed by BFT replicated state machines.
+
+Accessing blockchain data, crucial for operations like those described in the Simple Payment Verification \cite{nakamoto2008bitcoin}, typically requires one of the following infrastructure components:
+\begin{enumerate}
+    \item \textbf{Full Nodes}: Synchronizing a full node to maintain a complete, locally verified copy of the ledger.
+    \item \textbf{Light Clients}: Acquiring headers and proofs just-in-time from other full nodes.
+    \item \textbf{RPC Providers}: Relying on a third party to retrieve data via an RPC request.
+\end{enumerate}
+
+Options (1) and (2) often face practical limitations for widespread application use. Although option (3) has evolved into a robust Web2 SaaS-like ecosystem, it depends on provisioning and maintaining scalable infrastructure, while managing off-chain payments and Service Level Agreements (SLAs) in a more traditional and permissioned environment. Fig.~\ref{fig:light-full-node} illustrates the operational models commonly adopted by decentralized Applications (dApps) today using these methods.
 
 \begin{table}
     \centering    
-    \caption{The latency shown is the p50 RTT for Ethereum Mainnet from Miami as measured using RPCMeter ~\cite{rpcmeterRPCMeter}. The other metrics provided are a best-effort approximation based on public resources \cite{ankrUsage}\cite{infuraUsage}.}
-    \label{rpc-node-usage}
     \begin{tabular}{|l|P{1.5cm}|P{1.2cm}|P{1.2cm}|P{1.1cm}|P{2cm}|}
         \hline & Infura & Alchemy & Ankr & Pocket Network \\
         \hline
@@ -118,11 +122,31 @@ While the Scalability Trilemma addresses the problems of scaling writes to an L1
             Availability / Uptime & 99.99\% & ?? & 99.99\% & 99\%  \\
         \hline
     \end{tabular}
+    \caption{The latency shown is the p50 RTT for Ethereum Mainnet from Miami as measured using RPCMeter ~\cite{rpcmeterRPCMeter}. The other metrics provided are a best-effort approximation based on public resources \cite{ankrUsage}\cite{infuraUsage}.}
+    \label{rpc-node-usage}    
 \end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{light_full_node.png}
+    \caption{Communication between a dApp with permissionless and untrusted full nodes (left) versus trusted and centralized full nodes (right).} \label{fig:light-full-node}
+\end{figure}
 
 \section{Problem Statement}\label{problem-statement}
 
-The RPC Trilemma~\cite{poktBuildingBetter} evaluates the trade-offs among Reliability, Performance, and Cost that node providers and dApp developers must consider when providing or choosing a service, as illustrated in Fig.~\ref{fig:rpc-trilemma}.
+There are no financial incentives for full non-validating, non-altruistic nodes in a permissionless network. An effective solution must address:
+
+\begin{enumerate}
+    \item \textbf{Incentives}: Implement on-chain crypto-economic incentives for non-transactional read RPC requests.
+    \item \textbf{Scalability}: Scale to accommodate hundreds of billions of daily read requests due to the nature of read request volume.
+    \item \textbf{Rate Limiting}: Facilitate rate limiting within a permissionless, multi-tenant environment.
+\end{enumerate}
+
+Current on-chain incentives are tailored for full validating or block building nodes, rewarding them for processing state transitions and collecting transaction fees. However, no analogous incentives exist for read-only operations, making reliance on altruistic node operators unsustainable for dApps.
+
+\subsection{RPC Trilemma}
+
+This paper introduces the Relay Mining algorithm, addressing the aforementioned needs. With prospects for future expansion into tokenomics and the duality between centralized Gateways and permissionless hardware operators, we also outline the \textbf{RPC Trilemma}. Illustrated in Fig.~\ref{fig:rpc-trilemma}, this trilemma involves selecting RPC providers based on a trade-off among \textbf{Reliability}, \textbf{Performance}, and \textbf{Cost}. While our optimistic crypto-economic model incentivizes rate limiting and read request servicing, addressing just-in-time quality of service remains beyond this paper's scope.
 
 \begin{figure}
     \centering
@@ -130,57 +154,28 @@ The RPC Trilemma~\cite{poktBuildingBetter} evaluates the trade-offs among Reliab
     \caption{The RPC Trilemma} \label{fig:rpc-trilemma}
 \end{figure}
 
-On-chain crypto-economics, either Block Proposal or MEV, create incentives for full-node operation by offering opportunities to modify writes to a distributed ledger. As most dApps primarily rely on read operations, Data Availability guarantees alone are insufficient for providing reliable and performant access to data based on mathematical or altruistic needs. Consequently, there is a demand for incentivized and verifiable on-chain solutions to address this issue.
-
-This paper aims to present an approach to one of the problems in this domain, Relay Mining, in order to enable decentralized and probabilistically verifiable rate limiting and volume estimation of servicing RPC requests in a multi-tenant economy.
-
 \section{Experience \& Motivation}
 
-Pocket Network, launched on July 28th, 2020, is a decentralized RPC protocol built on top of Tendermint BFT \cite{tendermint}. In this paper, we aim to utilize its current design, several years of production data, and existing plans for future iterations of the protocol as a driving example to address the problem statement outlined in Section \ref{problem-statement}.
-
-% TODO(Ramiro), improvements:
-% 1. I feel like a line chart can be very impactful for showing traffic growth over time
-% 2. The second paragraph can be easily represented as a pie chart
-\subsection{Network Stats}\label{network-stats}
-
-Since its genesis on October 22, 2021, up to the current date (May 10, 2023), Pocket Network has processed over 465 billion successful relays. During this period, the number of served relays per day increased from approximately 1.5 million to 1.5 billion, with a peak of 2 billion on May 8, 2023. The total relay traffic is composed of an increasing number of blockchains, currently supporting 50, distributed over 14 gateways, and over 12 major, with many minor, infrastructure providers across all continents. The performance from May 3, 2023, to May 10, 2023, on the dominant blockchains is presented in table~\ref{tab:stats-pokt}.
-
-\begin{table}
-    \caption{Main stats of the largest blockchains in the Pocket Network, from May 3rd, 2023 to May 10th, 2023. The data is averaged across all gateways, and distributed globally.}
-    \label{tab:stats-pokt}
-    \begin{tabularx}{\textwidth}{|C|C|C|C|C|C|C|}
-        \hline Blockchain &  Share of Total Traffic [\%] & Volume [relays] & Avg. TPS & Peak TPS & Avg. Latency [ms] & Success Rate [\%] \\
-        \hline
-            Ethereum        &  $28.1$ & $365\times 10^6$ &  8300 &  16500 &  138 & 99.7039  \\
-            Polygon Mainnet &  $25.3$ & $326\times 10^6$ &  3200 &   4700 &  130 & 99.7200 \\
-            DFKchain Subnet &  $12.5$ & $164\times 10^6$ &  1800 &   2400 &  121 & 99.4618 \\
-            Gnosis - xDai   &  $10.2$ & $132\times 10^6$ &  1500 &   2200 &  152 & 99.8337 \\
-        \hline
-    \end{tabularx}
-\end{table}
-
-The network is composed of 20,000 nodes; however, this number does not correlate with the number of deployed blockchain nodes. The current version of the protocol cannot verifiably prove the real number of blockchain nodes, as the Servicers are permissionless, but a rough estimate can be obtained through the nodes' service domains. The largest Servicer group has approximately 5,000 nodes (about 25\% of the network), followed by two others with around 2,500 nodes each (about 12.5\% of the network each). Then, the number of nodes by domain decreases. Around 90\% of the network is held by 14 independent domains. Assuming no blockchain node is shared among node runners~\footnote{This is a fair assumption given the competitive play between node runners.} and that each node runner has at least two nodes per staked blockchain~\footnote{Accounting for redundancy or geographical distribution of blockchain nodes.}, the Pocket Network has more than 30 independent blockchain servers on each of the main served blockchains. It is important to note that this is only an estimation; however, the number is significant in terms of decentralization and reliability.
-
-\subsection{Network Actors}
-
-Current and future iterations of the Pocket Network employ different protocols actors with different responsibilities, as shown in Appendix I. In the context of Relay Mining, however, we are only concerned with Applications, which pay for access to RPC services using the native cryptocurrency, and Servicers, which earn rewards in exchange for handling those requests in the native cryptocurrency.
-
-% TODO(olshansky): Olshansky rushed through this just to get something on paper
-% - Add reference to this in the third bullet point: https://github.com/pokt-network/pocket-core/blob/staging/doc/specs/reward_protocol.md
-% - Add a citation for IAVL
-% - Improve this in general
-\subsection{Scaling Limitations}
-
-The existing protocol implementation of the Pocket Network mainnet resembles the solution presented in Section \ref{relay-mining}. However, there are a few key distinctions around the data structures selected for the commitment, as well as the introduction of difficulty modulation and volume estimation. In particular, the key issues and difference of the existing implementation relative to the algorithm presented by Relay Mining are \cite{githubRewardProtocol} \cite{githubProbabilisticProofs}:
+The foundation of the problem statement in Section \ref{problem-statement} emerged from the challenges faced by a live permissionless network of RPC providers, notably Pocket Network. This network, built on Tendermint BFT \cite{tendermint}, began operation on October 22, 2021, and has served as a decentralized RPC provider, reaching a peak of 2 billion relays per day by May 8, 2023. Addressing the scalability of processing such a vast number of relays was the results of the following protocol characteristics:
 
 \begin{enumerate}
-    \item A balanced (complete) Merkle Tree is currently used instead of a Sparse Merkle Tree.
-    \item The Merkle Tree implementation selected (IAVL) is inefficient in terms of proof sizes, storage, as well as processing \cite{githubIAVL}.
-    \item Every single relay processed by a Servicer is committed locally instead of using the hash collision mechanism described below.
-    \item The leaves in the locally built tree are sorted (for replay protection) prior to insertion leading to additional inefficiency and security repercussions \cite{alin2023sortedleaves}.
-    \item Due to the reasons above, the majority of each block (~70\%) is composed of Merkle Proofs.    
-    \item The addition of new Applications and Services (i.e. blockchains) cannot be permissionless, as it would lead to additional state bloat.
+    \item Utilization of a balanced (complete) Merkle Tree (IAVL) for relay book-keeping commitments. ~\cite{githubIAVL}
+    \item Representation of each relay by a single leaf in the form of a signed (request, response) pair.
+    \item Sorting of leaves in the Merkle Tree before insertion to ensure replay protection.
+    \item Allocation of a significant portion (70\%) of each block to Merkle Proofs.
+    \item Handling of hundreds to thousands of requests per second by each provider.
 \end{enumerate}
+
+These practices, especially the sorting of leaves for replay protection, introduced significant processing inefficiencies and security vulnerabilities \cite{alin2023sortedleaves}.
+
+The Relay Mining algorithm proposes enhancements to address these inefficiencies within a permissionless and decentralized network of RPC service providers. Key improvements include:
+
+\begin{enumerate}
+    \item Implementation of a Sparse Merkle Sum Tree, which is more efficient in both storage and updates.
+    \item Use of a hash collision mechanism to manage relay proofs, thereby decoupling tree size from demand growth.
+    \item Employment of a ClosestMerkleProof proof-of-inclusion scheme to validate the work done without needing to sort the Merkle Tree.
+\end{enumerate}
+
 
 \section{Related Work}
 
@@ -421,7 +416,7 @@ The values assigned to these variables are not fixed and are estimated based on 
 
 \subsection{dApp Work Estimation}
 
-A key component of the protocol method is the correct estimation of work performed by a decentralized Application (dApp). This estimation is crucial for accurately processing the service payments from the dApp, which involves token burning, and for rewarding the Servicers, which involves token minting.\footnote{For simplicity, we assume a one-to-one mapping from an on-chain Application actor to a single dApp making RPC requests, though in theory, multiple dApps could leverage the key of a single Application.}
+A key component of the protocol method is the correct estimation of work performed by a dApp. This estimation is crucial for accurately processing the service payments from the dApp, which involves token burning, and for rewarding the Servicers, which involves token minting.\footnote{For simplicity, we assume a one-to-one mapping from an on-chain Application actor to a single dApp making RPC requests, though in theory, multiple dApps could leverage the key of a single Application.}
 
 As explained in Section~\ref{difficulty-modulation}, the difficulty modulation relies on estimating the total relays per block on a given chain, where each chain can have multiple dApps. Given that the total number of relays $R$ is distributed among $A$ staked dApps, it is important to consider how edge cases could influence the bias and variability of the dApp relay volume estimation.
 
@@ -454,7 +449,7 @@ The resulting bias and variability are illustrated in heat maps in Fig.\ref{fig:
 
 \section{Experimentation on Pocket Network V0}
 
-The proposed schema is expected to work under almost any kind of relay volumes and variations. This kind of relay volume variations can be easily obtained from the Pocket Network v0, as all relay data is tracked on its blockchain. Using it, it is possible to have an insight of how is the behaviour of the relay mining approach on real traffic data and know the expected errors and bias of implementing it. 
+The proposed schema is expected to work under almost any kind of relay volumes and variations. This kind of relay volume variations can be easily obtained from the Pocket Network v0, as all relay data is tracked on its blockchain. Using this, it is possible to have an insight of how relay mining behaves on real traffic data and know the expected errors and bias of implementing it. 
 
 The analysis include the bias, variation and transitory effects in the estimation of the blochchain traffic for four different served blockchains with different volume sizes and transitions. The used parameters were the same as presented in algorithm~\ref{algo_diff}. The main findings are summarized in table~\ref{table:v0tests}, the complete analysis is shown in the Appendix II. It can be seen that the transient effects on the target number of claims are significant but short lived, however the estimation of the total relay volume (responsible of controlling the difficulty) does not spike, ensuring an effective control of the proposed strategy.
 
@@ -509,6 +504,32 @@ Finally, it is important to note that several relevant concepts in decentralized
 
 % \chapter{Network Actors}
 \section*{Appendix I}
+
+
+% TODO(Ramiro), improvements:
+% 1. I feel like a line chart can be very impactful for showing traffic growth over time
+% 2. The second paragraph can be easily represented as a pie chart
+\subsection{Pocket Network Stats}\label{network-stats}
+
+Since its genesis on October 22, 2021, up to the current date (May 10, 2023), Pocket Network has processed over 465 billion successful relays. During this period, the number of served relays per day increased from approximately 1.5 million to 1.5 billion, with a peak of 2 billion on May 8, 2023. The total relay traffic is composed of an increasing number of blockchains, currently supporting 50, distributed over 14 gateways, and over 12 major, with many minor, infrastructure providers across all continents. The performance from May 3, 2023, to May 10, 2023, on the dominant blockchains is presented in table~\ref{tab:stats-pokt}.
+
+\begin{table}
+    \caption{Main stats of the largest blockchains in the Pocket Network, from May 3rd, 2023 to May 10th, 2023. The data is averaged across all gateways, and distributed globally.}
+    \label{tab:stats-pokt}
+    \begin{tabularx}{\textwidth}{|C|C|C|C|C|C|C|}
+        \hline Blockchain &  Share of Total Traffic [\%] & Volume [relays] & Avg. TPS & Peak TPS & Avg. Latency [ms] & Success Rate [\%] \\
+        \hline
+            Ethereum        &  $28.1$ & $365\times 10^6$ &  8300 &  16500 &  138 & 99.7039  \\
+            Polygon Mainnet &  $25.3$ & $326\times 10^6$ &  3200 &   4700 &  130 & 99.7200 \\
+            DFKchain Subnet &  $12.5$ & $164\times 10^6$ &  1800 &   2400 &  121 & 99.4618 \\
+            Gnosis - xDai   &  $10.2$ & $132\times 10^6$ &  1500 &   2200 &  152 & 99.8337 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+The network is composed of 20,000 nodes; however, this number does not correlate with the number of deployed blockchain nodes. The current version of the protocol cannot verifiably prove the real number of blockchain nodes, as the Servicers are permissionless, but a rough estimate can be obtained through the nodes' service domains. The largest Servicer group has approximately 5,000 nodes (about 25\% of the network), followed by two others with around 2,500 nodes each (about 12.5\% of the network each). Then, the number of nodes by domain decreases. Around 90\% of the network is held by 14 independent domains. Assuming no blockchain node is shared among node runners~\footnote{This is a fair assumption given the competitive play between node runners.} and that each node runner has at least two nodes per staked blockchain~\footnote{Accounting for redundancy or geographical distribution of blockchain nodes.}, the Pocket Network has more than 30 independent blockchain servers on each of the main served blockchains. It is important to note that this is only an estimation; however, the number is significant in terms of decentralization and reliability.
+
+\subsection{Network Actors}
 
 Fig.~\ref{fig:v1-actors} illustrates the interaction and responsibilities between the various protocol actors in Pocket Network. It is important to note that in the current, live iteration of the protocol, the \textit{Portals} and the \textit{Watchers} are off-chain and consolidated as a single entity. The roles of all the actors are outlined below. In the context of Relay Mining, the key item to note is that Applications pay for access to RPC services, and Servicers earn in exchange for handling those requests.
 
