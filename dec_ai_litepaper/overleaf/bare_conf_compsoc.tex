@@ -20,7 +20,7 @@
 %% Legal Notice:
 %% This code is offered as-is without any warranty either expressed or
 %% implied; without even the implied warranty of MERCHANTABILITY or
-%% FITNESS FOR A PARTICULAR PURPOSE!
+%% FITNESS FOR A PARTICULAR PURPOSE! 
 %% User assumes all risk.
 %% In no event shall the IEEE or any contributor to this code be liable for
 %% any damages or losses, including, but not limited to, incidental,
@@ -149,7 +149,7 @@
 % graphicx was written by David Carlisle and Sebastian Rahtz. It is
 % required if you want graphics, photos, etc. graphicx.sty is already
 % installed on most LaTeX systems. The latest version and documentation
-% can be obtained at:
+% can be obtained at: 
 % http://www.ctan.org/pkg/graphicx
 % Another good source of documentation is "Using Imported Graphics in
 % LaTeX2e" by Keith Reckdahl which can be found at:
@@ -370,10 +370,10 @@
 % of the page (and note that there is less available width in this regard for
 % compsoc conferences compared to traditional conferences), use this
 % alternative format:
-%
+% 
 %\author{\IEEEauthorblockN{Michael Shell\IEEEauthorrefmark{1},
 %Homer Simpson\IEEEauthorrefmark{2},
-%James Kirk\IEEEauthorrefmark{3},
+%James Kirk\IEEEauthorrefmark{3}, 
 %Montgomery Scott\IEEEauthorrefmark{3} and
 %Eldon Tyrell\IEEEauthorrefmark{4}}
 %\IEEEauthorblockA{\IEEEauthorrefmark{1}School of Electrical and Computer Engineering\\
@@ -423,7 +423,7 @@ POKT Network's decentralized Remote Procedure Call (RPC) infrastructure, surpass
 \section{Introduction}
 
 \subsection{ LLM Inference \& Web3 Full Nodes}
-The advent of OpenAI’s ChatGPT brought foundation models into the mainstream. With it, the ecosystem of fine-tuning, distributing, evaluating and optimizing models has become ubiquitous. Companies like Meta are training and open-sourcing~\cite{metaIntroducingMeta} models ranging from 8B (small) to over 400B (large) parameters, often referred to as Large Models (LMs), Large Language Models (LLMs), or Large Multimodal Models (LMMs). Platforms like HuggingFace have become central hubs for sharing and discovering new models, hosting hundreds of thousands~\cite{greataipromptsEveryHugging} of open-source models from institutions and independent researchers.
+The advent of OpenAI’s ChatGPT brought foundation models into the mainstream. With it, the ecosystem of fine-tuning, distributing, evaluating and optimizing models has become ubiquitous. Companies like Meta are training and open-sourcing~\cite{metaIntroducingMeta} models ranging from 8B (small) to over 400B (large) parameters, often referred to as Language Models (LMs), Large Language Models (LLMs), or Large Multimodal Models (LMMs). Platforms like HuggingFace have become central hubs for sharing and discovering new models, hosting hundreds of thousands~\cite{greataipromptsEveryHugging} of open-source models from institutions and independent researchers.
 
 Although some models can be hosted on personal devices~\cite{pytorchExecuTorchAlpha}, most AI engineers~\cite{latentRiseEngineer} rely on third-party services with less resource-constrained hardware for reliable and cost-effective inference maintained by dedicated teams. These LLM API Providers~\cite{artificialanalysisProviderLeaderboard} create a disjoint and inconsistent ecosystem that varies in models offered, APIs, tooling with little visibility into what drives their cost structure or how new models are added to their offering list.
 
@@ -435,7 +435,7 @@ POKT Network~\cite{poktWeb3Infrastructure} has been live on MainNet since 2020, 
 
 The POKT Network protocol's core Relay Mining~\cite{olshansky2023relay} algorithm acts as an on-chain metering system that cryptographically verifies how many network requests were serviced for some Application by a particular Supplier for a given service. Similar to how Bitcoin~\cite{nakamoto2008bitcoin} operates as a permissionless timestamp server, POKT serves as a permissionless, verifiable request counter or optimistic multi-tenant rate limiter. This forces Suppliers to generate a useful proof of work when servicing RPC requests, and incentivizes them to upkeep high-quality, honest services, since Applications will seek alternative providers if quality or honesty declines.
 
-POKT Network provides this via an open internet infrastructure layer which coordinates an established network of Suppliers, atop of which a growing ecosystem of Gateways provide additional products and services. Though Applications can access the network directly, Gateways provide a mechanism to access the protocol's network while abstracting out its complexities. By vertically decoupling in this way, each network participant optimizes an aspect of performance, while preserving open access to infrastructure that is rapidly becoming a core digital public utility.
+POKT Network provides this via an open internet infrastructure layer which coordinates an established network of Suppliers, atop of which a growing ecosystem of Gateways provide additional products and services. Though Applications can access the network directly, Gateways provide a mechanism to access the protocol's network while abstracting out its complexities. By vertically decoupling in this way, each network participant optimizes an aspect of performance, while preserving open access to infrastructure that is rapidly becoming a core digital public utility. 
 
 \section{Core Problem}
 
@@ -443,7 +443,7 @@ POKT Network provides this via an open internet infrastructure layer which coord
 
 The AI landscape is evolving rapidly and the next few years will be pivotal in determining the balance of open vs closed source foundation models, their financialization, and the API providers that facilitate access to them. Growth, adoption, and returns will be driven by tooling, incentivization and accessibility that creates equal opportunity for all of the stakeholders involved by vertically decoupling the stack and tackling the following challenges:
 \begin{itemize}
-    \item \textbf{Restricted model experimentation:} the resource-intensive nature of infrastructure restricts the ability of AI researchers and AI-enabled applications to explore a variety of models. Outsourcing that infrastructure to a vertically integrated partner - LLM API Providers - removes the infrastructure constraint but restricts the available range to their supported models.
+    \item \textbf{Restricted model experimentation:} the resource-intensive nature of infrastructure restricts the ability of AI researchers and AI-enabled applications to explore a variety of models. Outsourcing that infrastructure to a vertically integrated partner - LLM API Providers - removes the infrastructure constraint but restricts the available range to their supported models. 
     \item \textbf{Lack of a sustainable business model for open source innovation:} independent ML engineers struggle to distribute and monetize their models and are increasingly reliant on being picked up by major infrastructure providers who, in turn, are able to squeeze their incentives. This is not conducive to sustained innovation and the emergence of supportive ecosystems.
     \item \textbf{Unequal market access:} vertically integrated infrastructure companies are incentivized to prioritize enterprise-grade customers who favour top-tier models on high-end hardware. Affordable inference for mid-tier models on mid-tier hardware, therefore, becomes harder to come by, squeezing out the middle of the market.
 \end{itemize}
@@ -455,7 +455,7 @@ An application calls a remote server, where the request acts as the prompt.
 The remote server runs a procedure (the model).
 The Remote Procedure Call (RPC) is completed when the generated response returns to the application.
 
-By vertically decoupling the infrastructure layer from the product and services layer, POKT Network’s foundational infrastructure remains open and fully decentralized, while end users benefit from a growing ecosystem of Gateways that provide competitive levels of innovation, UX, and quality of service. In addition, its on-chain cryptographic rate-limiting design incentivizes high-quality service delivery and creates alignment among all network stakeholders.
+By vertically decoupling the infrastructure layer from the product and services layer, POKT Network’s foundational infrastructure remains open and fully decentralized, while end users benefit from a growing ecosystem of Gateways that provide competitive levels of innovation, UX, and quality of service. In addition, its on-chain cryptographic rate-limiting design incentivizes high-quality service delivery and creates alignment among all network stakeholders. 
 
 POKT Network enables Decentralized AI Inference through:
 \begin{itemize}
@@ -468,19 +468,31 @@ POKT Network enables Decentralized AI Inference through:
 
 \section{Decentralized AI Inference Stakeholders}
 
+A comparison of the decentralized stack versus the centralized providers is shown in figure~\ref{fig_stakeholders}. Each participant is described below (from top to bottom):
+
 \begin{figure*}[!h]
 \centering
 \includegraphics[width=0.9\linewidth]{stakeholders.jpeg}
 \caption{Comparison of POKT Network's AI API actors versus centralized API service providers.}
-\label{fig_sim}
+\label{fig_stakeholders}
 \end{figure*}
 
-\subsection{Model Champions: AI Researchers \& ML Engineers}
-Model Champions are individuals, teams or institutions that open-source newly trained or fine-tuned models. Often seeking users or testers, they lack the capital or expertise to deploy and manage their own performant hardware.
 
-After publishing a model on the network, Champions leverage social forums to drive demand and collaborate with Suppliers to support it. In return, they earn a perennial revenue share from the model's success. This revenue share is a fraction of the fees paid in POKT by Applications to Suppliers for inference services, proportionate to the volume performed (i.e. the number of estimated on-chain requests).
+\subsection{Model Providers: Gateways \& Watchers}
 
-This business model innovation enables researchers at academic institutions to earn revenue from their work's success without building customer-facing infrastructure, making it an attractive opportunity for contributors. Currently, grants and donations are the primary source of revenue supporting such stakeholders~\cite{lmsysDonationsLMSYS}.
+Building and maintaining LLM infrastructure is resource intensive and likely to commoditize. As such, model Gateways are poorly incentivized to maintain it themselves, relative to dedicating the same resources to higher value-adding activities.
+
+Gateways provide the product/services layer on top of POKT Network’s decentralized infrastructure. They serve as the entry points between Applications and the POKT Network protocol by facilitating communication and abstracting away the complexity of interacting with the protocol. They play a key part in optimizing the quality of service of the underlying infrastructure (integrity, correctness, reliability, availability, uptime, throughput, latency, security, etc) in order to provide seamless access for AI-enabled applications.
+
+The POKT Network DAO funds and supports an open-source gateway ecosystem~\cite{poktGatewayServer} to make it as easy as possible for anyone with a strong interest in a particular model to build a business selling inference services for that model without having to build any of the underlying infrastructure themselves. The margin opportunity for Gateways comes from providing custom support, including enterprise-level Service Level Agreements (SLAs) \cite{groveSLA}, value-added features and custom pricing. POKT Network’s Gateway ecosystem provides another new and sustainable business model for open-source AI researchers to profit from their work without having to build out a globally scalable infrastructure back-end first.
+
+Watchers are a special type of Gateways that provide checks and guarantees on the underlying Suppliers by discreetly assessing service providers while posing as regular users, ensuring they remain undetected. It offers research communities a valuable tool to assess how models perform in real-world settings, free from any biases or conflicts of interest tied to model creators or users.
+
+
+\subsection{Model Users: Sovereign Applications}
+
+Most Applications will likely use Gateways to access the network, but direct access is also possible. This shifts SLA responsibility to the Application itself in exchange for full privacy and sovereignty. For instance, direct access prevents prompts from being aggregated by large Gateways. It also allows Applications to access the model marketplace directly, enabling experimentation with a potentially more diverse set of use cases. Lastly, it should result in cheaper access to services provided by the network as Applications will be able to avoid any off-chain cost structures imposed by the Gateways. 
+
 
 \subsection{Model Suppliers: Hardware Operators}
 
@@ -498,20 +510,13 @@ POKT Network's permissionless approach thrives on minimal friction, allowing Sup
 
 With a clear task delineation of roles and the right incentives, Suppliers focus on reducing inference costs while maximizing RPC consumption based on user demand. Developing and deploying cost-effective inference strategies, such as model quantization schemes, fast cache handling, and CPU inference, is incentivized and abstracted from the end user.
 
-\subsection{Model Providers: Gateways \& Watchers}
 
-Building and maintaining LLM infrastructure is resource intensive and likely to commoditize. As such, model Gateways are poorly incentivized to maintain it themselves, relative to dedicating the same resources to higher value-adding activities.
+\subsection{Model Champions: Engineers \& Researchers in AI and ML}
+Model Champions are individuals, teams or institutions that open-source newly trained or fine-tuned models. Often seeking users or testers, they lack the capital or expertise to deploy and manage their own performant hardware.
 
-Gateways provide the product/services layer on top of POKT Network’s decentralized infrastructure. They serve as the entry points between Applications and the POKT Network protocol by facilitating communication and abstracting away the complexity of interacting with the protocol. They play a key part in optimizing the quality of service of the underlying infrastructure (integrity, correctness, reliability, availability, uptime, throughput, latency, security, etc) in order to provide seamless access for AI-enabled applications.
+After publishing a model on the network, Champions leverage social forums to drive demand and collaborate with Suppliers to support it. In return, they earn a perennial revenue share from the model's success. This revenue share is a fraction of the fees paid in POKT by Applications to Suppliers for inference services, proportionate to the volume performed (i.e. the number of estimated on-chain requests).
 
-The POKT Network DAO funds and supports an open-source gateway ecosystem~\cite{poktGatewayServer} to make it as easy as possible for anyone with a strong interest in a particular model to build a business selling inference services for that model without having to build any of the underlying infrastructure themselves. The margin opportunity for Gateways comes from providing custom support, including enterprise-level SLAs \cite{groveSLA}, value-added features and custom pricing. POKT Network’s Gateway ecosystem provides another new and sustainable business model for open-source AI researchers to profit from their work without having to build out a globally scalable infrastructure back-end first.
-
-Watchers are a special type of Gateways that provide checks and guarantees on the underlying Suppliers by discreetly assessing service providers while posing as regular users, ensuring they remain undetected. It offers research communities a valuable tool to assess how models perform in real-world settings, free from any biases or conflicts of interest tied to model creators or users.
-
-
-\subsection{Model Users: Sovereign Applications}
-
-Most Applications will likely use Gateways to access the network, but direct access is also possible. This shifts SLA responsibility to the Application itself in exchange for full privacy and sovereignty. For instance, direct access prevents prompts from being aggregated by large Gateways. It also allows Applications to access the model marketplace directly, enabling experimentation with a potentially more diverse set of use cases. Lastly, it should result in cheaper access to services provided by the network as Applications will be able to avoid any off-chain cost structures imposed by the Gateways.
+This business model innovation enables researchers at academic institutions to earn revenue from their work's success without building customer-facing infrastructure, making it an attractive opportunity for contributors. Currently, grants and donations are the primary source of revenue supporting such stakeholders~\cite{lmsysDonationsLMSYS}.
 
 
 
@@ -547,13 +552,13 @@ A decentralized solution offers more visibility into the entire stack, benefitin
     \item \textbf{Public Model Evaluation:} Permissionless actors (Gateways, DAOs, Watchers, etc.) can build custom services to verify model performance and Supplier integrity, providing visibility and signal into actor behavior without enforcing specific attributes in the protocol on day one.
 
     \item \textbf{Privacy Preserving History:} The network operates as a mixing layer, where prompt inputs and inference responses are disseminated across a broader network.
-
+    
     \item \textbf{Censorship-Free Models:}  Being permissionless and decentralized means that models aren’t subject to specific censorship, avoiding the “Woke AI”~\cite{thefpGooglesWoke} issues we’ve seen from large companies.
 \end{itemize}
 
 \section{Web3 Ecosystem Integrations}
 
-POKT Network, as the largest decentralized RPC protocol for blockchain data, can integrate with other protocols in the broader Web3 ecosystem to bring additional efficiency and functionality to the Decentralized AI (DecAI) stack.
+POKT Network, as the largest decentralized RPC protocol for blockchain data, can integrate with other protocols in the broader Web3 ecosystem to bring additional efficiency and functionality to the Decentralized AI (DecAI) stack. The Pocket Network powers the inference layer of the ecosystem, highlighted in figure~\ref{fig_stack}.
 
 
 \begin{figure*}[!h]
@@ -601,9 +606,9 @@ DecAI inferencing enables diverse applications, ranging from AI agents and assis
 \section{Conclusion}
 By leveraging its established infrastructure, verifiable guarantees, and crypto-economic design, POKT Network unlocks a new infrastructure stack for open-source AI. Building on top of an ecosystem of Suppliers and Gateways that have been facilitating hundreds of millions of daily blockchain RPC requests, LLM inference stands to gain from the same reliable, performant and cost-effective services offered by the network.
 
-POKT Network creates a utility providing bridge between open-source AI and Web3 to create new revenue streams for AI researchers without needing to maintain infrastructure or user-facing applications. In particular, AI researchers can now directly benefit from demand for their work without having to restrict access or needing to raise large amounts of capital to monetise it. While doing so, the network can leverage mid-tier idle compute resources that do not need to be exclusively leased in use-cases such as training.
+POKT Network creates a utility providing bridge between open-source AI and Web3 to create new revenue streams for AI researchers without needing to maintain infrastructure or user-facing applications. In particular, AI researchers can now directly benefit from demand for their work without having to restrict access or needing to raise large amounts of capital to monetise it. While doing so, the network can leverage mid-tier idle compute resources that do not need to be exclusively leased in use-cases such as training. 
 
-This enables POKT's stakeholders (Champions, Applications, Suppliers, and Gateways) to build innovative, sustainable, reliable, and verifiable services. Taken together, POKT Network’s approach enables a greater diversity of models to experiment with, better market access to inference infrastructure for SMEs and a new sustainable business model for open-source AI researchers.
+This enables POKT's stakeholders (Champions, Applications, Suppliers, and Gateways) to build innovative, sustainable, reliable, and verifiable services. Taken together, POKT Network’s approach enables a greater diversity of models to experiment with, better market access to inference infrastructure for small and medium-sized enterprises and a new sustainable business model for open-source AI researchers.
 
 With POKT Network’s ecosystem-led approach to providing inference services, on-chain and off-chain innovation can move in parallel without being overly constrained by one another. Additionally, there are significant opportunities for integration across Web3 protocols, building the foundation for a standardized Decentralized AI stack.
 
@@ -615,7 +620,7 @@ The intersection of POKT and AI is a broad subject, and many engaging and critic
 \begin{itemize}
     \item \textbf{Tokenomics:} Centralized services may offer superior short-term performance, but decentralized networks can accrue and provide more value as they expand. Rapid iterations in LLMs require a comprehensive tokenomics document aligning incentives with common LLM inference performance metrics~\cite{databricksInferencePerformance} like input/output token counts, Time To First Token (TTFT), Time Per Output Token (TPOT), Latency, Throughput, etc.
 
-    \item \textbf{Trusted Execution Environment (TEE):} POKT Network can offer TEE as a marketplace option, letting users choose whether inference should be executed in a TEE. Suppliers can offer TEE via Intel SGX, AMD SEV, AWS Nitro, ARM TrustZone, etc., saving users operational overhead and earning additional revenue.
+    \item \textbf{Trusted Execution Environment (TEE):} POKT Network can offer TEE as a marketplace option, letting users choose whether inference should be executed in a TEE. Suppliers can offer TEE via Intel SGX~\cite{intelIntelSoftware}, AMD SEV~\cite{amdsev}, AWS Nitro~\cite{amazonLightweightHypervisor}, ARM TrustZone~\cite{armTrustZoneCortexA}, etc., saving users operational overhead and earning additional revenue.
 
     \item \textbf{Model verification:} Verifying the quality and origin of models is challenging in generative inference, especially on a permissionless network. Instead of limiting model diversity, our goal is to foster it. For instance, a supplier advertising Llama 70B may be running Llama 7B to cut costs. Similar to how permissionless quality-of-service evolved as blockchain RPC volume grew, various approaches will be iteratively adopted by the network as LLM volume grows as well. This will range from Suppliers on TEEs, periodic quorum checks, public benchmarks and evaluations posted by Gateways to watermarked models \cite{watermarking}, and other approaches being actively explored. Initially, we also anticipate "vibe based development" by Applications \cite{simonWillisonVibes} to lead to re-routing traffic to more performant actors or provide the necessary signal to Gateways that certain Suppliers may be faulty, low-quality or adversarial.
     \item \textbf{Adversarial Play:} Closely related to the game theory connecting tokenomics to model verification, attack mitigation requires its own dedicated document. In a permissionless environment, bad actors staking low-quality models are expected. Addressing this challenge is integral to the protocol. A separate document will be published dedicated to this topic, iterating on the tokenomics that have been driving POKT Network's sustainability over the last three plus years.
@@ -653,7 +658,7 @@ The work outlined above is a starting point and foundation layer for POKT Networ
 %\begin{figure}[!t]
 %\centering
 %\includegraphics[width=2.5in]{myfigure}
-% where an .eps filename suffix will be assumed under latex,
+% where an .eps filename suffix will be assumed under latex, 
 % and a .pdf suffix will be assumed for pdflatex; or what has been declared
 % via \DeclareGraphicsExtensions.
 %\caption{Simulation results for the network.}
@@ -669,7 +674,7 @@ The work outlined above is a starting point and foundation layer for POKT Networ
 % The subfigure \label commands are set within each subfloat command,
 % and the \label for the overall figure must come after \caption.
 % \hfil is used as a separator to get equal spacing.
-% Watch out that the combined width of all the subfigures on a
+% Watch out that the combined width of all the subfigures on a 
 % line do not exceed the text width or a line break will occur.
 %
 %\begin{figure*}[!t]
@@ -726,7 +731,7 @@ The work outlined above is a starting point and foundation layer for POKT Networ
 % in-text middle ("here") positioning is typically not used, but it
 % is allowed and encouraged for Computer Society conferences (but
 % not Computer Society journals). Most IEEE journals/conferences use
-% top floats exclusively.
+% top floats exclusively. 
 % Note that, LaTeX2e, unlike IEEE journals/conferences, places
 % footnotes above bottom floats. This can be corrected via the
 % \fnbelowfloat command of the stfloats package.
@@ -750,7 +755,7 @@ The work outlined above is a starting point and foundation layer for POKT Networ
 \fi
 
 
-The authors would like to thank the Pocket Network community for the feedback that helped to shape this document.
+The authors would like to thank Adrienne and Dermot from the Pocket Network Foundation for their guidance and graphics construction and the whole Pocket Network community for the feedback that helped to shape this document.
 
 
 
