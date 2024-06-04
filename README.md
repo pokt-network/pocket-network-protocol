@@ -21,7 +21,8 @@ The implementation of the protocol is accessible [here](https://github.com/pokt-
 
 ## arxiv
 
-You can find the `Decentralized AI: Permissionless LLM Inference on POKT Network` paper on [arxiv](https://arxiv.org/abs/2405.20450).
+1. You can find the `Decentralized AI: Permissionless LLM Inference on POKT Network` paper on [arxiv](https://arxiv.org/abs/2405.20450).
+2. You can find the `Relay Mining` paper on [arxiv](https://arxiv.org/abs/2305.10672).
 
 ## Support & Contact
 
