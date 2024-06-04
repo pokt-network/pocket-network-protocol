@@ -19,6 +19,10 @@ The implementation of the protocol is accessible [here](https://github.com/pokt-
 - [ADRs](ADRs/README.md)
 - [Utility](utility/README.md)
 
+## arxiv
+
+You can find the `Decentralized AI: Permissionless LLM Inference on POKT Network` paper on [arxiv](https://arxiv.org/abs/2405.20450).
+
 ## Support & Contact
 
 <div>
